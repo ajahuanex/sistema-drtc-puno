@@ -260,6 +260,10 @@ class RutaService:
             resolucion = await self.resoluciones_collection.find_one({
                 "_id": ObjectId(resolucion_id)
             })
+            if not resolucion and self.db is not None:
+                resolucion = await self.db["resoluciones_primigenias"].find_one({
+                    "_id": ObjectId(resolucion_id)
+                })
             
             if not resolucion:
                 raise HTTPException(
@@ -267,15 +271,17 @@ class RutaService:
                     detail=f"Resolución {resolucion_id} no encontrada"
                 )
             
-            # Validar estado VIGENTE
-            if resolucion.get("estado") != "VIGENTE":
+            # Validar estado VIGENTE (o ACTIVA)
+            estado_res = resolucion.get("estado", "VIGENTE")
+            if estado_res not in ["VIGENTE", "ACTIVA"]:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"La resolución debe estar VIGENTE. Estado actual: {resolucion.get('estado')}"
+                    detail=f"La resolución debe estar VIGENTE. Estado actual: {estado_res}"
                 )
             
-            # Validar tipo PADRE
-            if resolucion.get("tipoResolucion") != "PADRE":
+            # Validar tipo PADRE o PRIMIGENIA
+            tipo_res = resolucion.get("tipoResolucion") or resolucion.get("tipo_resolucion", "PADRE")
+            if tipo_res not in ["PADRE", "PRIMIGENIA", "AUTORIZACION PRIMIGENIA"]:
                 raise HTTPException(
                     status_code=400,
                     detail="Solo se pueden asociar rutas a resoluciones PADRE (primigenias)"
@@ -472,13 +478,25 @@ class RutaService:
             
             # 8. Actualizar relaciones en resolución (solo si tiene ID válido)
             if ruta_data.resolucion.id and ruta_data.resolucion.id.strip():
-                await self.resoluciones_collection.update_one(
-                    {"_id": ObjectId(ruta_data.resolucion.id)},
-                    {
-                        "$addToSet": {"rutasAutorizadasIds": ruta_id},
-                        "$set": {"fechaActualizacion": datetime.utcnow()}
-                    }
-                )
+                try:
+                    res_oid = ObjectId(ruta_data.resolucion.id)
+                    await self.resoluciones_collection.update_one(
+                        {"_id": res_oid},
+                        {
+                            "$addToSet": {"rutasAutorizadasIds": ruta_id},
+                            "$set": {"fechaActualizacion": datetime.utcnow()}
+                        }
+                    )
+                    if self.db is not None:
+                        await self.db["resoluciones_primigenias"].update_one(
+                            {"_id": res_oid},
+                            {
+                                "$addToSet": {"rutasAutorizadasIds": ruta_id},
+                                "$set": {"fecha_actualizacion": datetime.utcnow()}
+                            }
+                        )
+                except Exception as e_res_rel:
+                    print(f"[WARNING] No se pudo vincular ruta a resolucion {ruta_data.resolucion.id}: {e_res_rel}")
             else:
                 print(f"[WARNING] Resolución sin ID válido, saltando actualización de relaciones")
             

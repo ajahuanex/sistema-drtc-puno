@@ -16,17 +16,22 @@ class ExpedienteService:
         self.collection = db.expedientes
         self.empresa_collection = db.empresas
 
-    async def get_expedientes(self, skip: int = 0, limit: int = 100) -> List[Expediente]:
-        cursor = self.collection.find().skip(skip).limit(limit)
+    async def get_expedientes(self, skip: int = 0, limit: int = 100) -> List[dict]:
+        cursor = self.collection.find().sort("fecha_registro", -1).skip(skip).limit(limit)
         expedientes = []
         async for doc in cursor:
-            # Asegurar que el campo id esté presente (UUID)
+            if "_id" in doc:
+                doc["_id"] = str(doc["_id"])
             if "id" not in doc and "_id" in doc:
-                doc["id"] = str(doc["_id"])
-            expedientes.append(Expediente.parse_obj(doc))
+                doc["id"] = doc["_id"]
+            # Normalizar campos de fecha a string ISO
+            for k in ["fecha_emision", "fecha_registro", "fecha_actualizacion", "fechaEmision", "fechaRegistro"]:
+                if k in doc and hasattr(doc[k], "isoformat"):
+                    doc[k] = doc[k].isoformat()
+            expedientes.append(doc)
         return expedientes
 
-    async def get_expediente_by_id(self, expediente_id: str) -> Optional[Expediente]:
+    async def get_expediente_by_id(self, expediente_id: str) -> Optional[dict]:
         # Intentar buscar por UUID (campo 'id')
         expediente = await self.collection.find_one({"id": expediente_id})
         
@@ -39,9 +44,14 @@ class ExpedienteService:
                 pass
         
         if expediente:
+            if "_id" in expediente:
+                expediente["_id"] = str(expediente["_id"])
             if "id" not in expediente and "_id" in expediente:
-                expediente["id"] = str(expediente["_id"])
-            return Expediente.parse_obj(expediente)
+                expediente["id"] = expediente["_id"]
+            for k in ["fecha_emision", "fecha_registro", "fecha_actualizacion", "fechaEmision", "fechaRegistro"]:
+                if k in expediente and hasattr(expediente[k], "isoformat"):
+                    expediente[k] = expediente[k].isoformat()
+            return expediente
         return None
 
     async def get_expediente_by_numero(self, nro_expediente: str) -> Optional[dict]:

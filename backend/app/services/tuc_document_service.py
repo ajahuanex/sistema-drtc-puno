@@ -315,43 +315,76 @@ class TucDocumentService:
         else:
             fecha_al = format_fecha(vehiculo.get("fecha_vigencia_hasta"))
 
-        # 5. Obtener detalle de las rutas asociadas a la empresa y al vehículo
+        # 5. Obtener detalle de las rutas asociadas a la resolución primigenia y al vehículo
         rutas_objs = []
         cods_limpios = [str(c).strip() for c in rutas_codigos if c and str(c).strip()] if isinstance(rutas_codigos, list) else []
+        clean_res = clean_num_resolucion(nro_primigenia_raw) if nro_primigenia_raw else ""
 
-        # Búsqueda 1: Por RUC de empresa y códigos específicos del vehículo
-        if cods_limpios and ruc:
+        # Prioridad 1: Rutas autorizadas enlazadas directamente en la resolución primigenia
+        if res_prim and res_prim.get("rutasAutorizadasIds"):
+            r_ids = []
+            for rid in res_prim.get("rutasAutorizadasIds", []):
+                if ObjectId.is_valid(str(rid)):
+                    r_ids.append(ObjectId(str(rid)))
+                else:
+                    r_ids.append(str(rid))
+            if r_ids:
+                q_rids: Dict[str, Any] = {
+                    "$or": [
+                        {"_id": {"$in": [i for i in r_ids if isinstance(i, ObjectId)]}},
+                        {"id": {"$in": [str(i) for i in r_ids]}}
+                    ]
+                }
+                if cods_limpios:
+                    q_rids["codigoRuta"] = {"$in": cods_limpios}
+                rutas_objs = await db.rutas.find(q_rids).to_list(100)
+
+        # Prioridad 2: Buscar rutas por el número de la resolución primigenia
+        if not rutas_objs and nro_primigenia_raw:
+            q_res: Dict[str, Any] = {
+                "$or": [
+                    {"resolucion.nroResolucion": {"$regex": f"^{re.escape(nro_primigenia_raw)}$", "$options": "i"}},
+                    {"resolucion.nroResolucion": {"$regex": f"{re.escape(clean_res)}$", "$options": "i"}}
+                ]
+            }
+            if cods_limpios:
+                q_res["codigoRuta"] = {"$in": cods_limpios}
+            rutas_objs = await db.rutas.find(q_res).to_list(100)
+
+        # Prioridad 3: Búsqueda por RUC de empresa y códigos específicos del vehículo
+        if not rutas_objs and cods_limpios and ruc:
             rutas_cursor = db.rutas.find({
                 "empresa.ruc": ruc,
                 "codigoRuta": {"$in": cods_limpios}
             })
             rutas_objs = await rutas_cursor.to_list(100)
 
-        # Búsqueda 2: Si no hubo coincidencia con RUC, buscar códigos en general
-        if not rutas_objs and cods_limpios:
-            rutas_cursor = db.rutas.find({"codigoRuta": {"$in": cods_limpios}})
-            rutas_objs = await rutas_cursor.to_list(100)
-
-        # Búsqueda 3: Si el vehículo no tenía lista de rutas, tomar todas las de la empresa por su RUC
+        # Prioridad 4: Fallback por RUC de empresa
         if not rutas_objs and ruc:
             rutas_cursor = db.rutas.find({"empresa.ruc": ruc})
             rutas_objs = await rutas_cursor.to_list(100)
 
-        # Búsqueda 4: Por número de resolución primigenia en resolucion.nroResolucion
-        if not rutas_objs and nro_primigenia_raw:
-            clean_res = clean_num_resolucion(nro_primigenia_raw)
-            rutas_cursor = db.rutas.find({"resolucion.nroResolucion": {"$regex": re.escape(clean_res), "$options": "i"}})
-            rutas_objs = await rutas_cursor.to_list(100)
+        # Construir mapa priorizando la coincidencia con la resolución primigenia
+        rutas_map = {}
+        for r in rutas_objs:
+            c = str(r.get("codigoRuta", "")).strip()
+            if not c:
+                continue
+            if c not in rutas_map:
+                rutas_map[c] = r
+            else:
+                r_res = str((r.get("resolucion") or {}).get("nroResolucion", "")).upper()
+                if clean_res and clean_res.upper() in r_res:
+                    rutas_map[c] = r
 
-        rutas_map = {str(r.get("codigoRuta", "")).strip(): r for r in rutas_objs}
         rutas_lineas = []
         rutas_para_frontend = []
 
         # Determinar lista de códigos ordenados a procesar
         if cods_limpios:
             cods_a_procesar = sorted(cods_limpios)
-        elif rutas_objs:
-            cods_a_procesar = sorted([str(r.get("codigoRuta", "")).strip() for r in rutas_objs if r.get("codigoRuta")])
+        elif rutas_map:
+            cods_a_procesar = sorted(list(rutas_map.keys()))
         else:
             cods_a_procesar = []
 

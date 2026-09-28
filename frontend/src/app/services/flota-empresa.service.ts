@@ -68,6 +68,8 @@ export interface VehiculoEmpresa {
   tramite?: string;
   detalles?: string;
   porcentaje?: string;
+  orden_cronologico?: number;
+  fila_origen_matriz?: number;
   fecha_registro?: string;
   fecha_actualizacion?: string;
   esta_activo: boolean;
@@ -93,6 +95,7 @@ export interface ResumenEmpresa {
   habilitados: number;
   inhabilitados: number;
   primigenias: string[];
+  estado?: string;
 }
 
 export interface EstadisticasFlota {

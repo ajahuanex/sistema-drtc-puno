@@ -145,6 +145,8 @@ app.include_router(permisos_router, prefix=api_prefix)
 app.include_router(inicializador_router, prefix=api_prefix)
 from app.routers.bajas_router import router as bajas_router
 app.include_router(bajas_router, prefix=api_prefix)
+from app.routers.tramites_administrativos_router import router as tramites_admin_router
+app.include_router(tramites_admin_router, prefix=api_prefix)
 
 # Endpoint de salud
 @app.get("/api/v1/health", tags=["Health"])

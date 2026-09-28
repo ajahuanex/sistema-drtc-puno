@@ -239,7 +239,13 @@
               <!-- Fecha -->
               <ng-container matColumnDef="fecha">
                 <th mat-header-cell *matHeaderCellDef class="sortable-th">Fecha</th>
-                <td mat-cell *matCellDef="let element"><strong>{{element.fecha}}</strong></td>
+                <td mat-cell *matCellDef="let element">
+                  @if (element.fecha && element.fecha !== 'No consignada' && element.fecha !== 'S/F') {
+                    <strong style="font-size: 0.83rem;">{{element.fecha}}</strong>
+                  } @else {
+                    <span style="color: #94a3b8; font-size: 0.78rem; font-style: italic;">Sin fecha</span>
+                  }
+                </td>
               </ng-container>
 
               <!-- Empresa -->
@@ -448,7 +454,12 @@
                           onmouseover="this.style.background='#eff6ff'"
                           onmouseout="this.style.background='white'">
                           <div>
-                            <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">{{emp.razon_social}}</div>
+                            <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+                              <span>{{emp.razon_social}}</span>
+                              @if (emp.estado === 'CANCELADA') {
+                                <span style="font-size: 0.68rem; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 1px 6px; border-radius: 4px; font-weight: 700;">CANCELADA</span>
+                              }
+                            </div>
                             <span style="color: #64748b; font-size: 0.8rem; font-family: monospace;">RUC: {{emp.ruc}}</span>
                           </div>
                           <span style="font-size: 0.75rem; background: #f1f5f9; color: #1d4ed8; padding: 3px 8px; border-radius: 6px; font-weight: bold;">
@@ -463,53 +474,125 @@
                     </div>
                   } @else {
                     <!-- Ficha de la Empresa Seleccionada -->
-                    <div style="padding: 1rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="padding: 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;"
+                         [style.background]="esEmpresaCancelada() ? '#fef2f2' : '#eff6ff'"
+                         [style.border]="esEmpresaCancelada() ? '1.5px solid #fca5a5' : '1px solid #bfdbfe'">
                       <div>
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                          <span class="badge-autorizada" [ngClass]="empresaBuscada().estado === 'ACTIVO' ? 'status-autorizada' : 'status-suspendida'">
-                            {{empresaBuscada().estado}}
+                          <span class="badge-autorizada" 
+                                [style.background]="esEmpresaCancelada() ? '#dc2626' : (empresaBuscada().estado === 'ACTIVO' ? '#16a34a' : '#2563eb')"
+                                [style.color]="'white'"
+                                style="font-weight: 700; padding: 3px 8px; border-radius: 4px;">
+                            {{empresaBuscada().estado || 'ACTIVO'}}
                           </span>
                           <span style="font-size: 0.85rem; color: #475569; font-family: monospace; font-weight: 600;">RUC: {{empresaBuscada().ruc}}</span>
                         </div>
-                        <h3 style="font-size: 1.1rem; font-weight: bold; color: #1e3a8a; margin: 0;">{{empresaBuscada().razon_social}}</h3>
+                        <h3 style="font-size: 1.1rem; font-weight: bold; margin: 0;" [style.color]="esEmpresaCancelada() ? '#991b1b' : '#1e3a8a'">
+                          {{empresaBuscada().razon_social}}
+                        </h3>
                       </div>
                       <div style="text-align: right;">
                         <span style="font-size: 0.75rem; color: #64748b; display: block;">Flota Registrada</span>
-                        <strong style="font-size: 1.25rem; color: #1d4ed8;">{{empresaBuscada().flota}} vehs.</strong>
+                        <strong style="font-size: 1.25rem;" [style.color]="esEmpresaCancelada() ? '#dc2626' : '#1d4ed8'">
+                          {{empresaBuscada().flota}} vehs.
+                        </strong>
                       </div>
                     </div>
+
+                    <!-- ALERTA RESTRICTIVA SI LA EMPRESA ESTÁ CANCELADA -->
+                    @if (esEmpresaCancelada()) {
+                      <div style="margin-top: 0.85rem; padding: 0.9rem 1.15rem; background: #fff1f2; border: 1.5px solid #fda4af; border-radius: 8px; display: flex; gap: 0.85rem; align-items: flex-start;">
+                        <mat-icon style="color: #e11d48; font-size: 24px; width: 24px; height: 24px; flex-shrink: 0; margin-top: 1px;">gavel</mat-icon>
+                        <div>
+                          <div style="font-weight: 700; color: #9f1239; font-size: 0.88rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>EMPRESA CANCELADA / SANCIONADA</span>
+                            <span style="font-size: 0.7rem; background: #e11d48; color: white; padding: 1px 6px; border-radius: 4px; font-weight: bold;">TRÁMITES ORDINARIOS NO DISPONIBLES</span>
+                          </div>
+                          <p style="color: #be123c; font-size: 0.82rem; margin: 0.3rem 0 0 0; line-height: 1.35;">
+                            Esta empresa de transporte se encuentra en estado <strong>CANCELADA</strong>. 
+                            De acuerdo a la normativa vigente, <strong>está prohibido tramitar incrementos, sustituciones, renovaciones o modificaciones ordinarias</strong> sobre concesiones canceladas. 
+                            Únicamente se permite el trámite de <strong>Reactivación / Mandato Judicial</strong> para dar cumplimiento a una orden judicial o acto de rehabilitación formal.
+                          </p>
+                        </div>
+                      </div>
+                    }
                   }
                 </div>
 
-                <!-- SECCIÓN B: TIPO DE TRÁMITE (8 BOTONES) -->
-                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-                  <h4 style="font-size: 0.95rem; font-weight: bold; color: #1e293b; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                    <mat-icon style="color: #2563eb; font-size: 22px;">category</mat-icon>
-                    2. Seleccione el Tipo de Trámite a Iniciar
-                  </h4>
+                <!-- SECCIÓN B: TIPO DE TRÁMITE ORGANIZADO EN DOS CATEGORÍAS -->
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 1.25rem;">
+                  
+                  <!-- Grupo 1: Trámites de Flota Vehicular -->
+                  <div [style.opacity]="esEmpresaCancelada() ? '0.4' : '1'" [style.pointerEvents]="esEmpresaCancelada() ? 'none' : 'auto'">
+                    <h4 style="font-size: 0.9rem; font-weight: bold; color: #1e293b; margin: 0 0 0.75rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                      <mat-icon style="color: #2563eb; font-size: 20px;">directions_bus</mat-icon>
+                      2.A Trámites de Flota Vehicular (con Placas / Emisión de TUCs)
+                      @if (esEmpresaCancelada()) {
+                        <span style="font-size: 0.7rem; background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; margin-left: 0.5rem;">No permitido para empresa cancelada</span>
+                      }
+                    </h4>
 
-                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem;">
-                    @for (tramite of tiposTramite; track tramite.id) {
-                      <button 
-                           type="button"
-                           (click)="seleccionarTramite(tramite.id)" 
-                           style="display: flex; flex-direction: column; align-items: center; padding: 0.85rem 0.5rem; border-radius: 10px; border: 1px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s; position: relative;"
-                           [style.background]="tramiteSeleccionado() === tramite.id ? '#2563eb' : 'white'"
-                           [style.color]="tramiteSeleccionado() === tramite.id ? 'white' : '#334155'"
-                           [style.borderColor]="tramiteSeleccionado() === tramite.id ? '#2563eb' : '#e2e8f0'"
-                           [style.boxShadow]="tramiteSeleccionado() === tramite.id ? '0 8px 16px -2px rgba(37,99,235,0.3)' : 'none'"
-                           [style.transform]="tramiteSeleccionado() === tramite.id ? 'translateY(-2px)' : 'none'">
-                        
-                        <div style="width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;"
-                             [style.background]="tramiteSeleccionado() === tramite.id ? 'rgba(255,255,255,0.2)' : '#f1f5f9'">
-                          <mat-icon [style.color]="tramiteSeleccionado() === tramite.id ? 'white' : '#2563eb'">{{tramite.icono}}</mat-icon>
-                        </div>
-                        
-                        <h4 style="font-weight: bold; margin-bottom: 0.2rem; font-size: 0.85rem; text-align: center;">{{tramite.nombre}}</h4>
-                        <p style="font-size: 0.7rem; text-align: center; opacity: 0.85; margin: 0;">{{tramite.desc}}</p>
-                      </button>
-                    }
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.65rem;">
+                      @for (tramite of tiposTramiteFlota; track tramite.id) {
+                        <button 
+                             type="button"
+                             [disabled]="esEmpresaCancelada()"
+                             (click)="seleccionarTramite(tramite.id)" 
+                             style="display: flex; flex-direction: column; align-items: center; padding: 0.75rem 0.5rem; border-radius: 10px; border: 1px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s;"
+                             [style.background]="tramiteSeleccionado() === tramite.id ? '#2563eb' : 'white'"
+                             [style.color]="tramiteSeleccionado() === tramite.id ? 'white' : '#334155'"
+                             [style.borderColor]="tramiteSeleccionado() === tramite.id ? '#2563eb' : '#e2e8f0'"
+                             [style.boxShadow]="tramiteSeleccionado() === tramite.id ? '0 6px 14px -2px rgba(37,99,235,0.25)' : 'none'">
+                          <div style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 0.4rem;"
+                               [style.background]="tramiteSeleccionado() === tramite.id ? 'rgba(255,255,255,0.2)' : '#eff6ff'">
+                            <mat-icon style="font-size: 20px; width: 20px; height: 20px;" [style.color]="tramiteSeleccionado() === tramite.id ? 'white' : '#2563eb'">{{tramite.icono}}</mat-icon>
+                          </div>
+                          <h5 style="font-weight: bold; margin: 0 0 0.15rem 0; font-size: 0.8rem; text-align: center;">{{tramite.nombre}}</h5>
+                          <p style="font-size: 0.68rem; text-align: center; opacity: 0.85; margin: 0;">{{tramite.desc}}</p>
+                        </button>
+                      }
+                    </div>
                   </div>
+
+                  <hr style="border: 0; border-top: 1px dashed #e2e8f0; margin: 0;">
+
+                  <!-- Grupo 2: Trámites Corporativos y de Concesión (Sin Placas) -->
+                  <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                      <h4 style="font-size: 0.9rem; font-weight: bold; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <mat-icon style="color: #7c3aed; font-size: 20px;">account_balance</mat-icon>
+                        2.B Trámites Corporativos y de Concesión (Actos Administrativos sin Placas)
+                      </h4>
+                      <span style="font-size: 0.72rem; background: #f5f3ff; color: #7c3aed; padding: 2px 8px; border-radius: 999px; font-weight: 600; border: 1px solid #ddd6fe;">Ámbito Institucional</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.65rem;">
+                      @for (tramite of tiposTramiteCorporativos; track tramite.id) {
+                        <button 
+                             type="button"
+                             [disabled]="esEmpresaCancelada() && tramite.id !== 'REACTIVACION_JUDICIAL'"
+                             (click)="seleccionarTramite(tramite.id)" 
+                             style="display: flex; flex-direction: column; align-items: center; padding: 0.75rem 0.5rem; border-radius: 10px; border: 1px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s;"
+                             [style.opacity]="(esEmpresaCancelada() && tramite.id !== 'REACTIVACION_JUDICIAL') ? '0.35' : '1'"
+                             [style.background]="tramiteSeleccionado() === tramite.id ? '#7c3aed' : (esEmpresaCancelada() && tramite.id === 'REACTIVACION_JUDICIAL' ? '#faf5ff' : 'white')"
+                             [style.color]="tramiteSeleccionado() === tramite.id ? 'white' : '#334155'"
+                             [style.borderColor]="tramiteSeleccionado() === tramite.id ? '#7c3aed' : (esEmpresaCancelada() && tramite.id === 'REACTIVACION_JUDICIAL' ? '#7c3aed' : '#e2e8f0')"
+                             [style.borderWidth]="(esEmpresaCancelada() && tramite.id === 'REACTIVACION_JUDICIAL') ? '2px' : '1px'"
+                             [style.boxShadow]="tramiteSeleccionado() === tramite.id ? '0 6px 14px -2px rgba(124,58,237,0.25)' : 'none'">
+                          <div style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 0.4rem;"
+                               [style.background]="tramiteSeleccionado() === tramite.id ? 'rgba(255,255,255,0.2)' : '#f5f3ff'">
+                            <mat-icon style="font-size: 20px; width: 20px; height: 20px;" [style.color]="tramiteSeleccionado() === tramite.id ? 'white' : '#7c3aed'">{{tramite.icono}}</mat-icon>
+                          </div>
+                          <h5 style="font-weight: bold; margin: 0 0 0.15rem 0; font-size: 0.8rem; text-align: center;">{{tramite.nombre}}</h5>
+                          <p style="font-size: 0.68rem; text-align: center; opacity: 0.85; margin: 0;">{{tramite.desc}}</p>
+                          @if (esEmpresaCancelada() && tramite.id === 'REACTIVACION_JUDICIAL') {
+                            <span style="margin-top: 4px; font-size: 0.65rem; background: #7c3aed; color: white; padding: 1px 6px; border-radius: 999px; font-weight: bold;">Trámite Habilitado</span>
+                          }
+                        </button>
+                      }
+                    </div>
+                  </div>
+
                 </div>
 
                 <!-- Fin Selección Empresa y Trámite -->
@@ -523,43 +606,89 @@
                 
                 <div style="display: grid; grid-template-columns: 1fr; gap: 1.25rem;">
                   
-                  <!-- Resolución Afectada -->
-                  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
-                    <div style="background: #f8fafc; padding: 0.85rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
-                      <h4 style="font-size: 0.85rem; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                        <mat-icon style="color: #2563eb; font-size: 20px;">gavel</mat-icon> Resolución Afectada
-                      </h4>
-                    </div>
-                    <div style="padding: 1.25rem;">
-                      <form [formGroup]="resolucionForm">
-                        <mat-form-field appearance="outline" style="width: 100%;">
-                          <mat-label>Seleccione la Resolución Primigenia</mat-label>
-                          <mat-select formControlName="nro_resolucion_primigenia">
-                            @for (res of resoluciones(); track res.id) {
-                              <mat-option [value]="res.nro_resolucion">
-                                {{res.nro_resolucion}} <span style="color: #64748b; font-size: 0.8rem;">(Vigente)</span>
-                              </mat-option>
-                            } @empty {
-                              <mat-option disabled>La empresa no tiene resoluciones primigenias registradas</mat-option>
-                            }
-                          </mat-select>
-                        </mat-form-field>
-                      </form>
+                  @if (!esTramiteEmpresa()) {
+                    <!-- Resolución Afectada -->
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
+                      <div style="background: #f8fafc; padding: 0.85rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
+                        <h4 style="font-size: 0.85rem; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                          <mat-icon style="color: #2563eb; font-size: 20px;">gavel</mat-icon> Resolución de Concesión Afectada
+                        </h4>
+                      </div>
+                      <div style="padding: 1.25rem;">
+                        <form [formGroup]="resolucionForm">
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Seleccione la Resolución Primigenia</mat-label>
+                            <mat-select formControlName="nro_resolucion_primigenia">
+                              @for (res of resoluciones(); track res.id || res.nro_resolucion) {
+                                <mat-option [value]="res.nro_resolucion">
+                                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                    <span>{{res.nro_resolucion}}</span>
+                                    <span [style.color]="getEstadoResolucionColor(res.estado)" 
+                                          style="font-size: 0.75rem; font-weight: 700; margin-left: 0.75rem; padding: 2px 7px; border-radius: 4px; border: 1px solid currentColor;">
+                                      {{ getEstadoResolucionLabel(res.estado) }}
+                                    </span>
+                                  </div>
+                                </mat-option>
+                              } @empty {
+                                <mat-option disabled>La empresa no tiene resoluciones primigenias registradas</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        </form>
 
-                      @if (resolucionForm.get('nro_resolucion_primigenia')?.value) {
-                        <div style="margin-top: 0.75rem; padding: 0.85rem 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; gap: 0.75rem; align-items: flex-start;">
-                          <mat-icon style="color: #16a34a;">check_circle</mat-icon>
+                        @if (resolucionForm.get('nro_resolucion_primigenia')?.value) {
+                          @if (esResolucionInactiva()) {
+                            <div style="margin-top: 0.75rem; padding: 0.9rem 1rem; background: #fef2f2; border: 1.5px solid #f87171; border-radius: 8px; display: flex; gap: 0.75rem; align-items: flex-start;">
+                              <mat-icon style="color: #dc2626; font-size: 24px; width: 24px; height: 24px; flex-shrink: 0;">cancel</mat-icon>
+                              <div>
+                                <p style="color: #991b1b; font-weight: bold; margin: 0 0 0.25rem 0; font-size: 0.85rem;">
+                                  Resolución {{ getEstadoResolucionLabel(resolucionSeleccionada()?.estado) }} (No Vigente)
+                                </p>
+                                <p style="color: #b91c1c; font-size: 0.82rem; margin: 0; line-height: 1.35;">
+                                  Resolución: <strong>{{resolucionForm.get('nro_resolucion_primigenia')?.value}}</strong>. 
+                                  Esta resolución figura como <strong>{{resolucionSeleccionada()?.estado || 'INACTIVA'}}</strong> en la base de datos de DRTC Puno. 
+                                  No es factible procesar incrementos, sustituciones ni renovaciones ordinarias sobre una resolución no vigente.
+                                </p>
+                              </div>
+                            </div>
+                          } @else {
+                            <div style="margin-top: 0.75rem; padding: 0.85rem 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; gap: 0.75rem; align-items: flex-start;">
+                              <mat-icon style="color: #16a34a;">check_circle</mat-icon>
+                              <div>
+                                <p style="color: #166534; font-weight: bold; margin: 0 0 0.2rem 0; font-size: 0.85rem;">Resolución Vigente Seleccionada</p>
+                                <p style="color: #15803d; font-size: 0.85rem; margin: 0;">
+                                  Resolución: <strong>{{resolucionForm.get('nro_resolucion_primigenia')?.value}}</strong>.
+                                  Flota habilitada asociada: <strong>{{vehiculosEnResolucion().length}}</strong> vehículos.
+                                </p>
+                              </div>
+                            </div>
+                          }
+                        }
+                      </div>
+                    </div>
+                  } @else {
+                    <!-- Ámbito Corporativo (Persona Jurídica) -->
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
+                      <div style="background: #f5f3ff; padding: 0.85rem 1.25rem; border-bottom: 1px solid #ddd6fe;">
+                        <h4 style="font-size: 0.85rem; font-weight: bold; color: #5b21b6; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                          <mat-icon style="color: #7c3aed; font-size: 20px;">business</mat-icon> Ámbito Corporativo (Persona Jurídica)
+                        </h4>
+                      </div>
+                      <div style="padding: 1.25rem;">
+                        <div style="padding: 1rem; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; display: flex; gap: 0.75rem; align-items: center;">
+                          <mat-icon style="color: #7c3aed; font-size: 28px; width: 28px; height: 28px;">info</mat-icon>
                           <div>
-                            <p style="color: #166534; font-weight: bold; margin: 0 0 0.2rem 0; font-size: 0.85rem;">Resolución Seleccionada</p>
-                            <p style="color: #15803d; font-size: 0.85rem; margin: 0;">
-                              Resolución: <strong>{{resolucionForm.get('nro_resolucion_primigenia')?.value}}</strong>.
-                              Flota habilitada asociada: <strong>{{vehiculosEnResolucion().length}}</strong> vehículos.
+                            <p style="color: #5b21b6; font-weight: bold; margin: 0 0 0.2rem 0; font-size: 0.9rem;">
+                              Modificación Institucional
+                            </p>
+                            <p style="color: #6b21a8; font-size: 0.82rem; margin: 0;">
+                              Este trámite modifica la estructura general de <strong>{{empresaBuscada()?.razon_social}}</strong>. No está atado a una ruta ni a una resolución de concesión específica.
                             </p>
                           </div>
                         </div>
-                      }
+                      </div>
                     </div>
-                  </div>
+                  }
 
                   <!-- Datos del Expediente / Oficio y Resolución Modificatoria -->
                   <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
@@ -718,7 +847,329 @@
 
                 <!-- CONTENIDO DINÁMICO SEGÚN TRÁMITE -->
                 @switch (tramiteSeleccionado()) {
-                  
+
+                  <!-- CASO CORPORATIVO 1: CAMBIO DE REPRESENTANTE LEGAL -->
+                  @case ('CAMBIO_REPRESENTANTE') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                          <div style="width: 40px; height: 40px; border-radius: 10px; background: #f5f3ff; display: flex; align-items: center; justify-content: center;">
+                            <mat-icon style="color: #7c3aed;">badge</mat-icon>
+                          </div>
+                          <div>
+                            <h4 style="font-size: 1.05rem; font-weight: bold; color: #1e293b; margin: 0;">Reconocimiento de Nuevo Representante Legal</h4>
+                            <span style="font-size: 0.8rem; color: #64748b;">Actualización de la personería jurídica ante la DRTC Puno</span>
+                          </div>
+                        </div>
+                        <span style="background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1px solid #bfdbfe;">
+                          Acto Corporativo
+                        </span>
+                      </div>
+
+                      <!-- Comparador: Situación Actual -->
+                      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+                        <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; display: block; margin-bottom: 0.5rem;">
+                          Representante Registrado Actualmente
+                        </span>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                          <div>
+                            <span style="font-size: 0.75rem; color: #94a3b8; display: block;">Apellidos y Nombres</span>
+                            <strong style="color: #1e293b; font-size: 0.95rem;">{{empresaBuscada()?.representante_legal || empresaBuscada()?.representanteLegal || 'NO CONSIGNADO'}}</strong>
+                          </div>
+                          <div>
+                            <span style="font-size: 0.75rem; color: #94a3b8; display: block;">DNI</span>
+                            <strong style="color: #1e293b; font-size: 0.95rem; font-family: monospace;">{{empresaBuscada()?.dni_representante_legal || empresaBuscada()?.dniRepresentanteLegal || '—'}}</strong>
+                          </div>
+                          <div>
+                            <span style="font-size: 0.75rem; color: #94a3b8; display: block;">Partida SUNARP Registrada</span>
+                            <strong style="color: #1e293b; font-size: 0.95rem; font-family: monospace;">{{empresaBuscada()?.partida_registral || empresaBuscada()?.partidaRegistral || '—'}}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Formulario Nuevo Representante -->
+                      <form [formGroup]="tramiteAdminForm">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Nombres y Apellidos del Nuevo Representante *</mat-label>
+                            <input matInput formControlName="nuevo_representante" placeholder="Ej. PEREZ MAMANI, JUAN CARLOS" style="text-transform: uppercase; font-weight: 600;">
+                            <mat-icon matSuffix style="color: #64748b;">person</mat-icon>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>DNI del Nuevo Representante (8 dígitos) *</mat-label>
+                            <input matInput formControlName="nuevo_dni_representante" maxlength="8" placeholder="Ej. 45678901" style="font-family: monospace; font-weight: 600;">
+                            <mat-icon matSuffix style="color: #64748b;">badge</mat-icon>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Partida Electrónica SUNARP</mat-label>
+                            <input matInput formControlName="partida_registral_representante" placeholder="Ej. 11091410" style="font-family: monospace;">
+                            <mat-icon matSuffix style="color: #64748b;">menu_book</mat-icon>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Asiento Registral de Inscripción</mat-label>
+                            <input matInput formControlName="asiento_registral" placeholder="Ej. A00004" style="text-transform: uppercase; font-family: monospace;">
+                            <mat-icon matSuffix style="color: #64748b;">bookmark</mat-icon>
+                          </mat-form-field>
+                        </div>
+
+                        <mat-form-field appearance="outline" style="width: 100%; margin-top: 0.5rem;">
+                          <mat-label>Sustento Legal y Observaciones del Acto</mat-label>
+                          <textarea matInput formControlName="sustento_observaciones" rows="2" placeholder="Ej. Acreditado mediante copia literal de la partida electrónica de SUNARP Puno..."></textarea>
+                        </mat-form-field>
+                      </form>
+                    </div>
+                  }
+
+                  <!-- CASO CORPORATIVO 2: CAMBIO DE DOMICILIO LEGAL -->
+                  @case ('CAMBIO_DOMICILIO') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                          <div style="width: 40px; height: 40px; border-radius: 10px; background: #eff6ff; display: flex; align-items: center; justify-content: center;">
+                            <mat-icon style="color: #2563eb;">location_on</mat-icon>
+                          </div>
+                          <div>
+                            <h4 style="font-size: 1.05rem; font-weight: bold; color: #1e293b; margin: 0;">Modificación de Domicilio Legal</h4>
+                            <span style="font-size: 0.8rem; color: #64748b;">Actualización de la sede fiscal/operativa para notificaciones oficiales</span>
+                          </div>
+                        </div>
+                        <span style="background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1px solid #bfdbfe;">
+                          Acto Corporativo
+                        </span>
+                      </div>
+
+                      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+                        <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">
+                          Domicilio Legal Registrado Actualmente
+                        </span>
+                        <p style="color: #1e293b; font-size: 0.95rem; margin: 0; font-weight: 500;">
+                          {{empresaBuscada()?.domicilio_legal || empresaBuscada()?.domicilioLegal || 'NO ESPECIFICADO'}}
+                        </p>
+                      </div>
+
+                      <form [formGroup]="tramiteAdminForm">
+                        <mat-form-field appearance="outline" style="width: 100%;">
+                          <mat-label>Nuevo Domicilio Legal Completo *</mat-label>
+                          <input matInput formControlName="nuevo_domicilio" placeholder="Ej. JR. LIMA NRO. 450 - BARRIO CENTRAL - PUNO" style="text-transform: uppercase; font-weight: 600;">
+                          <mat-icon matSuffix style="color: #64748b;">pin_drop</mat-icon>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" style="width: 100%;">
+                          <mat-label>Sustento y Observaciones</mat-label>
+                          <textarea matInput formControlName="sustento_observaciones" rows="2" placeholder="Ej. Modificación de domicilio conforme a constancia RUC y ficha registral SUNARP..."></textarea>
+                        </mat-form-field>
+                      </form>
+                    </div>
+                  }
+
+                  <!-- CASO CONCESIONAL 3: MODIFICACIÓN DE RUTA / ITINERARIO -->
+                  @case ('MODIFICACION_RUTA') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                          <div style="width: 40px; height: 40px; border-radius: 10px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+                            <mat-icon style="color: #059669;">alt_route</mat-icon>
+                          </div>
+                          <div>
+                            <h4 style="font-size: 1.05rem; font-weight: bold; color: #1e293b; margin: 0;">Modificación de Itinerario / Ruta Autorizada</h4>
+                            <span style="font-size: 0.8rem; color: #64748b;">Variación de paradas, escalas comerciales o prolongación de recorrido</span>
+                          </div>
+                        </div>
+                        <span style="background: #f0fdf4; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1px solid #bbf7d0;">
+                          Ámbito Concesión (Primigenia)
+                        </span>
+                      </div>
+
+                      <form [formGroup]="tramiteAdminForm">
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Seleccione el Código de Ruta a Modificar</mat-label>
+                            <mat-select formControlName="codigo_ruta">
+                              @for (ruta of rutasEmpresaActual(); track ruta.id || ruta.codigoRuta) {
+                                <mat-option [value]="ruta.codigoRuta || ruta.codigo">
+                                  Ruta {{ruta.codigoRuta || ruta.codigo}}: {{ruta.origen}} ➔ {{ruta.destino}} ({{ruta.itinerario || 'Sin itinerario'}})
+                                </mat-option>
+                              } @empty {
+                                <mat-option disabled>Cargue o asocie rutas a la resolución seleccionada</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Nuevo Itinerario / Escalas Comerciales Autorizadas *</mat-label>
+                            <textarea matInput formControlName="nuevo_itinerario" rows="3" placeholder="Ej. JULIACA - SAN ANTONIO DE PUTINA - ANANEA - LA RINCONADA" style="text-transform: uppercase; font-weight: 600;"></textarea>
+                            <mat-hint>Indique las localidades intermedias separadas por guiones o comas</mat-hint>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline" style="width: 100%; margin-top: 0.5rem;">
+                            <mat-label>Sustento Técnico del Cambio de Recorrido</mat-label>
+                            <textarea matInput formControlName="sustento_observaciones" rows="2" placeholder="Ej. Aprobado conforme a informe técnico N°... de la Dirección de Transporte Terrestre"></textarea>
+                          </mat-form-field>
+                        </div>
+                      </form>
+                    </div>
+                  }
+
+                  <!-- CASO CONCESIONAL 4: MODIFICACIÓN DE FRECUENCIAS -->
+                  @case ('MODIFICACION_FRECUENCIA') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                          <div style="width: 40px; height: 40px; border-radius: 10px; background: #fff7ed; display: flex; align-items: center; justify-content: center;">
+                            <mat-icon style="color: #ea580c;">schedule</mat-icon>
+                          </div>
+                          <div>
+                            <h4 style="font-size: 1.05rem; font-weight: bold; color: #1e293b; margin: 0;">Modificación de Frecuencias de Salida</h4>
+                            <span style="font-size: 0.8rem; color: #64748b;">Aumento o ajuste en el régimen de frecuencias autorizadas</span>
+                          </div>
+                        </div>
+                        <span style="background: #fff7ed; color: #c2410c; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1px solid #fed7aa;">
+                          Ámbito Concesión (Primigenia)
+                        </span>
+                      </div>
+
+                      <form [formGroup]="tramiteAdminForm">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Seleccione el Código de Ruta</mat-label>
+                            <mat-select formControlName="codigo_ruta">
+                              @for (ruta of rutasEmpresaActual(); track ruta.id || ruta.codigoRuta) {
+                                <mat-option [value]="ruta.codigoRuta || ruta.codigo">
+                                  Ruta {{ruta.codigoRuta || ruta.codigo}}: {{ruta.origen}} ➔ {{ruta.destino}} (Actual: {{ruta.frecuencias || ruta.frecuencia || 'No def.'}})
+                                </mat-option>
+                              } @empty {
+                                <mat-option disabled>Cargue o asocie rutas a la resolución seleccionada</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Nueva Frecuencia Autorizada *</mat-label>
+                            <input matInput formControlName="nueva_frecuencia" placeholder="Ej. 10 DIARIAS, 03 SEMANALES" style="text-transform: uppercase; font-weight: 600;">
+                            <mat-icon matSuffix style="color: #64748b;">timelapse</mat-icon>
+                          </mat-form-field>
+                        </div>
+
+                        <mat-form-field appearance="outline" style="width: 100%; margin-top: 0.5rem;">
+                          <mat-label>Sustento Técnico de la Demanda</mat-label>
+                          <textarea matInput formControlName="sustento_observaciones" rows="2" placeholder="Ej. Incremento de frecuencia por incremento de demanda de usuarios verificado en estudio técnico..."></textarea>
+                        </mat-form-field>
+                      </form>
+                    </div>
+                  }
+
+                  <!-- CASO CONCESIONAL 5: FE DE ERRATAS -->
+                  @case ('FE_DE_ERRATAS') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                          <div style="width: 40px; height: 40px; border-radius: 10px; background: #fef2f2; display: flex; align-items: center; justify-content: center;">
+                            <mat-icon style="color: #dc2626;">spellcheck</mat-icon>
+                          </div>
+                          <div>
+                            <h4 style="font-size: 1.05rem; font-weight: bold; color: #1e293b; margin: 0;">Fe de Erratas / Rectificación Resolutiva</h4>
+                            <span style="font-size: 0.8rem; color: #64748b;">Corrección de error material (Art. 212 Ley N° 27444)</span>
+                          </div>
+                        </div>
+                        <span style="background: #fef2f2; color: #b91c1c; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1px solid #fecaca;">
+                          Rectificación Legal
+                        </span>
+                      </div>
+
+                      <form [formGroup]="tramiteAdminForm">
+                        <mat-form-field appearance="outline" style="width: 100%;">
+                          <mat-label>Artículo o Acápite Afectado *</mat-label>
+                          <input matInput formControlName="articulo_fe_erratas" placeholder="Ej. ARTICULO PRIMERO, CONSIDERANDO TERCERO" style="text-transform: uppercase; font-weight: 600;">
+                        </mat-form-field>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Dice (Texto con Error Material) *</mat-label>
+                            <textarea matInput formControlName="dice_texto" rows="3" placeholder="Texto erróneo tal como figuraba en la resolución original..."></textarea>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Debe Decir (Texto Rectificado) *</mat-label>
+                            <textarea matInput formControlName="debe_decir_texto" rows="3" placeholder="Texto correcto y rectificado que debe surtir efecto..."></textarea>
+                          </mat-form-field>
+                        </div>
+
+                        <mat-form-field appearance="outline" style="width: 100%; margin-top: 0.5rem;">
+                          <mat-label>Motivo o Sustento de la Rectificación</mat-label>
+                          <textarea matInput formControlName="sustento_observaciones" rows="2" placeholder="Ej. Por incurrir en error material de digitación en el nombre del concesionario..."></textarea>
+                        </mat-form-field>
+                      </form>
+                    </div>
+                  }
+
+                  <!-- CASO CORPORATIVO 6: REACTIVACIÓN / MANDATO JUDICIAL -->
+                  @case ('REACTIVACION_JUDICIAL') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                          <div style="width: 42px; height: 42px; border-radius: 10px; background: #faf5ff; border: 1px solid #e9d5ff; display: flex; align-items: center; justify-content: center;">
+                            <mat-icon style="color: #7c3aed; font-size: 24px;">balance</mat-icon>
+                          </div>
+                          <div>
+                            <h4 style="font-size: 1.05rem; font-weight: bold; color: #1e293b; margin: 0;">Reactivación por Mandato Judicial / Rehabilitación</h4>
+                            <span style="font-size: 0.8rem; color: #64748b;">Levantamiento de cancelación o suspensión por mandato legal o judicial</span>
+                          </div>
+                        </div>
+                        <span style="background: #faf5ff; color: #7c3aed; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; border: 1px solid #ddd6fe;">
+                          Cumplimiento Legal
+                        </span>
+                      </div>
+
+                      <!-- Estado Actual y Alcance del Trámite -->
+                      <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+                        <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #991b1b; letter-spacing: 0.05em; display: block; margin-bottom: 0.35rem;">
+                          Efecto Jurídico de la Reactivación
+                        </span>
+                        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                          <span style="font-size: 0.8rem; font-weight: 700; background: #dc2626; color: white; padding: 2px 8px; border-radius: 4px; white-space: nowrap;">
+                            {{empresaBuscada()?.estado || 'CANCELADA'}}
+                          </span>
+                          <span style="color: #7f1d1d; font-size: 0.83rem; line-height: 1.4;">
+                            Al procesar este acto, el sistema reactivará automáticamente el estado de la empresa a <strong>AUTORIZADA</strong> y habilitará sus resoluciones correspondientes para la reanudación formal del servicio de transporte.
+                          </span>
+                        </div>
+                      </div>
+
+                      <form [formGroup]="tramiteAdminForm">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Tipo de Reactivación *</mat-label>
+                            <mat-select formControlName="tipo_reactivacion">
+                              <mat-option value="MANDATO_JUDICIAL">Mandato Judicial / Medida Cautelar</mat-option>
+                              <mat-option value="RESOLUCION_DIRECTORAL">Resolución Directoral de Rehabilitación</mat-option>
+                              <mat-option value="ACCION_AMPARO">Acción de Amparo / Sentencia Firme</mat-option>
+                            </mat-select>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>N° Mandato Judicial / Medida Cautelar / Exp. *</mat-label>
+                            <input matInput formControlName="mandato_judicial_nro" placeholder="Ej. EXP. 00452-2026-0-2101-JR-CI-01" style="text-transform: uppercase; font-weight: 600; font-family: monospace;">
+                            <mat-icon matSuffix style="color: #64748b;">gavel</mat-icon>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Juzgado / Sala Mixta o Autoridad Emisora *</mat-label>
+                            <input matInput formControlName="juzgado_origen" placeholder="Ej. PRIMER JUZGADO CIVIL DE PUNO" style="text-transform: uppercase; font-weight: 600;">
+                            <mat-icon matSuffix style="color: #64748b;">account_balance</mat-icon>
+                          </mat-form-field>
+                        </div>
+
+                        <mat-form-field appearance="outline" style="width: 100%;">
+                          <mat-label>Sustento Legal, Considerandos y Mandato Específico *</mat-label>
+                          <textarea matInput formControlName="sustento_observaciones" rows="3" placeholder="Ej. En mérito a la Medida Cautelar notificada que ordena a la Dirección Regional de Transportes y Comunicaciones suspender los efectos de la Resolución de Cancelación y rehabilitar la concesión del administrado..."></textarea>
+                        </mat-form-field>
+                      </form>
+                    </div>
+                  }
+
                   <!-- CASO 1: INCREMENTO -->
                   @case ('INCREMENTO') {
                     <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
@@ -1755,11 +2206,46 @@
                       <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: white; border-radius: 8px; border: 1px solid #f1f5f9;">
                         <mat-icon style="color: #0284c7;">gavel</mat-icon>
                         <div>
-                          <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Resolución Afectada</p>
-                          <p style="font-weight: bold; color: #1e293b; margin: 0;">{{resolucionForm.get('nro_resolucion_primigenia')?.value}}</p>
+                          <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Ámbito / Resolución Afectada</p>
+                          <p style="font-weight: bold; color: #1e293b; margin: 0;">
+                            {{esTramiteEmpresa() ? 'Ámbito Institucional Empresa' : (resolucionForm.get('nro_resolucion_primigenia')?.value || 'No requerida')}}
+                          </p>
                         </div>
                       </div>
                     </div>
+
+                    <!-- Detalle de Trámite Administrativo / Corporativo (Sin Placas) -->
+                    @if (esTramiteSinPlacas()) {
+                      <div style="background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 1rem;">
+                        <h4 style="font-size: 0.82rem; font-weight: bold; color: #1e293b; text-transform: uppercase; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.4rem;">
+                          <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #7c3aed;">description</mat-icon>
+                          Detalle del Acto Administrativo
+                        </h4>
+                        @if (tramiteSeleccionado() === 'CAMBIO_REPRESENTANTE') {
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem;"><strong>Nuevo Representante Legal:</strong> {{tramiteAdminForm.get('nuevo_representante')?.value}}</p>
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem;"><strong>DNI:</strong> {{tramiteAdminForm.get('nuevo_dni_representante')?.value}}</p>
+                          @if (tramiteAdminForm.get('partida_registral_representante')?.value) {
+                            <p style="margin: 0.25rem 0; font-size: 0.85rem;"><strong>Partida SUNARP:</strong> {{tramiteAdminForm.get('partida_registral_representante')?.value}} (Asiento: {{tramiteAdminForm.get('asiento_registral')?.value || '—'}})</p>
+                          }
+                        }
+                        @if (tramiteSeleccionado() === 'CAMBIO_DOMICILIO') {
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem;"><strong>Nuevo Domicilio Legal:</strong> {{tramiteAdminForm.get('nuevo_domicilio')?.value}}</p>
+                        }
+                        @if (tramiteSeleccionado() === 'MODIFICACION_RUTA') {
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem;"><strong>Ruta Modificada:</strong> {{tramiteAdminForm.get('codigo_ruta')?.value}}</p>
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem;"><strong>Nuevo Itinerario:</strong> {{tramiteAdminForm.get('nuevo_itinerario')?.value}}</p>
+                        }
+                        @if (tramiteSeleccionado() === 'MODIFICACION_FRECUENCIA') {
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem;"><strong>Ruta:</strong> {{tramiteAdminForm.get('codigo_ruta')?.value}}</p>
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem;"><strong>Nueva Frecuencia:</strong> {{tramiteAdminForm.get('nueva_frecuencia')?.value}}</p>
+                        }
+                        @if (tramiteSeleccionado() === 'FE_DE_ERRATAS') {
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem;"><strong>Artículo Afectado:</strong> {{tramiteAdminForm.get('articulo_fe_erratas')?.value}}</p>
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem; color: #b91c1c;"><strong>Dice:</strong> {{tramiteAdminForm.get('dice_texto')?.value}}</p>
+                          <p style="margin: 0.25rem 0; font-size: 0.85rem; color: #15803d;"><strong>Debe Decir:</strong> {{tramiteAdminForm.get('debe_decir_texto')?.value}}</p>
+                        }
+                      </div>
+                    }
 
                     <!-- Origen y Resolución Modificatoria -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
@@ -2010,6 +2496,21 @@
                         <p style="font-size: 0.85rem; color: #dc2626; font-weight: bold; margin: 0;">
                           Cancelación definitiva de la autorización. Se revocarán todas las unidades asociadas.
                         </p>
+                      } @else if (tramiteSeleccionado() === 'REACTIVACION_JUDICIAL') {
+                        <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 0.85rem 1rem;">
+                          <p style="font-size: 0.85rem; color: #6b21a8; font-weight: 700; margin: 0 0 0.4rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #7c3aed;">gavel</mat-icon>
+                            Reactivación por Mandato / Rehabilitación:
+                          </p>
+                          <div style="font-size: 0.82rem; color: #4c1d95; line-height: 1.4;">
+                            <div>Tipo: <strong>{{tramiteAdminForm.get('tipo_reactivacion')?.value || 'MANDATO_JUDICIAL'}}</strong></div>
+                            <div>Expediente / Mandato: <strong>{{tramiteAdminForm.get('mandato_judicial_nro')?.value || 'NO INDICADO'}}</strong></div>
+                            <div>Juzgado / Origen: <strong>{{tramiteAdminForm.get('juzgado_origen')?.value || 'NO INDICADO'}}</strong></div>
+                            <div style="margin-top: 0.35rem; color: #15803d; font-weight: 600;">
+                              ✓ La empresa recuperará el estado <strong>AUTORIZADA</strong> al confirmar este trámite.
+                            </div>
+                          </div>
+                        </div>
                       }
                     </div>
                   </div>
@@ -2135,11 +2636,17 @@
             </div>
             <div class="detail-field">
               <span class="detail-label">Fecha de Resolución</span>
-              <span class="detail-value">{{det.fecha}}</span>
+              @if (det.fecha && det.fecha !== 'No consignada' && det.fecha !== 'S/F') {
+                <span class="detail-value" style="font-weight: 600;">{{det.fecha}}</span>
+              } @else {
+                <span class="detail-value" style="color: #94a3b8; font-style: italic; font-size: 0.8rem;">
+                  No consignada en documento
+                </span>
+              }
             </div>
             <div class="detail-field">
               <span class="detail-label">Año</span>
-              <span class="detail-value">{{det.anio}}</span>
+              <span class="detail-value" style="font-weight: 700; color: #1e293b;">{{det.anio}}</span>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,15 +16,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { TucService } from '../../services/tuc.service';
 import { Tuc, TipoEmisionTuc, EstadoTuc, TucEstadisticas } from '../../models/tuc.model';
-import { TucEmitirDialogComponent } from './tuc-emitir-dialog.component';
 import { TucKardexModalComponent } from './tuc-kardex-modal.component';
-import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.component';
 
 @Component({
   selector: 'app-tuc-catalogo',
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
@@ -55,25 +55,30 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
 
         <!-- Botones de Acción Global -->
         <div class="header-actions">
-          <button mat-flat-button class="btn-action btn-sync" [disabled]="sincronizando()" (click)="sincronizarFlota()">
-            <mat-icon [class.spinner-icon]="sincronizando()">sync_alt</mat-icon>
-            <span>Importar de Flota</span>
-          </button>
+          <a mat-raised-button color="primary" routerLink="/centro-tramites" class="btn-action btn-tramites">
+            <mat-icon>add_task</mat-icon>
+            <span>Ir al Centro de Trámites</span>
+          </a>
 
           <button mat-flat-button class="btn-action btn-kardex" (click)="abrirKardex()">
             <mat-icon>inventory_2</mat-icon>
             <span>Kárdex Stock</span>
           </button>
 
-          <button mat-flat-button class="btn-action btn-excel" (click)="abrirCargaMasiva()">
-            <mat-icon>file_upload</mat-icon>
-            <span>Carga Masiva Excel</span>
+          <button mat-stroked-button class="btn-action btn-limpiar" (click)="limpiarPadron()">
+            <mat-icon color="warn">delete_sweep</mat-icon>
+            <span>Limpiar Padrón</span>
           </button>
+        </div>
+      </div>
 
-          <button mat-raised-button color="primary" class="btn-action btn-emitir" (click)="abrirEmitirDialog()">
-            <mat-icon>add_card</mat-icon>
-            <span>Emitir Nueva TUC</span>
-          </button>
+      <!-- Banner Informativo Institucional DRTC Puno -->
+      <div class="tuc-info-banner">
+        <mat-icon class="banner-icon">info</mat-icon>
+        <div class="banner-text">
+          <strong>Padrón Oficial de Títulos Habilitantes (TUC):</strong>
+          <span> La emisión, renovación, sustitución y duplicados de TUCs se procesan formalmente desde el 
+          <a routerLink="/centro-tramites" class="banner-link">Centro de Trámites</a> vinculadas obligatoriamente a su respectivo Expediente y Resolución Directoral.</span>
         </div>
       </div>
 
@@ -145,6 +150,12 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
             }
           </div>
 
+          <!-- Filtro Expediente -->
+          <div class="filter-box">
+            <input type="text" [(ngModel)]="filtroExpediente" (keyup.enter)="buscar()" (input)="onSearchInput()"
+                   placeholder="Filtrar por N° Expediente..." class="filter-select font-mono">
+          </div>
+
           <!-- Filtro Tipo Emisión -->
           <div class="filter-box">
             <select [(ngModel)]="filtroTipo" (change)="buscar()" class="filter-select">
@@ -187,6 +198,7 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
                 <th>Tipo</th>
                 <th>Placa / Vehículo</th>
                 <th>Empresa / RUC</th>
+                <th>Expediente / Trámite</th>
                 <th>Resolución</th>
                 <th>Vigencia</th>
                 <th class="text-center">Estado</th>
@@ -197,17 +209,22 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
             <tbody>
               @if (cargando()) {
                 <tr>
-                  <td colspan="8" class="loading-cell">
+                  <td colspan="9" class="loading-cell">
                     <mat-icon class="spinner-icon">sync</mat-icon>
                     <span>Cargando registros de TUCs...</span>
                   </td>
                 </tr>
               } @else if (tucs().length === 0) {
                 <tr>
-                  <td colspan="8" class="empty-cell">
+                  <td colspan="9" class="empty-cell">
                     <mat-icon class="empty-icon">badge</mat-icon>
-                    <p class="empty-title">No se encontraron Tarjetas Únicas de Circulación.</p>
-                    <p class="empty-desc">Pruebe ajustando los filtros o registre una nueva emisión.</p>
+                    <p class="empty-title">El padrón de TUCs no contiene registros actualmente.</p>
+                    <p class="empty-desc">Las TUCs se emiten automáticamente al procesar trámites en el Centro de Trámites.</p>
+                    <div style="margin-top: 14px;">
+                      <a mat-raised-button color="primary" routerLink="/centro-tramites">
+                        <mat-icon>add_task</mat-icon> Ir al Centro de Trámites
+                      </a>
+                    </div>
                   </td>
                 </tr>
               } @else {
@@ -251,6 +268,23 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
                     <td class="max-w-xs truncate">
                       <div class="empresa-title" [title]="tuc.razonSocial">{{ tuc.razonSocial }}</div>
                       <div class="ruc-sub font-mono">RUC: {{ tuc.ruc }}</div>
+                    </td>
+
+                    <!-- Expediente / Trámite -->
+                    <td>
+                      @if (tuc.nroExpediente) {
+                        <div class="expediente-badge font-mono">
+                          <mat-icon class="exp-icon">folder</mat-icon>
+                          <span>Exp. {{ tuc.nroExpediente }}</span>
+                        </div>
+                        @if (tuc.tipoTramite) {
+                          <div class="tramite-sub">
+                            {{ tuc.tipoTramite.replace('_', ' ') }}
+                          </div>
+                        }
+                      } @else {
+                        <span class="text-slate-400 text-xs italic">Sin expediente</span>
+                      }
                     </td>
 
                     <!-- Resolución -->
@@ -402,13 +436,15 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       transition: all 0.2s;
     }
 
-    .btn-sync {
-      background: #ffffff;
-      color: #0369a1;
-      border: 1px solid #bae6fd;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    .btn-tramites {
+      background: #1e3a8a !important;
+      color: #ffffff !important;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
     }
-    .btn-sync:hover { background: #f0f9ff; }
+    .btn-tramites:hover {
+      background: #1e40af !important;
+    }
 
     .btn-kardex {
       background: #ffffff;
@@ -418,22 +454,36 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     }
     .btn-kardex:hover { background: #fffbeb; }
 
-    .btn-excel {
+    .btn-limpiar {
       background: #ffffff;
-      color: #047857;
-      border: 1px solid #a7f3d0;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      color: #e11d48;
+      border: 1px solid #fecdd3;
     }
-    .btn-excel:hover { background: #ecfdf5; }
+    .btn-limpiar:hover { background: #fff1f2; }
 
-    .btn-emitir {
-      background: #1e3a8a !important;
-      color: #ffffff !important;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
+    /* Banner Informativo */
+    .tuc-info-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      color: #166534;
+      font-size: 13px;
     }
-    .btn-emitir:hover {
-      background: #1e40af !important;
+    .tuc-info-banner .banner-icon {
+      color: #15803d;
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+    .tuc-info-banner .banner-link {
+      color: #1d4ed8;
+      font-weight: 700;
+      text-decoration: underline;
     }
 
     /* KPI Grid */
@@ -711,6 +761,31 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
 
     .empresa-title { font-weight: 700; color: #0f172a; font-size: 0.9rem; }
     .ruc-sub { font-size: 11px; color: #1e40af; font-weight: 600; }
+
+    .expediente-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+    .expediente-badge .exp-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+    .tramite-sub {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
 
     .res-title { font-weight: 700; color: #047857; }
     .motivo-sub { font-size: 10px; color: #64748b; text-transform: uppercase; }
@@ -1059,6 +1134,7 @@ export class TucCatalogoComponent implements OnInit {
   sincronizando = signal<boolean>(false);
 
   filtroTexto = '';
+  filtroExpediente = '';
   filtroTipo: TipoEmisionTuc | '' = '';
   filtroEstado: EstadoTuc | '' = '';
 
@@ -1088,6 +1164,9 @@ export class TucCatalogoComponent implements OnInit {
 
     if (this.filtroTexto && this.filtroTexto.trim()) {
       filtros.q = this.filtroTexto.trim();
+    }
+    if (this.filtroExpediente && this.filtroExpediente.trim()) {
+      filtros.nroExpediente = this.filtroExpediente.trim();
     }
 
     if (this.filtroTipo) filtros.tipoEmision = this.filtroTipo;
@@ -1127,6 +1206,7 @@ export class TucCatalogoComponent implements OnInit {
 
   limpiarFiltros(): void {
     this.filtroTexto = '';
+    this.filtroExpediente = '';
     this.filtroTipo = '';
     this.filtroEstado = '';
     this.pageIndex.set(0);
@@ -1139,16 +1219,23 @@ export class TucCatalogoComponent implements OnInit {
     this.cargarDatos();
   }
 
-  abrirEmitirDialog(): void {
-    const dialogRef = this.dialog.open(TucEmitirDialogComponent, {
-      width: '640px',
-      panelClass: 'dark-modal'
-    });
+  limpiarPadron(): void {
+    const confirmacion = confirm(
+      '¿Está seguro de que desea limpiar todos los registros de TUCs del padrón?\n\n' +
+      'Esta acción restablecerá el catálogo a cero para que las TUCs sean emitidas exclusivamente ' +
+      'a través de los trámites formales del Centro de Trámites.'
+    );
+    if (!confirmacion) return;
 
-    dialogRef.afterClosed().subscribe((emitido) => {
-      if (emitido) {
+    this.tucService.limpiarTodo().subscribe({
+      next: (res) => {
+        this.snackBar.open(res?.mensaje || '✓ Padrón de TUCs limpiado exitosamente.', 'OK', { duration: 4500 });
+        this.pageIndex.set(0);
         this.cargarDatos();
         this.cargarEstadisticas();
+      },
+      error: (err) => {
+        this.snackBar.open(`Error al limpiar padrón: ${err?.error?.detail || err.message}`, 'Cerrar', { duration: 5000 });
       }
     });
   }
@@ -1157,20 +1244,6 @@ export class TucCatalogoComponent implements OnInit {
     this.dialog.open(TucKardexModalComponent, {
       width: '600px',
       panelClass: 'dark-modal'
-    });
-  }
-
-  abrirCargaMasiva(): void {
-    const dialogRef = this.dialog.open(TucImportarExcelDialogComponent, {
-      width: '600px',
-      panelClass: 'dark-modal'
-    });
-
-    dialogRef.afterClosed().subscribe((importado) => {
-      if (importado) {
-        this.cargarDatos();
-        this.cargarEstadisticas();
-      }
     });
   }
 

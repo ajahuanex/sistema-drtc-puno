@@ -32,8 +32,9 @@ export class GoogleSheetsService {
   obtenerDatosReales(spreadsheetIdOrUrl: string, sheetName: string = ''): Observable<SheetInfo> {
     const cleanId = this.extraerIdDeUrl(spreadsheetIdOrUrl) || spreadsheetIdOrUrl;
     const extractedGid = this.extraerGidDeUrl(spreadsheetIdOrUrl);
-    const gid = extractedGid ? extractedGid : (sheetName ? sheetName : '0');
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${cleanId}/export?format=csv&gid=${gid}`;
+    const targetGid = extractedGid || sheetName;
+    const gidParam = targetGid ? `&gid=${targetGid}` : '';
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${cleanId}/export?format=csv${gidParam}`;
 
     // Usar fetch() nativo del navegador para evitar que el interceptor de Angular inserte Bearer token
     return from(

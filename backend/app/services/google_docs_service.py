@@ -20,9 +20,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "carpeta_destino_id": DEFAULT_OUTPUT_FOLDER_ID,
     "auto_detectar_margen": True,
     "col_margen_izq": 99.2,
-    "col_codigo": 28.0,
-    "col_tramo": 172.0,
-    "col_frecuencia": 45.0,
+    "col_codigo": 26.0,
+    "col_tramo": 164.0,
+    "col_frecuencia": 54.0,
     "col_margen_der": 105.0,
     "fuente_tamanio_codigo": 6.5,
     "fuente_tamanio_tramo": 6.0,
@@ -287,6 +287,29 @@ class GoogleDocsTucService:
                                 'fields': 'paddingTop,paddingBottom,paddingLeft,paddingRight,borderTop,borderBottom,borderLeft,borderRight'
                             }
                         })
+                        # Separación visual garantizada para la columna de frecuencia (col 3) respecto al tramo (col 2)
+                        style_reqs.append({
+                            'updateTableCellStyle': {
+                                'tableRange': {
+                                    'tableCellLocation': {
+                                        'tableStartLocation': {'index': t_loc},
+                                        'rowIndex': 0,
+                                        'columnIndex': 3
+                                    },
+                                    'rowSpan': num_rows,
+                                    'columnSpan': 1
+                                },
+                                'tableCellStyle': {
+                                    'paddingLeft': {'magnitude': 8.0, 'unit': 'PT'},
+                                    'paddingRight': {'magnitude': 0, 'unit': 'PT'},
+                                    'borderTop': white_border,
+                                    'borderBottom': white_border,
+                                    'borderLeft': white_border,
+                                    'borderRight': white_border
+                                },
+                                'fields': 'paddingLeft,paddingRight'
+                            }
+                        })
                         docs_service.documents().batchUpdate(documentId=nuevo_doc_id, body={'requests': style_reqs}).execute()
 
                         # Re-obtener doc para insertar contenido en las celdas
@@ -422,23 +445,65 @@ class GoogleDocsTucService:
                                                     }
                                                 })
 
-                        # Ajustar también el párrafo de la resolución final para que no tenga interlineado colapsado
+                        # Ajustar los párrafos inmediatamente posteriores a la tabla:
+                        # Colapsar párrafos vacíos y márgenes entre la tabla y la línea horizontal
                         for elem in doc_for_styles.get('body', {}).get('content', []):
                             if 'paragraph' in elem:
+                                p_s = elem['startIndex']
+                                p_e = elem['endIndex']
                                 p_t = ''.join([e.get('textRun', {}).get('content', '') for e in elem['paragraph'].get('elements', [])])
-                                if p_t.strip().startswith('R.D.R') or p_t.strip().startswith('R.D.'):
-                                    text_style_reqs.append({
-                                        'updateParagraphStyle': {
-                                            'range': {'startIndex': elem['startIndex'], 'endIndex': elem['endIndex']},
-                                            'paragraphStyle': {
-                                                'alignment': 'CENTER',
-                                                'lineSpacing': 115.0,
-                                                'spaceAbove': {'magnitude': 2.0, 'unit': 'PT'},
-                                                'spaceBelow': {'magnitude': 2.0, 'unit': 'PT'}
-                                            },
-                                            'fields': 'alignment,lineSpacing,spaceAbove,spaceBelow'
-                                        }
-                                    })
+                                has_hr = any('horizontalRule' in e for e in elem['paragraph'].get('elements', []))
+
+                                if p_s >= t_loc:
+                                    if p_t.strip().startswith('R.D.R') or p_t.strip().startswith('R.D.'):
+                                        text_style_reqs.append({
+                                            'updateParagraphStyle': {
+                                                'range': {'startIndex': p_s, 'endIndex': p_e},
+                                                'paragraphStyle': {
+                                                    'alignment': 'CENTER',
+                                                    'lineSpacing': 100.0,
+                                                    'spaceAbove': {'magnitude': 1.0, 'unit': 'PT'},
+                                                    'spaceBelow': {'magnitude': 1.0, 'unit': 'PT'}
+                                                },
+                                                'fields': 'alignment,lineSpacing,spaceAbove,spaceBelow'
+                                            }
+                                        })
+                                    elif has_hr:
+                                        # La línea horizontal: pegada a la tabla sin margen arriba ni abajo
+                                        text_style_reqs.append({
+                                            'updateParagraphStyle': {
+                                                'range': {'startIndex': p_s, 'endIndex': p_e},
+                                                'paragraphStyle': {
+                                                    'alignment': 'CENTER',
+                                                    'lineSpacing': 100.0,
+                                                    'spaceAbove': {'magnitude': 0, 'unit': 'PT'},
+                                                    'spaceBelow': {'magnitude': 0, 'unit': 'PT'}
+                                                },
+                                                'fields': 'alignment,lineSpacing,spaceAbove,spaceBelow'
+                                            }
+                                        })
+                                    elif p_t.strip() == '' and (p_e - p_s) <= 2:
+                                        # Párrafo vacío residual entre tabla y regla horizontal: colapsar a 1pt
+                                        text_style_reqs.append({
+                                            'updateParagraphStyle': {
+                                                'range': {'startIndex': p_s, 'endIndex': p_e},
+                                                'paragraphStyle': {
+                                                    'lineSpacing': 100.0,
+                                                    'spaceAbove': {'magnitude': 0, 'unit': 'PT'},
+                                                    'spaceBelow': {'magnitude': 0, 'unit': 'PT'}
+                                                },
+                                                'fields': 'lineSpacing,spaceAbove,spaceBelow'
+                                            }
+                                        })
+                                        text_style_reqs.append({
+                                            'updateTextStyle': {
+                                                'range': {'startIndex': p_s, 'endIndex': p_e - 1},
+                                                'textStyle': {
+                                                    'fontSize': {'magnitude': 1.0, 'unit': 'PT'}
+                                                },
+                                                'fields': 'fontSize'
+                                            }
+                                        })
 
                         if text_style_reqs:
                             docs_service.documents().batchUpdate(documentId=nuevo_doc_id, body={'requests': text_style_reqs}).execute()

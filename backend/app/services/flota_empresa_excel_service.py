@@ -65,15 +65,7 @@ def _clean_str(val) -> Optional[str]:
     return s if s and s.upper() not in ("NAN", "NONE", "-", "") else None
 
 
-def _normalizar_expediente(val) -> Optional[str]:
-    """
-    Normalizar número de expediente a formato 'E-0123-2026':
-    - '0123-2026-E' → 'E-0123-2026'
-    - '0123-2026' → 'E-0123-2026'
-    - 'EXP-0123-2026' → 'E-0123-2026'
-    - 'E-0123-2026' → 'E-0123-2026'
-    """
-    s = _clean_str(val)
+def _normalizar_un_expediente(s: str) -> Optional[str]:
     if not s:
         return None
     s = s.upper().replace(" ", "")
@@ -89,8 +81,28 @@ def _normalizar_expediente(val) -> Optional[str]:
     if s.startswith("E-"):
         return s
     if s.startswith("E") and len(s) > 1 and s[1].isdigit():
-        s = f"E-{s[1:]}"
+        return f"E-{s[1:]}"
     return f"E-{s}"
+
+
+def _normalizar_expediente(val) -> Optional[str]:
+    """
+    Normalizar número de expediente a formato 'E-0123-2026'.
+    Si vienen múltiples expedientes separados por comas o barras (ej. 'E-1802-2025, E-1803-2025'),
+    los normaliza individualmente y los une con ', '.
+    """
+    s = _clean_str(val)
+    if not s:
+        return None
+    if "," in s or ";" in s:
+        partes = [p.strip() for p in re.split(r"[,;]+", s) if p.strip()]
+        res = []
+        for p in partes:
+            norm = _normalizar_un_expediente(p)
+            if norm:
+                res.append(norm)
+        return ", ".join(res) if res else None
+    return _normalizar_un_expediente(s)
 
 
 def _normalizar_codigo_resolucion(val) -> Optional[str]:
@@ -153,10 +165,11 @@ def _normalizar_hija(val) -> Optional[str]:
     return _normalizar_codigo_resolucion(val)
 
 
-
 def _normalizar_tuc(val, placa: Optional[str] = None) -> Optional[str]:
     """
     Normalizar número TUC a 8 caracteres 'T-012345' (6 dígitos formateados).
+    Si el valor ingresado es una placa o contiene una placa (ej: '_V6Y958', '_VFH-950'),
+    normaliza a 'T-V6Y-958'.
     Si no tiene TUC o es inválido/vacio y se provee placa válida (ej: 'A2B-123'),
     retornar 'T-A2B-123'.
     """
@@ -166,7 +179,14 @@ def _normalizar_tuc(val, placa: Optional[str] = None) -> Optional[str]:
             return f"T-{placa.upper()}"
         return None
 
-    s_upper = s.upper()
+    s_upper = s.upper().strip()
+
+    # Si el valor es una placa con prefijo '_' o guion (ej: '_V6Y958', '_VFH-950')
+    s_clean_plate = re.sub(r"^[_ \-]+", "", s_upper)
+    m_plate = re.search(r"([A-Z0-9]{3})[-]?([A-Z0-9]{3})", s_clean_plate)
+    if m_plate and not s_clean_plate.isdigit():
+        return f"T-{m_plate.group(1)}-{m_plate.group(2)}"
+
     if s_upper.startswith("T-"):
         sin_prefix = s_upper[2:]
         if sin_prefix.isdigit():
@@ -230,12 +250,19 @@ def _normalizar_placa(val) -> Tuple[str, bool]:
     """
     Normalizar placa. Retorna (placa, es_cronologico).
     Si vacío/guion → ("-", True).
+    Soporta y limpia placas con anotaciones entre paréntesis como 'VDW-952(ACCIDENTE)' o 'T1X-957(1994)'.
     """
     s = _clean_str(val)
     if not s or s in ("-", "–", "—"):
         return "-", True
-    placa = s.upper().replace(" ", "")
-    return placa, False
+    placa_raw = s.upper().replace(" ", "").strip()
+    
+    # Extraer formato estándar peruano 3 caracteres alfanuméricos + guión opcional + 3 alfanuméricos
+    m = re.search(r"([A-Z0-9]{3})[-]?([A-Z0-9]{3})", placa_raw)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}", False
+        
+    return placa_raw, False
 
 
 def _normalizar_estado(val) -> Optional[str]:
@@ -436,7 +463,7 @@ class FlotaEmpresaExcelService:
             return
         nro_prim_norm = _normalizar_primigenia(nro_prim) or nro_prim
         now = datetime.utcnow()
-        fecha_efecto = fecha_hija or fecha_crono or now
+        fecha_efecto = fecha_hija or fecha_crono or None
         
         if not tipo_hija_code:
             tipo_hija_code = _extraer_tipo_hija(nro_hija)
@@ -706,6 +733,7 @@ class FlotaEmpresaExcelService:
             "link_notificacion": link_notificacion,
             "tramite": tramite,
             "partida_registral": partida,
+            "fila_origen_matriz": idx + 2,
             "es_valido": len(errores) == 0,
             "errores": errores,
         }
@@ -724,10 +752,15 @@ class FlotaEmpresaExcelService:
         resultados = []
         emp_cache = {}
         prim_cache = {}
+        correlativo_preview = {}
 
         for idx, row in df.head(n_filas).iterrows():
             try:
                 r = self._procesar_fila(idx, row, columnas)
+                clave_prim = f"{r.get('ruc')}_{r.get('nro_resolucion_primigenia')}"
+                correlativo_preview[clave_prim] = correlativo_preview.get(clave_prim, 0) + 1
+                r["orden_cronologico"] = correlativo_preview[clave_prim]
+
                 # Cruce con módulo Empresas
                 r["razon_social"] = await self._obtener_razon_social(r.get("ruc"), r.get("razon_social"), emp_cache)
                 # Cruce con módulo Resoluciones Primigenias
@@ -742,6 +775,25 @@ class FlotaEmpresaExcelService:
     # ------------------------------------------------------------------
     # CARGA MASIVA REAL (CON CRUCE E INTEGRACIÓN AUTOMÁTICA)
     # ------------------------------------------------------------------
+
+    async def procesar_archivo_excel(self, file_content: Any, modo: str = "upsert") -> Dict[str, Any]:
+        """
+        Punto de entrada compatible para la ingesta de DB_MATRIZ desde inicializador_service
+        o endpoints de carga.
+        Alimenta el Centro de Trámites (resoluciones_hijas, expedientes) y proyecta la flota vehicular.
+        """
+        if isinstance(file_content, BytesIO):
+            buffer = file_content
+        elif isinstance(file_content, bytes):
+            buffer = BytesIO(file_content)
+        elif hasattr(file_content, "read"):
+            content = file_content.read()
+            if isinstance(content, str):
+                content = content.encode("utf-8")
+            buffer = BytesIO(content)
+        else:
+            buffer = BytesIO(bytes(file_content))
+        return await self.procesar_carga_masiva(buffer, modo=modo)
 
     async def procesar_carga_masiva(self, buffer: BytesIO, modo: str = "upsert") -> Dict[str, Any]:
         """
@@ -768,6 +820,8 @@ class FlotaEmpresaExcelService:
         emp_cache = {}
         prim_cache = {}
         hija_cache = {}
+        expedientes_cache = set()
+        correlativo_por_primigenia = {}
 
         for idx, row in df.iterrows():
             try:
@@ -779,6 +833,11 @@ class FlotaEmpresaExcelService:
                         "error": "; ".join(datos.get("errores", ["Datos inválidos"]))
                     })
                     continue
+
+                # Asignar orden cronológico secuencial dentro de su primigenia (top-to-bottom del Sheet)
+                clave_prim = f"{datos['ruc']}_{datos['nro_resolucion_primigenia']}"
+                correlativo_por_primigenia[clave_prim] = correlativo_por_primigenia.get(clave_prim, 0) + 1
+                datos["orden_cronologico"] = correlativo_por_primigenia[clave_prim]
 
                 # 1. Traer Razón Social del módulo Empresas
                 datos["razon_social"] = await self._obtener_razon_social(datos["ruc"], datos["razon_social"], emp_cache)
@@ -819,9 +878,38 @@ class FlotaEmpresaExcelService:
                         rutas=datos.get("rutas")
                     )
 
+                # 3.1 Sincronizar/Auto-crear Expediente en db.expedientes si viene num_expediente
+                now = datetime.utcnow()
+                if datos.get("num_expediente"):
+                    # Soportar que venga más de un expediente en la misma celda (ej: 'E-1802-2025, E-1803-2025')
+                    exp_nums = [e.strip() for e in str(datos["num_expediente"]).split(",") if e.strip()]
+                    for exp_num_val in exp_nums:
+                        if exp_num_val not in expedientes_cache:
+                            await self.db["expedientes"].update_one(
+                                {"$or": [{"nro_expediente": exp_num_val}, {"nroExpediente": exp_num_val}]},
+                                {
+                                    "$setOnInsert": {
+                                        "id": str(uuid.uuid4()),
+                                        "nroExpediente": exp_num_val,
+                                        "folio": 1,
+                                        "fechaEmision": datos.get("fecha_expediente") or now,
+                                        "tipoTramite": datos.get("tramite") or "AUTORIZACION",
+                                        "estado": "APROBADO",
+                                        "estaActivo": True,
+                                        "empresaId": datos["ruc"],
+                                        "ruc": datos["ruc"],
+                                        "razonSocial": datos["razon_social"],
+                                        "nro_resolucion_primigenia": datos["nro_resolucion_primigenia"],
+                                        "nro_resolucion_hija": datos.get("nro_resolucion_hija"),
+                                        "fechaRegistro": now,
+                                        "observaciones": f"Expediente histórico migrado desde matriz operacional (Res. {datos['nro_resolucion_primigenia']})"
+                                    }
+                                },
+                                upsert=True
+                            )
+                            expedientes_cache.add(exp_num_val)
 
                 # 4. Construir documento para flota_empresa
-                now = datetime.utcnow()
                 doc_data = {
                     "ruc": datos["ruc"],
                     "razon_social": datos["razon_social"],
@@ -852,6 +940,8 @@ class FlotaEmpresaExcelService:
                     "link_notificacion": datos.get("link_notificacion"),
                     "tramite": datos.get("tramite"),
                     "partida_registral": datos.get("partida_registral"),
+                    "orden_cronologico": datos.get("orden_cronologico"),
+                    "fila_origen_matriz": datos.get("fila_origen_matriz"),
                     "esta_activo": True,
                 }
 
@@ -880,6 +970,9 @@ class FlotaEmpresaExcelService:
                         "nro_resolucion_hija": datos["nro_resolucion_hija"],
                         "placa": datos["placa"],
                     }
+                    if not datos.get("placa") or str(datos.get("placa")).strip() in ("-", ""):
+                        filtro_upsert["fila_origen_matriz"] = datos["fila_origen_matriz"]
+
                     existente = await self.collection.find_one(filtro_upsert)
                     if existente:
                         doc_data["fecha_actualizacion"] = now

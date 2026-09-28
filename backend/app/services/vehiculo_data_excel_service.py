@@ -115,6 +115,10 @@ class VehiculoDataExcelService:
         for idx, row in df.iterrows():
             numero_fila = idx + 2  # Excel 1-indexed con cabecera
             
+            # Si toda la fila está completamente vacía (espacios en blanco o NaN), se ignora limpiamente
+            if not any(pd.notna(v) and str(v).strip() for v in row.values):
+                continue
+
             placa_raw = row.get('PLACA')
             placa = self.normalizar_placa(placa_raw)
             
@@ -132,9 +136,23 @@ class VehiculoDataExcelService:
             # Extraer campos de datos técnicos
             marca = self.normalizar_str(row.get('MARCA'))
             modelo = self.normalizar_str(row.get('MODELO'))
-            anio_fab_raw = self.normalizar_int(row.get('ANIO_FABRICACION') or row.get('ANO_FABRICACION') or row.get('FABRICACION'), None)
+            # Año de fabricación (oficial legal según D.S. 017-2009-MTC)
+            anio_fab_raw = self.normalizar_int(
+                row.get('ANIO_FABRICACION') or row.get('AÑO_FABRICACION') or 
+                row.get('ANIO FABRICACION') or row.get('AÑO FABRICACION') or 
+                row.get('ANO_FABRICACION') or row.get('FABRICACION') or 
+                row.get('ANIO') or row.get('AÑO') or row.get('ANO'), 
+                None
+            )
             anio_fab = anio_fab_raw if (anio_fab_raw and anio_fab_raw > 1900) else None
-            anio_mod_raw = self.normalizar_int(row.get('ANIO_MODELO') or row.get('ANO_MODELO') or row.get('MODELO_ANIO'), None)
+
+            # Año modelo (designación comercial posterior - solo si viene explícito como modelo)
+            anio_mod_raw = self.normalizar_int(
+                row.get('ANIO_MODELO') or row.get('AÑO_MODELO') or 
+                row.get('ANIO MODELO') or row.get('AÑO MODELO') or 
+                row.get('ANO_MODELO') or row.get('MODELO_ANIO'), 
+                None
+            )
             anio_mod = anio_mod_raw if (anio_mod_raw and anio_mod_raw > 1900) else None
             color = self.normalizar_str(row.get('COLOR'))
             categoria = self.normalizar_str(row.get('CATEGORIA'))
@@ -241,39 +259,58 @@ class VehiculoDataExcelService:
         Ejecuta el guardado masivo en la colección vehiculos_data de MongoDB
         usando la estrategia UPSERT por placa_actual.
         """
+        from pymongo import UpdateOne
+        
         insertados = 0
         actualizados = 0
         errores = 0
         detalles_errores = []
+        batch_size = 1000
+        operations = []
+        ahora = datetime.utcnow()
 
         for item in filas_validas:
             datos = item.get("datos")
             if not datos:
                 continue
                 
-            placa = datos["placa_actual"]
+            placa = datos.get("placa_actual")
+            if not placa:
+                continue
+
+            set_data = {k: v for k, v in datos.items() if k != "fecha_creacion"}
+            fecha_crea = datos.get("fecha_creacion", ahora)
+            
+            op = UpdateOne(
+                {"placa_actual": placa},
+                {
+                    "$set": set_data,
+                    "$setOnInsert": {"fecha_creacion": fecha_crea}
+                },
+                upsert=True
+            )
+            operations.append(op)
+
+            if len(operations) >= batch_size:
+                try:
+                    res = await self.collection.bulk_write(operations, ordered=False)
+                    insertados += res.upserted_count
+                    actualizados += res.modified_count
+                except Exception as e:
+                    logger.error(f"Error en bulk_write de vehículos: {e}")
+                    errores += len(operations)
+                    detalles_errores.append({"error": str(e)})
+                operations = []
+
+        if operations:
             try:
-                # Verificar si existe para distinguir entre inserción y actualización
-                existente = await self.collection.find_one({"placa_actual": placa})
-                
-                # Mantener fecha_creacion original si ya existe
-                if existente and "fecha_creacion" in existente:
-                    datos["fecha_creacion"] = existente["fecha_creacion"]
-                
-                res = await self.collection.update_one(
-                    {"placa_actual": placa},
-                    {"$set": datos},
-                    upsert=True
-                )
-                
-                if res.upserted_id:
-                    insertados += 1
-                else:
-                    actualizados += 1
+                res = await self.collection.bulk_write(operations, ordered=False)
+                insertados += res.upserted_count
+                actualizados += res.modified_count
             except Exception as e:
-                logger.error(f"Error guardando vehículo placa {placa}: {e}")
-                errores += 1
-                detalles_errores.append({"placa": placa, "error": str(e)})
+                logger.error(f"Error en bulk_write final de vehículos: {e}")
+                errores += len(operations)
+                detalles_errores.append({"error": str(e)})
 
         return {
             "exito": True,

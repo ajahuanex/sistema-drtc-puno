@@ -57,6 +57,8 @@ export class TucService {
     ruc?: string;
     razonSocial?: string;
     nroResolucion?: string;
+    nroExpediente?: string;
+    tipoTramite?: string;
     tipoEmision?: TipoEmisionTuc | '';
     estado?: EstadoTuc | '';
     skip?: number;
@@ -72,6 +74,8 @@ export class TucService {
       if (filtros.ruc) params = params.set('ruc', filtros.ruc.trim());
       if (filtros.razonSocial) params = params.set('razonSocial', filtros.razonSocial.trim());
       if (filtros.nroResolucion) params = params.set('nroResolucion', filtros.nroResolucion.trim());
+      if (filtros.nroExpediente) params = params.set('nroExpediente', filtros.nroExpediente.trim());
+      if (filtros.tipoTramite) params = params.set('tipoTramite', filtros.tipoTramite.trim());
       if (filtros.tipoEmision) params = params.set('tipoEmision', filtros.tipoEmision);
       if (filtros.estado) params = params.set('estado', filtros.estado);
       if (filtros.skip !== undefined) params = params.set('skip', filtros.skip);
@@ -87,6 +91,16 @@ export class TucService {
       catchError(err => {
         this.loadingSignal.set(false);
         return throwError(() => err);
+      })
+    );
+  }
+
+  // Limpiar / resetear todo el padrón de TUCs
+  limpiarTodo(): Observable<{ success: boolean; mensaje: string; eliminados: number }> {
+    return this.http.post<{ success: boolean; mensaje: string; eliminados: number }>(`${this.apiUrl}/limpiar-todo`, {}).pipe(
+      tap(() => {
+        this.tucsSignal.set([]);
+        this.totalTucsSignal.set(0);
       })
     );
   }

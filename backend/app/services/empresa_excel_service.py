@@ -11,6 +11,7 @@ from app.models.empresa import (
     RazonSocial, 
     RepresentanteLegal, 
     EstadoEmpresa,
+    TipoServicio,
     DocumentoEmpresa,
     TipoDocumento,
     Socio,
@@ -40,6 +41,27 @@ class EmpresaExcelService:
         if any(k in norm for k in ['AUTORIZ', 'VIGENT', 'HABILIT', 'ACTIV']):
             return EstadoEmpresa.AUTORIZADA.value
         return EstadoEmpresa.AUTORIZADA.value
+    
+    def _normalizar_tipo_servicio(self, valor: Any) -> str:
+        """Normalizar tipo de servicio a los valores de TipoServicio (UPPERCASE)"""
+        if not valor or pd.isna(valor):
+            return TipoServicio.PASAJEROS.value
+        val_str = str(valor).strip().upper()
+        if 'TURIS' in val_str:
+            return TipoServicio.TURISMO.value
+        if 'INFRA' in val_str:
+            return TipoServicio.INFRAESTRUCTURA.value
+        if 'TRABAJ' in val_str:
+            return TipoServicio.TRABAJADORES.value
+        if 'MERCAN' in val_str:
+            return TipoServicio.MERCANCIAS.value
+        if 'CARGA' in val_str:
+            return TipoServicio.CARGA.value
+        if 'MIXTO' in val_str:
+            return TipoServicio.MIXTO.value
+        if 'OTRO' in val_str:
+            return TipoServicio.OTROS.value
+        return TipoServicio.PASAJEROS.value
     
     def _limpiar_valor_enum(self, valor: str) -> str:
         """Limpiar valores de enums removiendo prefijos y formateando"""
@@ -1139,7 +1161,9 @@ class EmpresaExcelService:
             limpiar_valor(row.get('Tipo de Servicio', ''))
         )
         if tipo_servicio:
-            update_data['tipoServicio'] = tipo_servicio.upper()
+            val_ts = self._normalizar_tipo_servicio(tipo_servicio)
+            update_data['tipoServicio'] = val_ts
+            update_data['tiposServicio'] = [val_ts]
         
         # Estado Legal (soporta ESTADO)
         estado_raw = (
@@ -1298,7 +1322,9 @@ class EmpresaExcelService:
             limpiar_valor(row.get('Tipo de Servicio', ''))
         )
         if tipo_servicio:
-            empresa_data['tipoServicio'] = tipo_servicio.upper()
+            val_ts = self._normalizar_tipo_servicio(tipo_servicio)
+            empresa_data['tipoServicio'] = val_ts
+            empresa_data['tiposServicio'] = [val_ts]
             
         # Estado
         estado_raw = (
@@ -1411,6 +1437,12 @@ class EmpresaExcelService:
 
         if hasattr(empresa_data, 'partidaRegistral') and empresa_data.partidaRegistral:
             update_data['partidaRegistral'] = self._normalizar_partida_registral(empresa_data.partidaRegistral)
+            
+        if hasattr(empresa_data, 'estado') and empresa_data.estado:
+            update_data['estado'] = self._normalizar_estado(empresa_data.estado)
+            
+        if hasattr(empresa_data, 'tiposServicio') and empresa_data.tiposServicio:
+            update_data['tiposServicio'] = empresa_data.tiposServicio
         
         # Si no hay datos para actualizar, devolver la empresa existente
         if not update_data:
@@ -1476,11 +1508,13 @@ class EmpresaExcelService:
             ]
         
         # Tipo de servicio por defecto
-        if 'tipoServicio' in empresa_dict and empresa_dict['tipoServicio']:
-            empresa_data['tipoServicio'] = empresa_dict['tipoServicio']
+        if 'tiposServicio' in empresa_dict and empresa_dict['tiposServicio']:
+            empresa_data['tiposServicio'] = [self._normalizar_tipo_servicio(ts) for ts in empresa_dict['tiposServicio']]
+        elif 'tipoServicio' in empresa_dict and empresa_dict['tipoServicio']:
+            val_ts = self._normalizar_tipo_servicio(empresa_dict['tipoServicio'])
+            empresa_data['tiposServicio'] = [val_ts]
         else:
-            from app.models.empresa import TipoServicio
-            empresa_data['tipoServicio'] = TipoServicio.PERSONAS
+            empresa_data['tiposServicio'] = [TipoServicio.PASAJEROS.value]
         
         # Agregar estado de la empresa si está presente
         if 'estado' in empresa_dict and empresa_dict['estado']:
@@ -1514,6 +1548,9 @@ class EmpresaExcelService:
                     update_data[key] = self._normalizar_estado(value)
                 elif key in ('partida', 'partidaRegistral', 'partida_registral'):
                     update_data['partidaRegistral'] = self._normalizar_partida_registral(str(value))
+                elif key in ('tipoServicio', 'tiposServicio'):
+                    raw_list = [value] if isinstance(value, str) else list(value)
+                    update_data['tiposServicio'] = [self._normalizar_tipo_servicio(ts) for ts in raw_list]
                 else:
                     update_data[key] = value
         

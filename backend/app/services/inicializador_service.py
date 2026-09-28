@@ -49,8 +49,9 @@ class InicializadorService:
             return url
         spreadsheet_id = match.group(1)
         gid_match = re.search(r'[#&?]gid=([0-9]+)', url)
-        gid = gid_match.group(1) if gid_match else "0"
-        return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
+        if gid_match:
+            return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid_match.group(1)}"
+        return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv"
 
     async def descargar_csv_google_sheets(self, url: str) -> str:
         """Descarga el contenido CSV de un Google Sheet público"""
@@ -118,12 +119,12 @@ class InicializadorService:
                     },
                     {
                         "id": "matriz",
-                        "nombre": "5. Matriz Operacional de Flota (DB_MATRIZ)",
+                        "nombre": "5. Centro de Trámites y Matriz Operacional (DB_MATRIZ)",
                         "coleccion": "flota_empresa",
                         "total_registros": total_flota_empresa,
                         "default_url": DEFAULT_SHEETS_URLS["matriz"],
                         "completado": total_flota_empresa > 0,
-                        "descripcion": "Matriz relacional histórica: asignación Empresa ↔ Primigenia ↔ Placa ↔ Ruta ↔ TUC."
+                        "descripcion": "Alimenta el Centro de Trámites (Resoluciones Hijas, Expedientes) y proyecta el padrón vehicular de cada empresa."
                     }
                 ]
             }

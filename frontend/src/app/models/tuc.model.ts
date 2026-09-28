@@ -33,7 +33,17 @@ export interface Tuc {
   empresaId?: string;
   nroResolucion: string;
   resolucionId?: string;
+  nroResolucionHija?: string;
+  resolucionHijaId?: string;
   tipo_resolucion_hija?: string;
+  
+  // Trazabilidad con Expediente y Trámite
+  nroExpediente?: string;
+  fechaExpediente?: string;
+  expedienteId?: string;
+  tipoTramite?: string;
+  tramiteId?: string;
+  origenEmision?: string;
   
   fechaEmision: string;
   fechaVencimiento?: string;

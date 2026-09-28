@@ -105,6 +105,7 @@ class TucService:
                 {"datosEmpresa.razonSocial": {"$regex": clean_q, "$options": "i"}},
                 {"nroResolucion": {"$regex": clean_q, "$options": "i"}},
                 {"datosResolucion.nroResolucion": {"$regex": clean_q, "$options": "i"}},
+                {"nroExpediente": {"$regex": clean_q, "$options": "i"}},
                 {"datosVehiculo.placa": {"$regex": clean_q, "$options": "i"}},
                 {"datosVehiculo.marca": {"$regex": clean_q, "$options": "i"}},
                 {"datosVehiculo.modelo": {"$regex": clean_q, "$options": "i"}}
@@ -112,6 +113,10 @@ class TucService:
         
         if filtros.nroTuc:
             query["nroTuc"] = {"$regex": re.escape(filtros.nroTuc.strip()), "$options": "i"}
+        if filtros.nroExpediente:
+            query["nroExpediente"] = {"$regex": re.escape(filtros.nroExpediente.strip()), "$options": "i"}
+        if filtros.tipoTramite:
+            query["tipoTramite"] = filtros.tipoTramite
         if filtros.placa:
             raw_p = filtros.placa.strip()
             clean_p = raw_p.replace("-", "").strip()
@@ -767,12 +772,28 @@ class TucService:
             fechaEmision=doc.get("fechaEmision", ""),
             fechaVencimiento=doc.get("fechaVencimiento"),
             hashSeguridad=doc.get("hashSeguridad"),
+            nroExpediente=doc.get("nroExpediente"),
+            tipoTramite=doc.get("tipoTramite") or doc.get("motivoEmision"),
             empresa=doc.get("datosEmpresa") or {"ruc": doc.get("ruc"), "razonSocial": doc.get("razonSocial")},
             vehiculo=doc.get("datosVehiculo") or {"placa": doc.get("placa")},
             resolucion=doc.get("datosResolucion") or {"nroResolucion": doc.get("nroResolucion")},
             rutas=doc.get("rutasHabilitadas", []),
             observaciones=doc.get("observaciones")
         )
+
+    @staticmethod
+    async def limpiar_todo(usuario: str = "ADMIN") -> Dict[str, Any]:
+        """Elimina todos los registros de TUCs para permitir restructuración limpia sin datos legacy."""
+        db = await _get_db()
+        conteo_previo = await db.tucs.count_documents({})
+        resultado = await db.tucs.delete_many({})
+        logger.info(f"Padrón de TUCs limpiado por {usuario}. Eliminados {resultado.deleted_count} registros.")
+        return {
+            "success": True,
+            "mensaje": f"Se eliminaron {resultado.deleted_count} TUCs exitosamente. El padrón está listo y limpio.",
+            "eliminados": resultado.deleted_count,
+            "previos": conteo_previo
+        }
 
     @staticmethod
     async def procesar_excel_carga_masiva(file_bytes: bytes, usuario: str = "ADMIN") -> Dict[str, Any]:

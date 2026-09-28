@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
 from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
@@ -23,7 +24,7 @@ async def get_expediente_service():
 # ENDPOINTS CRUD
 # ========================================
 
-@router.get("/", response_model=List[Expediente], response_model_by_alias=False)
+@router.get("/", response_model=List[Dict[str, Any]])
 async def get_expedientes(
     skip: int = 0, 
     limit: int = 100,
@@ -32,7 +33,7 @@ async def get_expedientes(
     """Obtener lista de expedientes"""
     return await service.get_expedientes(skip=skip, limit=limit)
 
-@router.get("/{expediente_id}", response_model=Expediente, response_model_by_alias=False)
+@router.get("/{expediente_id}", response_model=Dict[str, Any])
 async def get_expediente(
     expediente_id: str,
     service: ExpedienteService = Depends(get_expediente_service)
@@ -213,3 +214,78 @@ async def procesar_carga_masiva_expedientes(
             status_code=500, 
             detail=f"Error al procesar archivo: {str(e)}"
         )
+
+
+# ========================================
+# ENDPOINT DE INTEGRACIÓN PARA APPS EXTERNAS
+# ========================================
+
+class ExpedienteExternoRequest(BaseModel):
+    nro_expediente: str = Field(..., alias="nroExpediente")
+    ruc_solicitante: Optional[str] = Field(None, alias="ruc")
+    razon_social: Optional[str] = Field(None, alias="razonSocial")
+    tipo_tramite: Optional[str] = Field("OTROS", alias="tipoTramite")
+    asunto: Optional[str] = Field(None, alias="descripcion")
+    fecha_ingreso: Optional[str] = Field(None, alias="fechaIngreso")
+    folio: Optional[int] = 1
+    sistema_origen: Optional[str] = Field("TRAMITE_DOCUMENTARIO_EXTERNO", alias="origen")
+    id_sistema_externo: Optional[str] = Field(None, alias="idExterno")
+    documentos_adjuntos: Optional[List[dict]] = Field(default_factory=list, alias="documentosAdjuntos")
+    observaciones: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+@router.post("/ingreso-externo", summary="Recepción de Expedientes desde API externa (Mesa de Partes / SGD)")
+async def registrar_expediente_externo(payload: ExpedienteExternoRequest):
+    """
+    Endpoint para que un sistema o aplicación externa (Mesa de Partes Virtual,
+    Sistema de Gestión Documental SGD, etc.) ingrese expedientes directamente al SIRRETT.
+    """
+    db = await get_database()
+    now = datetime.utcnow()
+    nro_clean = payload.nro_expediente.strip().upper()
+    
+    # Buscar si la empresa existe por RUC
+    empresa_id = None
+    if payload.ruc_solicitante:
+        emp = await db.empresas.find_one({"ruc": payload.ruc_solicitante.strip()})
+        if emp:
+            empresa_id = str(emp.get("_id"))
+            
+    doc = {
+        "nro_expediente": nro_clean,
+        "nroExpediente": nro_clean,
+        "folio": payload.folio or 1,
+        "tipo_tramite": payload.tipo_tramite,
+        "tipoTramite": payload.tipo_tramite,
+        "estado": "EN_PROCESO",
+        "descripcion": payload.asunto or payload.observaciones or f"Ingreso desde {payload.sistema_origen}",
+        "observaciones": payload.observaciones,
+        "empresa_id": empresa_id,
+        "empresaId": empresa_id,
+        "ruc_solicitante": payload.ruc_solicitante,
+        "razon_social": payload.razon_social,
+        "sistema_origen": payload.sistema_origen,
+        "id_sistema_externo": payload.id_sistema_externo,
+        "documentos_adjuntos": payload.documentos_adjuntos or [],
+        "fecha_emision": payload.fecha_ingreso or now.isoformat()[:10],
+        "fechaEmision": payload.fecha_ingreso or now.isoformat()[:10],
+        "fecha_registro": now,
+        "fecha_actualizacion": now,
+        "esta_activo": True,
+        "es_externo": True
+    }
+    
+    res = await db.expedientes.update_one(
+        {"nro_expediente": nro_clean},
+        {"$set": doc},
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "mensaje": f"Expediente {nro_clean} registrado/sincronizado exitosamente desde {payload.sistema_origen}",
+        "nro_expediente": nro_clean,
+        "accion": "CREADO" if res.upserted_id else "ACTUALIZADO"
+    }

@@ -27,6 +27,7 @@ export interface ResolucionPrimigenia {
   estado: EstadoResolucionPrimigenia;
   tiene_eficacia_anticipada: boolean;
   tipo_autorizacion: string;
+  modalidad?: string;
   link_documento?: string;
   expedientes_codigos: string[];
   fe_erratas: FeErrata[];
@@ -47,7 +48,8 @@ export interface ResolucionPrimigeniaCreate {
   fecha_fin_vigencia?: Date | string;
   estado?: EstadoResolucionPrimigenia;
   tiene_eficacia_anticipada?: boolean;
-  tipo_autorizacion: string;
+  tipo_autorizacion?: string;
+  modalidad?: string;
   link_documento?: string;
   expedientes_codigos?: string[];
   observaciones?: string;
@@ -62,6 +64,7 @@ export interface ResolucionPrimigeniaUpdate {
   fecha_fin_vigencia?: Date | string;
   estado?: EstadoResolucionPrimigenia;
   tipo_autorizacion?: string;
+  modalidad?: string;
   link_documento?: string;
   expedientes_codigos?: string[];
   observaciones?: string;
@@ -72,6 +75,7 @@ export interface ResolucionPrimigeniaFiltros {
   nro_resolucion?: string;
   estado?: EstadoResolucionPrimigenia;
   tipo_autorizacion?: string;
+  modalidad?: string;
   fecha_desde?: Date | string;
   fecha_hasta?: Date | string;
 }

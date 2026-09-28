@@ -218,52 +218,68 @@ class RutaExcelService:
                 )
                 empresa_validada = False
             
-            # Buscar resolución por número (sin validar tipo, ya que viene del usuario)
-            # Intentar búsqueda con normalización
-            resolucion = await self.resoluciones_collection.find_one({
-                "nroResolucion": ruta_data['resolucionNormalizada'],
-                "estaActivo": True
-            })
+            # Buscar resolución por número (primero en resoluciones_primigenias, luego en resoluciones)
+            resolucion = None
+            res_norm = ruta_data.get('resolucionNormalizada', '')
+            res_sin_prefijo = res_norm.replace('R-', '') if res_norm else ''
             
-            # Si no encuentra, intentar variaciones
-            if not resolucion:
-                # Intentar sin el prefijo R-
-                resolucion_sin_prefijo = ruta_data['resolucionNormalizada'].replace('R-', '')
+            if self.db is not None:
+                resolucion = await self.db["resoluciones_primigenias"].find_one({
+                    "$or": [
+                        {"nro_resolucion": res_norm},
+                        {"nroResolucion": res_norm},
+                        {"nro_resolucion": res_sin_prefijo},
+                        {"nroResolucion": res_sin_prefijo}
+                    ],
+                    "esta_activo": True
+                })
+            
+            if not resolucion and self.resoluciones_collection is not None:
                 resolucion = await self.resoluciones_collection.find_one({
-                    "nroResolucion": resolucion_sin_prefijo,
+                    "$or": [
+                        {"nroResolucion": res_norm},
+                        {"nroResolucion": res_sin_prefijo}
+                    ],
                     "estaActivo": True
                 })
             
-            # Si aún no encuentra, hacer búsqueda más flexible (contains)
-            if not resolucion:
-                resolucion = await self.resoluciones_collection.find_one({
-                    "nroResolucion": {"$regex": ruta_data['resolucionNormalizada'].replace('R-', ''), "$options": "i"},
-                    "estaActivo": True
-                })
+            # Si aún no encuentra, intentar búsqueda flexible por regex
+            if not resolucion and res_sin_prefijo and res_sin_prefijo != "SIN-RESOLUCION":
+                if self.db is not None:
+                    resolucion = await self.db["resoluciones_primigenias"].find_one({
+                        "nro_resolucion": {"$regex": res_sin_prefijo, "$options": "i"},
+                        "esta_activo": True
+                    })
+                if not resolucion and self.resoluciones_collection is not None:
+                    resolucion = await self.resoluciones_collection.find_one({
+                        "nroResolucion": {"$regex": res_sin_prefijo, "$options": "i"},
+                        "estaActivo": True
+                    })
             
-            print(f"[LOG] DEBUG: Resultado búsqueda resolución: {resolucion is not None}")
+            print(f"[LOG] DEBUG: Resultado búsqueda resolución {res_norm}: {resolucion is not None}")
             
             # [LOG] CAMBIO: No rechazar si no encuentra resolución, marcar en validacionBinaria
             resolucion_embebida = None
             resolucion_validada = False
             
             if not resolucion:
-                print(f"[LOG] WARNING: Resolución {ruta_data['resolucionNormalizada']} no encontrada - creando embebido temporal")
-                # Crear resolución embebida temporal con datos del Excel
+                print(f"[LOG] WARNING: Resolución {res_norm} no encontrada - creando embebido temporal")
                 resolucion_embebida = ResolucionEmbebida(
                     id="",  # Sin ID indica que no está en BD
-                    nroResolucion=ruta_data['resolucionNormalizada'],
-                    tipoResolucion="PADRE",  # Asumir PADRE por defecto
-                    estado="VIGENTE"  # Asumir VIGENTE
+                    nroResolucion=res_norm,
+                    tipoResolucion="PADRE",
+                    estado="VIGENTE"
                 )
                 resolucion_validada = False
             else:
-                # Resolución encontrada, crear embebido con datos reales
+                nro_oficial = resolucion.get("nro_resolucion") or resolucion.get("nroResolucion") or res_norm
+                tipo_oficial = resolucion.get("tipoResolucion") or resolucion.get("tipo_resolucion", "PRIMIGENIA")
+                estado_oficial = resolucion.get("estado", "VIGENTE")
                 resolucion_embebida = ResolucionEmbebida(
                     id=str(resolucion["_id"]),
-                    nroResolucion=resolucion["nroResolucion"],
-                    tipoResolucion=resolucion["tipoResolucion"],
-                    estado=resolucion["estado"]
+                    nroResolucion=nro_oficial,
+                    tipoResolucion=tipo_oficial,
+                    estado=estado_oficial
                 )
                 resolucion_validada = True
             
@@ -378,10 +394,12 @@ class RutaExcelService:
                 distancia=ruta_data.get('distancia'),
                 tiempoEstimado=ruta_data.get('tiempoEstimado'),
                 tarifaBase=ruta_data.get('tarifaBase'),
-                capacidadMaxima=ruta_data.get('capacidadMaxima'),
+                capacidadMaxima=None,
+                cantidadVehiculos=None,
                 restricciones=[],
                 observaciones=ruta_data.get('observaciones'),
                 descripcion=ruta_data['itinerario'],  # Mantener el texto original también
+                metadata=ruta_data.get('metadata', {}),
                 # [LOG] VALIDACIÓN BINARIA basada en datos encontrados
                 validacionBinaria=ValidacionBinaria.crear_binaria(
                     ruc_validado=empresa_validada,
@@ -963,9 +981,13 @@ class RutaExcelService:
         elif not self._validar_formato_ruc(ruc):
             errores.append(f"Formato de RUC inválido: {ruc}")
         
-        # Validar Resolución (requerido en todas las rutas, incluidas canceladas)
+        # Validar Resolución (requerido; si está cancelada o inactiva y trae '-', se asigna SIN-RESOLUCION)
+        estado_temp = self._get_val(row, KEYS_ESTADO, 'ACTIVA').upper()
         if not resolucion or not self._validar_formato_resolucion(resolucion):
-            errores.append(f"Resolución inválida o con guión ('{resolucion}'). Debe tener estructura válida de resolución (ej: 0123-2026 o R-0123-2026), no se permite '-'")
+            if es_ruta_cancelada or estado_temp in ['CANCELADA', 'INACTIVA']:
+                advertencias.append(f"Resolución no especificada para ruta cancelada/inactiva ('{resolucion}'), se asignará 'SIN-RESOLUCION'")
+            else:
+                errores.append(f"Resolución inválida o con guión ('{resolucion}'). Debe tener estructura válida de resolución (ej: 0123-2026 o R-0123-2026), no se permite '-'")
         
         # Validar código de ruta (requerido)
         if not codigo_ruta:
@@ -1077,8 +1099,10 @@ class RutaExcelService:
         Normalizar formato de resolución a R-XXXX-YYYY
         Limpia sufijos institucionales (ej: -DRTC, -GRTC, -MTC, /DRTC, DRTC, etc.)
         """
-        if not resolucion or not self._validar_formato_resolucion(resolucion):
-            return ""
+        if not resolucion or str(resolucion).strip() in ['-', '--', '---', 'NAN', 'NULL', 'NONE', '', 'nan']:
+            return "SIN-RESOLUCION"
+        if not self._validar_formato_resolucion(resolucion):
+            return "SIN-RESOLUCION"
         
         res_str = str(resolucion).strip().upper()
         
@@ -1174,7 +1198,11 @@ class RutaExcelService:
         if not ruc:
             raise ValueError("RUC es obligatorio y no puede estar vacío")
         if not resolucion or not self._validar_formato_resolucion(resolucion):
-            raise ValueError(f"Resolución obligatoria con estructura válida (ej: 0123-2026). No se permite '{resolucion}'")
+            estado_val = self._get_val(row, KEYS_ESTADO, 'ACTIVA').upper()
+            if es_ruta_cancelada or estado_val in ['CANCELADA', 'INACTIVA']:
+                resolucion = "SIN-RESOLUCION"
+            else:
+                raise ValueError(f"Resolución obligatoria con estructura válida (ej: 0123-2026). No se permite '{resolucion}'")
         if not codigo_ruta:
             raise ValueError("Código de ruta es obligatorio y no puede estar vacío")
         
@@ -1242,14 +1270,19 @@ class RutaExcelService:
             except:
                 pass
 
-        cantidad_vehiculos = None
+        metadata = {
+            "fuente": "google_sheets_import",
+            "usuario": usuario
+        }
+        if id_original:
+            metadata["id_original"] = id_original
+
+        # Cantidad de vehículos del Sheet es puramente referencial
+        # NO se toma en cuenta para cupo restrictivo ni capacidad técnica
         cant_veh_val = self._get_val(row, ['CANTIDAD_VEHICULOS_POR_RUTA', 'CANTIDAD_VEHICULOS', 'Capacidad Máxima', 'Capacidad Maxima'])
-        if cant_veh_val:
-            try:
-                cantidad_vehiculos = int(float(cant_veh_val))
-            except:
-                pass
-        
+        if cant_veh_val and str(cant_veh_val).strip() not in ['', 'nan', 'None']:
+            metadata["cantidad_vehiculos_referencial"] = str(cant_veh_val).strip()
+
         # Normalizar resolución y código de ruta
         resolucion_normalizada = self._normalizar_resolucion(resolucion)
         codigo_normalizado = self._normalizar_codigo_ruta(codigo_ruta)
@@ -1262,12 +1295,7 @@ class RutaExcelService:
         else:
             itinerario = "SIN ITINERARIO"
         
-        metadata = {
-            "fuente": "google_sheets_import",
-            "usuario": usuario
-        }
-        if id_original:
-            metadata["id_original"] = id_original
+
 
         return {
             'fila': fila_num,
@@ -1284,71 +1312,10 @@ class RutaExcelService:
             'distancia': distancia,
             'tiempoEstimado': tiempo_estimado,
             'tarifaBase': tarifa_base,
-            'cantidadVehiculos': cantidad_vehiculos,
-            'capacidadMaxima': cantidad_vehiculos,
+            'cantidadVehiculos': None,
+            'capacidadMaxima': None,
             'observaciones': observaciones,
             'metadata': metadata,
-            'esCancelada': es_ruta_cancelada
-        }
-
-        if estado == 'CANCELADA':
-            estado = 'INACTIVA'
-        
-        tiempo_estimado = str(row.get('Tiempo Estimado', '')).strip() if pd.notna(row.get('Tiempo Estimado')) else None
-        observaciones = str(row.get('Observaciones', '')).strip() if pd.notna(row.get('Observaciones')) else None
-        
-        # Agregar observación para rutas canceladas
-        if es_ruta_cancelada:
-            obs_cancelada = "Ruta cancelada (importada con guiones)"
-            if observaciones:
-                observaciones = f"{obs_cancelada}. {observaciones}"
-            else:
-                observaciones = obs_cancelada
-        
-        # Campos numéricos
-        distancia = None
-        if pd.notna(row.get('Distancia')) and row.get('Distancia') != '':
-            try:
-                distancia = float(row.get('Distancia'))
-            except:
-                pass
-        
-        tarifa_base = None
-        if pd.notna(row.get('Tarifa Base')) and row.get('Tarifa Base') != '':
-            try:
-                tarifa_base = float(row.get('Tarifa Base'))
-            except:
-                pass
-        
-        # Normalizar resolución y código de ruta
-        resolucion_normalizada = self._normalizar_resolucion(resolucion)
-        codigo_normalizado = self._normalizar_codigo_ruta(codigo_ruta)
-        
-        # Crear nombre de ruta - Manejar itinerarios vacíos
-        if es_ruta_cancelada and not itinerario_excel:
-            itinerario = "RUTA CANCELADA"
-        elif itinerario_excel and itinerario_excel.strip():
-            itinerario = itinerario_excel
-        else:
-            # Si itinerario está vacío, usar "SIN ITINERARIO"
-            itinerario = "SIN ITINERARIO"
-        
-        return {
-            'fila': fila_num,  # [LOG] NUEVO: Agregar número de fila
-            'ruc': ruc,
-            'resolucionNormalizada': resolucion_normalizada,
-            'codigoRuta': codigo_normalizado,
-            'origen': origen,
-            'destino': destino,
-            'itinerario': itinerario,
-            'frecuencia': frecuencia,
-            'tipoRuta': tipo_ruta,
-            'tipoServicio': tipo_servicio,
-            'estado': estado,
-            'distancia': distancia,
-            'tiempoEstimado': tiempo_estimado,
-            'tarifaBase': tarifa_base,
-            'observaciones': observaciones,
             'esCancelada': es_ruta_cancelada
         }
   
@@ -1549,11 +1516,11 @@ class RutaExcelService:
             estado=EstadoRuta(ruta_data.get('estado')) if ruta_data.get('estado') else None,
             distancia=ruta_data.get('distancia'),
             tiempoEstimado=ruta_data.get('tiempoEstimado'),
-            tarifaBase=ruta_data.get('tarifaBase'),
-            capacidadMaxima=ruta_data.get('capacidadMaxima'),
-            cantidadVehiculos=ruta_data.get('cantidadVehiculos'),
+            capacidadMaxima=None,
+            cantidadVehiculos=None,
             observaciones=ruta_data.get('observaciones'),
-            descripcion=ruta_data.get('itinerario', 'SIN ITINERARIO')
+            descripcion=ruta_data.get('itinerario', 'SIN ITINERARIO'),
+            metadata=ruta_data.get('metadata')
         )
         
         return ruta_update
@@ -1824,3 +1791,21 @@ class RutaExcelService:
                 'rutas_eliminadas': [],
                 'errores_procesamiento': []
             }
+
+    async def procesar_archivo_excel_completo(self, archivo: Any, modo: str = "upsert") -> Dict[str, Any]:
+        """
+        Método adaptador para InicializadorService: procesa bytes o BytesIO de Excel o CSV
+        """
+        if isinstance(archivo, bytes):
+            buffer = BytesIO(archivo)
+        elif isinstance(archivo, BytesIO):
+            buffer = archivo
+            buffer.seek(0)
+        else:
+            buffer = BytesIO(archivo)
+        return await self.procesar_carga_masiva_con_modo(buffer, modo=modo)
+
+    async def procesar_archivo_excel(self, archivo: Any, modo: str = "upsert") -> Dict[str, Any]:
+        """Alias para compatibilidad con InicializadorService"""
+        return await self.procesar_archivo_excel_completo(archivo, modo=modo)
+

@@ -48,7 +48,8 @@ class ResolucionPrimigenia(BaseModel):
     # Clasificación y estado
     estado: EstadoResolucionPrimigenia = EstadoResolucionPrimigenia.VIGENTE
     tiene_eficacia_anticipada: bool = Field(default=False, description="Indica si aplica eficacia anticipada (retroactividad)")
-    tipo_autorizacion: Optional[str] = Field(default="PASAJEROS", description="Modalidad de servicio autorizada (TURISMO, PERSONAS, CARGA, etc.)")
+    tipo_autorizacion: Optional[str] = Field(default="PASAJEROS", description="Tipo o régimen de autorización (TURISMO, PERSONAL, TRABAJADORES, REGULAR, etc.)")
+    modalidad: Optional[str] = Field(default=None, description="Modalidad de servicio autorizada (PASAJEROS, TURISMO, etc.)")
     
     # Documentos y expedientes
     link_documento: Optional[str] = Field(None, description="Enlace al archivo o expediente digital en Google Drive")
@@ -74,9 +75,11 @@ class ResolucionPrimigeniaCreate(BaseModel):
     fecha_fin_vigencia: Optional[datetime] = None  # Si se omite, se calcula automáticamente
     estado: EstadoResolucionPrimigenia = EstadoResolucionPrimigenia.VIGENTE
     tiene_eficacia_anticipada: Optional[bool] = None
-    tipo_autorizacion: str = Field(..., description="TURISMO, PERSONAS, CARGA, etc.")
+    tipo_autorizacion: Optional[str] = Field(default="PASAJEROS", description="TURISMO, PERSONAL, TRABAJADORES, etc.")
+    modalidad: Optional[str] = Field(default=None, description="PASAJEROS, TURISMO, etc.")
     link_documento: Optional[str] = None
     expedientes_codigos: List[str] = Field(default_factory=list)
+    historial_modificaciones: List[ModificacionHistorial] = Field(default_factory=list)
     observaciones: Optional[str] = None
 
 class ResolucionPrimigeniaUpdate(BaseModel):
@@ -89,8 +92,10 @@ class ResolucionPrimigeniaUpdate(BaseModel):
     estado: Optional[EstadoResolucionPrimigenia] = None
     tiene_eficacia_anticipada: Optional[bool] = None
     tipo_autorizacion: Optional[str] = None
+    modalidad: Optional[str] = None
     link_documento: Optional[str] = None
     expedientes_codigos: Optional[List[str]] = None
+    historial_modificaciones: Optional[List[ModificacionHistorial]] = None
     observaciones: Optional[str] = None
 
 class ResolucionPrimigeniaFiltros(BaseModel):
@@ -98,6 +103,7 @@ class ResolucionPrimigeniaFiltros(BaseModel):
     nro_resolucion: Optional[str] = None
     estado: Optional[EstadoResolucionPrimigenia] = None
     tipo_autorizacion: Optional[str] = None
+    modalidad: Optional[str] = None
     fecha_resolucion_desde: Optional[datetime] = None
     fecha_resolucion_hasta: Optional[datetime] = None
     esta_activo: Optional[bool] = True

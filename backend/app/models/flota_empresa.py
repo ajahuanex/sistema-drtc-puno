@@ -94,6 +94,8 @@ class VehiculoEmpresaCreate(BaseModel):
     tramite: Optional[str] = None
     detalles: Optional[str] = None
     porcentaje: Optional[str] = None
+    orden_cronologico: Optional[int] = Field(default=None, description="Número correlativo cronológico dentro de la resolución primigenia")
+    fila_origen_matriz: Optional[int] = Field(default=None, description="Número de fila de origen en la hoja DB_MATRIZ")
 
 
 class VehiculoEmpresaUpdate(BaseModel):
@@ -211,6 +213,8 @@ class VehiculoEmpresaResponse(BaseModel):
     tramite: Optional[str] = None
     detalles: Optional[str] = None
     porcentaje: Optional[str] = None
+    orden_cronologico: Optional[int] = None
+    fila_origen_matriz: Optional[int] = None
     fecha_registro: Optional[Any] = None
     fecha_actualizacion: Optional[Any] = None
     esta_activo: bool = True

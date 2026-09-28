@@ -512,32 +512,23 @@ import {
                 }
               </div>
 
-              <!-- Sección Fe de Erratas -->
+              <!-- Sección Unificada: Historial de Modificaciones y Actos Posteriores -->
               <div class="sub-section">
-                <h3><mat-icon style="color: #b45309;">label</mat-icon> Fe de Erratas Emitidas ({{ selectedForDetail()?.fe_erratas?.length || 0 }})</h3>
-                @if (!selectedForDetail()?.fe_erratas?.length) {
-                  <p class="sin-datos">No hay fe de erratas registradas para esta resolución.</p>
+                <h3><mat-icon style="color: #0d9488;">alt_route</mat-icon> Modificaciones y Actos Posteriores ({{ totalModificaciones(selectedForDetail()!) }})</h3>
+                @if (totalModificaciones(selectedForDetail()!) === 0) {
+                  <p class="sin-datos">No hay modificaciones posteriores ni fe de erratas registradas para esta resolución originaria.</p>
                 } @else {
-                  <ul class="sub-list">
+                  <ul class="sub-list timeline-modificaciones">
                     @for (fe of selectedForDetail()?.fe_erratas; track fe.numero_resolucion) {
-                      <li>
+                      <li class="item-modificacion-errata">
+                        <span class="badge-tag-mod tag-fe">FE DE ERRATAS</span>
                         <strong>N° {{ fe.numero_resolucion }}</strong> ({{ fe.fecha_emision | date:'dd/MM/yyyy' }}): {{ fe.detalle_correccion }}
                       </li>
                     }
-                  </ul>
-                }
-              </div>
-
-              <!-- Sección Historial de Modificaciones (Hijas) -->
-              <div class="sub-section">
-                <h3><mat-icon style="color: #0d9488;">alt_route</mat-icon> Historial de Resoluciones Hijas ({{ selectedForDetail()?.historial_modificaciones?.length || 0 }})</h3>
-                @if (!selectedForDetail()?.historial_modificaciones?.length) {
-                  <p class="sin-datos">No hay modificaciones posteriores registradas.</p>
-                } @else {
-                  <ul class="sub-list">
                     @for (mod of selectedForDetail()?.historial_modificaciones; track mod.nro_resolucion_hija) {
-                      <li>
-                        <strong>N° {{ mod.nro_resolucion_hija }}</strong> [{{ mod.tipo_modificacion }}] - {{ mod.fecha_acto | date:'dd/MM/yyyy' }}: {{ mod.observacion || '-' }}
+                      <li class="item-modificacion-hija">
+                        <span class="badge-tag-mod tag-acto">{{ mod.tipo_modificacion }}</span>
+                        <strong>N° {{ mod.nro_resolucion_hija }}</strong> - {{ mod.fecha_acto | date:'dd/MM/yyyy' }}: {{ mod.observacion || '-' }}
                       </li>
                     }
                   </ul>
@@ -705,12 +696,7 @@ import {
                           <mat-icon class="sort-icon">{{ getSortIcon('tiene_eficacia_anticipada') }}</mat-icon>
                         </th>
                       }
-                      @if (columnaVisible('fe_erratas')) {
-                        <th (click)="toggleSort('fe_erratas')" class="sortable-th">
-                          <span>Fe de Erratas</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('fe_erratas') }}</mat-icon>
-                        </th>
-                      }
+
                       @if (columnaVisible('historial_modificaciones')) {
                         <th (click)="toggleSort('historial_modificaciones')" class="sortable-th">
                           <span>Modificaciones</span>
@@ -837,22 +823,11 @@ import {
                             }
                           </td>
                         }
-                        @if (columnaVisible('fe_erratas')) {
-                          <td>
-                            @if (item.fe_erratas && item.fe_erratas.length > 0) {
-                              <span class="badge-count badge-errata" [matTooltip]="item.fe_erratas[0].detalle_correccion">
-                                {{ item.fe_erratas.length }} Errata(s)
-                              </span>
-                            } @else {
-                              <span class="sin-datos">-</span>
-                            }
-                          </td>
-                        }
                         @if (columnaVisible('historial_modificaciones')) {
                           <td>
-                            @if (item.historial_modificaciones && item.historial_modificaciones.length > 0) {
-                              <span class="badge-count badge-mod" [matTooltip]="item.historial_modificaciones[0].tipo_modificacion">
-                                {{ item.historial_modificaciones.length }} Mod.
+                            @if (totalModificaciones(item) > 0) {
+                              <span class="badge-count badge-mod" [matTooltip]="getTooltipModificaciones(item)" style="cursor: pointer;" (click)="verDetalleModal(item)">
+                                {{ totalModificaciones(item) }} Mod.
                               </span>
                             } @else {
                               <span class="sin-datos">-</span>
@@ -885,25 +860,19 @@ import {
                               <button type="button"
                                       class="table-action-btn action-view"
                                       (click)="verDetalleModal(item)"
-                                      matTooltip="Ver Detalle e Historial">
+                                      matTooltip="Ver Detalle e Historial de Modificaciones">
                                 <mat-icon>visibility</mat-icon>
                               </button>
                               <button type="button"
                                       class="table-action-btn action-edit"
                                       (click)="editarResolucionModal(item)"
-                                      matTooltip="Editar Resolución">
+                                      matTooltip="Editar Resolución Primigenia">
                                 <mat-icon>edit</mat-icon>
-                              </button>
-                              <button type="button"
-                                      class="table-action-btn action-errata"
-                                      (click)="abrirModalFeErrata(item)"
-                                      matTooltip="Agregar Fe de Errata">
-                                <mat-icon>note_add</mat-icon>
                               </button>
                               <button type="button"
                                       class="table-action-btn action-hija"
                                       (click)="crearHijaVinculada(item)"
-                                      matTooltip="Registrar Resolución Hija">
+                                      matTooltip="Registrar Modificación / Acto Posterior (Fe de Erratas, Rutas, Flota, etc.)">
                                 <mat-icon>alt_route</mat-icon>
                               </button>
                               <button type="button"
@@ -1933,7 +1902,56 @@ import {
       font-weight: 600;
 
       &.badge-errata { background-color: #fef08a; color: #854d0e; }
-      &.badge-mod { background-color: #e0f2fe; color: #0369a1; }
+      &.badge-mod {
+        background-color: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+        font-weight: 700;
+        transition: all 0.2s ease;
+        &:hover {
+          background-color: #0284c7;
+          color: #ffffff;
+        }
+      }
+    }
+
+    .timeline-modificaciones {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-left: 0;
+      list-style: none;
+
+      li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.85rem;
+      }
+    }
+
+    .badge-tag-mod {
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+
+      &.tag-fe {
+        background-color: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #ffedd5;
+      }
+      &.tag-acto {
+        background-color: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+      }
     }
 
     .tipo-badge {
@@ -2923,15 +2941,14 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
           width: 14,
           getValue: (r) => r.tiene_eficacia_anticipada ? 'SÍ' : 'NO'
         },
-        'fe_erratas': {
-          header: 'Fe de Erratas',
-          width: 30,
-          getValue: (r) => (r.fe_erratas || []).map(fe => `${fe.numero_resolucion} (${fe.detalle_correccion})`).join('; ') || '-'
-        },
         'historial_modificaciones': {
-          header: 'Modificaciones Hijas',
-          width: 30,
-          getValue: (r) => (r.historial_modificaciones || []).map(m => `${m.nro_resolucion_hija} [${m.tipo_modificacion}]`).join('; ') || '-'
+          header: 'Modificaciones y Actos Posteriores',
+          width: 35,
+          getValue: (r) => {
+            const mods = (r.historial_modificaciones || []).map(m => `${m.nro_resolucion_hija} [${m.tipo_modificacion}]`);
+            const fes = (r.fe_erratas || []).map(fe => `${fe.numero_resolucion} [FE DE ERRATAS: ${fe.detalle_correccion}]`);
+            return [...fes, ...mods].join('; ') || '-';
+          }
         },
         'observaciones': {
           header: 'Observaciones',
@@ -3141,12 +3158,9 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
       let valA: any = (a as any)[col];
       let valB: any = (b as any)[col];
 
-      if (col === 'fe_erratas') {
-        valA = a.fe_erratas?.length || 0;
-        valB = b.fe_erratas?.length || 0;
-      } else if (col === 'historial_modificaciones') {
-        valA = a.historial_modificaciones?.length || 0;
-        valB = b.historial_modificaciones?.length || 0;
+      if (col === 'historial_modificaciones' || col === 'fe_erratas') {
+        valA = this.totalModificaciones(a);
+        valB = this.totalModificaciones(b);
       } else if (col === 'fecha_resolucion' || col === 'fecha_inicio_vigencia' || col === 'fecha_fin_vigencia') {
         valA = valA ? new Date(valA).getTime() : 0;
         valB = valB ? new Date(valB).getTime() : 0;
@@ -3283,7 +3297,6 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     { key: 'fecha_fin_vigencia', label: 'F. Fin Vigencia', required: false },
     { key: 'estado', label: 'Estado Legal', required: false },
     { key: 'tiene_eficacia_anticipada', label: 'Eficacia Ant.', required: false },
-    { key: 'fe_erratas', label: 'Fe de Erratas', required: false },
     { key: 'historial_modificaciones', label: 'Modificaciones', required: false },
     { key: 'observaciones', label: 'Observaciones', required: false },
     { key: 'link_documento', label: 'Drive PDF', required: false },
@@ -3302,7 +3315,6 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     'fecha_fin_vigencia',
     'estado',
     'tiene_eficacia_anticipada',
-    'fe_erratas',
     'historial_modificaciones',
     'observaciones',
     'link_documento',
@@ -3356,6 +3368,24 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
         }
       }
     } catch (e) {}
+  }
+
+  totalModificaciones(item: ResolucionPrimigenia | null | undefined): number {
+    if (!item) return 0;
+    return (item.historial_modificaciones?.length || 0) + (item.fe_erratas?.length || 0);
+  }
+
+  getTooltipModificaciones(item: ResolucionPrimigenia): string {
+    const lines: string[] = [];
+    if (item.fe_erratas?.length) {
+      lines.push(`• ${item.fe_erratas.length} Fe de Erratas`);
+    }
+    if (item.historial_modificaciones?.length) {
+      item.historial_modificaciones.forEach(m => {
+        lines.push(`• N° ${m.nro_resolucion_hija} (${m.tipo_modificacion})`);
+      });
+    }
+    return lines.join('\n') || 'Sin modificaciones posteriores';
   }
 
   ngOnInit(): void {

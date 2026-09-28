@@ -129,3 +129,49 @@ async def ejecutar_archivo(
     except Exception as e:
         logger.error(f"Error ejecutando archivo para {etapa}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/limpiar-todo-excepto-usuarios", summary="Vaciar todas las bases de datos de transportes respetando usuarios")
+async def limpiar_todo_excepto_usuarios(
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Elimina todos los registros de empresas, resoluciones primigenias e hijas,
+    rutas, flota vehicular, datos técnicos vehiculares, TUCs y expedientes,
+    preservando intacta la colección de usuarios y autenticación.
+    """
+    try:
+        colecciones_protegidas = {
+            "usuarios", "users", "roles", "permisos", "permissions", 
+            "refresh_tokens", "auth", "system.indexes"
+        }
+        
+        todas_las_colecciones = await db.list_collection_names()
+        resultados = {}
+        total_eliminados = 0
+
+        for col_name in todas_las_colecciones:
+            if col_name in colecciones_protegidas or col_name.startswith("system."):
+                continue
+            
+            coll = db[col_name]
+            count_antes = await coll.count_documents({})
+            if count_antes > 0:
+                del_res = await coll.delete_many({})
+                resultados[col_name] = del_res.deleted_count
+                total_eliminados += del_res.deleted_count
+            else:
+                resultados[col_name] = 0
+
+        logger.info(f"Limpieza de base de datos ejecutada: {total_eliminados} registros eliminados en {len(resultados)} colecciones.")
+
+        return {
+            "success": True,
+            "mensaje": f"Se eliminaron {total_eliminados} registros en {len(resultados)} colecciones operativas. Los usuarios fueron preservados.",
+            "total_eliminados": total_eliminados,
+            "detalle_por_coleccion": resultados,
+            "colecciones_protegidas_preservadas": list(colecciones_protegidas)
+        }
+    except Exception as e:
+        logger.error(f"Error al limpiar bases de datos: {e}")
+        raise HTTPException(status_code=500, detail=f"Error durante el reseteo: {str(e)}")

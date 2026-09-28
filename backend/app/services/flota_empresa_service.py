@@ -2,7 +2,7 @@
 Servicio para el módulo Flota Empresa.
 Colección MongoDB: flota_empresa
 """
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime
 import re
 import uuid
@@ -63,6 +63,22 @@ def _normalizar_codigo_resolucion(val: Any) -> Optional[str]:
     return s if s.startswith("R-") else f"R-{s}"
 
 
+def _parse_safe_dt(val, default=None):
+    if not val:
+        return default
+    if isinstance(val, datetime):
+        return val
+    if isinstance(val, str):
+        try:
+            s = val.strip().replace("Z", "")
+            if len(s) == 10 and "-" in s:
+                return datetime.strptime(s, "%Y-%m-%d")
+            return datetime.fromisoformat(s)
+        except Exception:
+            return default
+    return default
+
+
 class FlotaEmpresaService:
     def __init__(self, db):
         self.db = db
@@ -101,19 +117,27 @@ class FlotaEmpresaService:
             
         return None
 
-    async def _obtener_mapa_razon_social(self, rucs: List[str]) -> Dict[str, str]:
+    async def _obtener_mapa_empresas(self, rucs: List[str]) -> Tuple[Dict[str, str], Dict[str, str]]:
         rucs_filtrados = [r for r in set(rucs) if r and str(r).strip()]
         if not rucs_filtrados:
-            return {}
+            return {}, {}
         
-        mapa = {}
+        mapa_rs = {}
+        mapa_est = {}
         cursor = self.empresas_collection.find({"ruc": {"$in": rucs_filtrados}})
         async for emp in cursor:
             ruc = emp.get("ruc")
             rs = self._extraer_razon_social(emp)
-            if ruc and rs:
-                mapa[ruc] = rs
-        return mapa
+            est = emp.get("estado", "AUTORIZADA")
+            if ruc:
+                if rs:
+                    mapa_rs[ruc] = rs
+                mapa_est[ruc] = est
+        return mapa_rs, mapa_est
+
+    async def _obtener_mapa_razon_social(self, rucs: List[str]) -> Dict[str, str]:
+        mapa_rs, _ = await self._obtener_mapa_empresas(rucs)
+        return mapa_rs
 
     async def _enriquecer_docs(self, docs_raw: List[dict]) -> List[dict]:
         if not docs_raw:
@@ -356,7 +380,7 @@ class FlotaEmpresaService:
             raw_empresas.append(doc)
 
         rucs = [e["ruc"] for e in raw_empresas if e.get("ruc")]
-        mapa_rs = await self._obtener_mapa_razon_social(rucs)
+        mapa_rs, mapa_est = await self._obtener_mapa_empresas(rucs)
 
         # Consultar la colección oficial de resoluciones_primigenias para obtener las vigentes
         now = datetime.utcnow()
@@ -384,6 +408,7 @@ class FlotaEmpresaService:
         for doc in raw_empresas:
             ruc = doc.get("ruc")
             rs_oficial = mapa_rs.get(ruc) or doc.get("razon_social_flota") or "EMPRESA SIN RAZÓN SOCIAL"
+            estado_emp = mapa_est.get(ruc, "AUTORIZADA")
             
             # Priorizar resoluciones primigenias vigentes validadas desde la base de datos oficial
             prim_oficiales = mapa_primigenias_vigentes.get(ruc)
@@ -395,6 +420,7 @@ class FlotaEmpresaService:
             empresas.append({
                 "ruc": ruc,
                 "razon_social": rs_oficial,
+                "estado": estado_emp,
                 "total_vehiculos": doc["total_vehiculos"],
                 "habilitados": doc["habilitados"],
                 "inhabilitados": doc["inhabilitados"],
@@ -497,6 +523,12 @@ class FlotaEmpresaService:
             }
             motivo_val = map_motivo.get(tipo_hija_val, "INCREMENTO_FLOTA")
 
+            nro_exp = doc_veh.get("num_expediente") or doc_veh.get("documento_origen") or ""
+            f_exp = str(doc_veh.get("fecha_expediente"))[:10] if doc_veh.get("fecha_expediente") else None
+            t_tramite = doc_veh.get("tipo_tramite_origen") or motivo_val
+            tramite_id = doc_veh.get("tramite_id") or doc_veh.get("resolucion_hija_id")
+            nro_hija = doc_veh.get("nro_resolucion_hija")
+
             tuc_doc = {
                 "nroTuc": raw_tuc,
                 "tipoEmision": tipo_emision,
@@ -507,6 +539,13 @@ class FlotaEmpresaService:
                 "ruc": ruc,
                 "razonSocial": razon_social,
                 "nroResolucion": nro_res,
+                "nroResolucionHija": nro_hija,
+                "resolucionHijaId": tramite_id,
+                "nroExpediente": nro_exp if nro_exp else None,
+                "fechaExpediente": f_exp,
+                "tipoTramite": t_tramite,
+                "tramiteId": tramite_id,
+                "origenEmision": "CENTRO_TRAMITES",
                 "fechaEmision": f_emision,
                 "fechaVencimiento": f_venc,
                 "hashSeguridad": hash_seg,
@@ -526,9 +565,9 @@ class FlotaEmpresaService:
                         "fechaRegistro": datetime.utcnow().isoformat(),
                         "historialCambios": [{
                             "fecha": datetime.utcnow().isoformat(),
-                            "accion": "REGISTRO_FLOTA",
-                            "usuario": "SISTEMA_FLOTA",
-                            "detalle": f"TUC vinculada desde Flota Empresa ({placa})"
+                            "accion": f"EMISION_TRAMITE_{t_tramite}",
+                            "usuario": "CENTRO_TRAMITES",
+                            "detalle": f"TUC emitida y vinculada desde Centro de Trámites ({placa}, Exp. {nro_exp or 'S/N'})"
                         }]
                     }
                 },
@@ -865,21 +904,6 @@ class FlotaEmpresaService:
                     if not req.nuevas_rutas and rutas_codigos_clonados:
                         req.nuevas_rutas = rutas_codigos_clonados
 
-                def _parse_safe_dt(val, default=None):
-                    if not val:
-                        return default
-                    if isinstance(val, datetime):
-                        return val
-                    if isinstance(val, str):
-                        try:
-                            # Handle YYYY-MM-DD or full ISO
-                            s = val.strip().replace("Z", "")
-                            if len(s) == 10 and "-" in s:
-                                return datetime.strptime(s, "%Y-%m-%d")
-                            return datetime.fromisoformat(s)
-                        except Exception:
-                            return default
-                    return default
 
                 dt_emision = _parse_safe_dt(req.nueva_fecha_emision, now)
                 dt_inicio = _parse_safe_dt(req.nueva_fecha_inicio_vigencia, dt_emision)
@@ -1068,7 +1092,36 @@ class FlotaEmpresaService:
                 )
 
         # -------------------------------------------------------------
-        # 2. PROCESAR CADA VEHÍCULO EN EL TRÁMITE (BAJAS, INCREMENTO, SUSTITUCION, DUPLICADO, CANJE)
+        # 2. DEFINIR RESOLUCIÓN HIJA Y IDENTIFICADORES DEL TRÁMITE
+        # -------------------------------------------------------------
+        if req.tipo_tramite == "RENOVACION" or req.es_renovacion:
+            nro_hija_val = (req.nueva_resolucion_primigenia or req.nro_resolucion_hija or "").strip().upper()
+            if nro_hija_val:
+                nro_hija_val = _normalizar_codigo_resolucion(nro_hija_val) or nro_hija_val
+        else:
+            nro_hija_val = (req.nro_resolucion_hija or "").strip().upper()
+            if not nro_hija_val:
+                from app.services.resolucion_hija_service import ResolucionHijaService
+                hija_srv = ResolucionHijaService(self.db)
+                nro_hija_val = await hija_srv.generar_siguiente_numero(req.tipo_tramite)
+            else:
+                nro_hija_val = _normalizar_codigo_resolucion(nro_hija_val) or nro_hija_val
+
+        tipo_acto_map = {
+            "INCREMENTO": "INCREMENTO_FLOTA",
+            "SUSTITUCION": "SUSTITUCION_VEHICULAR",
+            "RENOVACION": "RENOVACION",
+            "BAJAS": "BAJA_VEHICULAR",
+            "DUPLICADO": "OTROS",
+            "CANJE": "OTROS",
+            "CANCELACION": "CANCELACION_PARCIAL" if not getattr(req, "cancelacion_total", False) else "OTROS",
+            "MODIFICACION": "MODIFICACION_RUTA"
+        }
+        tipo_acto = tipo_acto_map.get(req.tipo_tramite.upper(), "OTROS")
+        doc_hija_id = str(uuid.uuid4())
+
+        # -------------------------------------------------------------
+        # 3. PROCESAR CADA VEHÍCULO EN EL TRÁMITE (BAJAS, INCREMENTO, SUSTITUCION, DUPLICADO, CANJE)
         # -------------------------------------------------------------
         bajas_oficio = 0
         for item in req.vehiculos:
@@ -1081,7 +1134,7 @@ class FlotaEmpresaService:
             if req.tipo_tramite == "BAJAS":
                 v_saliente = await self.collection.find_one({"ruc": ruc, "placa": placa_in, "esta_activo": {"$ne": False}})
                 if v_saliente:
-                    res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
+                    res_ref = nro_hija_val or req.nro_resolucion_primigenia
                     nueva_obs_sal = {
                         "fecha": now,
                         "texto": f"BAJA SEGUN RESOLUCION {res_ref} / {origen_texto}",
@@ -1092,6 +1145,25 @@ class FlotaEmpresaService:
                         {
                             "$set": {"estado": "INHABILITADO", "fecha_actualizacion": now},
                             "$push": {"observaciones_historial": nueva_obs_sal}
+                        }
+                    )
+                    # Invalidar TUC en el padrón oficial
+                    await self.db.tucs.update_many(
+                        {"placa": placa_in, "estado": "VIGENTE"},
+                        {
+                            "$set": {
+                                "estado": "ANULADA",
+                                "motivoAnulacion": f"BAJA SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                                "fechaActualizacion": now.isoformat()
+                            },
+                            "$push": {
+                                "historialCambios": {
+                                    "fecha": now.isoformat(),
+                                    "accion": "ANULADA_POR_BAJA",
+                                    "usuario": "CENTRO_TRAMITES",
+                                    "detalle": f"Baja vehicular procesada en Centro de Trámites ({res_ref})"
+                                }
+                            }
                         }
                     )
                     bajas_oficio += 1
@@ -1149,7 +1221,9 @@ class FlotaEmpresaService:
                 "ruc": ruc,
                 "razon_social": razon_social,
                 "nro_resolucion_primigenia": res_target,
-                "nro_resolucion_hija": req.nro_resolucion_hija,
+                "nro_resolucion_hija": nro_hija_val,
+                "resolucion_hija_id": doc_hija_id,
+                "tramite_id": doc_hija_id,
                 "tipo_resolucion_hija": tipo_hija_val,
                 "fecha_emision_resolucion": req.fecha_emision_resolucion or req.nueva_fecha_emision,
                 "fecha_inicio_vigencia": dt_inicio if (req.tipo_tramite == "RENOVACION" or req.es_renovacion) else None,
@@ -1158,6 +1232,7 @@ class FlotaEmpresaService:
                 "fecha_expediente": req.fecha_expediente,
                 "documento_origen": req.documento_origen,
                 "es_de_oficio": req.es_de_oficio,
+                "tipo_tramite_origen": req.tipo_tramite,
                 "placa": placa_in,
                 "orden": getattr(item, "orden", None),
                 "estado": "HABILITADO",
@@ -1261,6 +1336,25 @@ class FlotaEmpresaService:
                             "$push": {"observaciones_historial": nueva_obs_sal}
                         }
                     )
+                    # Marcar TUC anterior como REEMPLAZADA por el nuevo vehículo entrante
+                    await self.db.tucs.update_many(
+                        {"placa": placa_sal, "estado": "VIGENTE"},
+                        {
+                            "$set": {
+                                "estado": "REEMPLAZADA",
+                                "motivoAnulacion": f"REEMPLAZADO POR VEHÍCULO {placa_in} SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                                "fechaActualizacion": now.isoformat()
+                            },
+                            "$push": {
+                                "historialCambios": {
+                                    "fecha": now.isoformat(),
+                                    "accion": "REEMPLAZADA_POR_SUSTITUCION",
+                                    "usuario": "CENTRO_TRAMITES",
+                                    "detalle": f"Sustituido por placa {placa_in} en trámite {res_ref}"
+                                }
+                            }
+                        }
+                    )
                     bajas_sustitucion += 1
 
                 # Si se solicitó dar de baja en otra empresa donde estuviese previamente habilitado:
@@ -1340,35 +1434,8 @@ class FlotaEmpresaService:
             })
 
         # -------------------------------------------------------------
-        # 3. REGISTRAR EL TRÁMITE COMO RESOLUCIÓN EN 'resoluciones_hijas'
+        # 4. REGISTRAR EL TRÁMITE COMO RESOLUCIÓN EN 'resoluciones_hijas'
         # -------------------------------------------------------------
-        if req.tipo_tramite == "RENOVACION" or req.es_renovacion:
-            # En Renovación, el acto resolutivo oficial ES la nueva resolución de autorización ingresada por el usuario
-            nro_hija_val = (req.nueva_resolucion_primigenia or req.nro_resolucion_hija or "").strip().upper()
-            if nro_hija_val:
-                nro_hija_val = _normalizar_codigo_resolucion(nro_hija_val) or nro_hija_val
-        else:
-            nro_hija_val = (req.nro_resolucion_hija or "").strip().upper()
-            if not nro_hija_val:
-                from app.services.resolucion_hija_service import ResolucionHijaService
-                hija_srv = ResolucionHijaService(self.db)
-                nro_hija_val = await hija_srv.generar_siguiente_numero(req.tipo_tramite)
-            else:
-                nro_hija_val = _normalizar_codigo_resolucion(nro_hija_val) or nro_hija_val
-
-        # Mapeo de tipo_acto
-        tipo_acto_map = {
-            "INCREMENTO": "INCREMENTO_FLOTA",
-            "SUSTITUCION": "SUSTITUCION_VEHICULAR",
-            "RENOVACION": "RENOVACION",
-            "BAJAS": "BAJA_VEHICULAR",
-            "DUPLICADO": "OTROS",
-            "CANJE": "OTROS",
-            "CANCELACION": "CANCELACION_PARCIAL" if not getattr(req, "cancelacion_total", False) else "OTROS",
-            "MODIFICACION": "MODIFICACION_RUTA"
-        }
-        tipo_acto = tipo_acto_map.get(req.tipo_tramite.upper(), "OTROS")
-
         # Placas y TUCs involucrados
         placas_ing = []
         placas_sal = []
@@ -1422,7 +1489,6 @@ class FlotaEmpresaService:
         exp_num = req.num_expediente or req.documento_origen or ""
         origen_txt = f"OFICIO {req.documento_origen}" if req.es_de_oficio else f"EXP. {exp_num or 'S/N'}"
 
-        doc_hija_id = str(uuid.uuid4())
         doc_hija = {
             "id": doc_hija_id,
             "nro_resolucion": nro_hija_val,
@@ -1465,6 +1531,23 @@ class FlotaEmpresaService:
                 {
                     "$push": {"historial_modificaciones": mod_entry},
                     "$set": {"fecha_actualizacion": now}
+                }
+            )
+
+        # Vincular y actualizar expediente si viene informado
+        if exp_num:
+            exp_clean = exp_num.strip().upper()
+            await self.db.expedientes.update_one(
+                {"$or": [{"nro_expediente": exp_clean}, {"nroExpediente": exp_clean}]},
+                {
+                    "$set": {
+                        "estado": "APROBADO",
+                        "resolucion_hija_id": doc_hija_id,
+                        "nro_resolucion_hija": nro_hija_val,
+                        "tipo_tramite": req.tipo_tramite,
+                        "fecha_actualizacion": now,
+                        "observaciones": f"Trámite finalizado y aprobado mediante Res. {nro_hija_val}"
+                    }
                 }
             )
 

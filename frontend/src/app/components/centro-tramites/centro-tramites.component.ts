@@ -21,6 +21,7 @@ import { EmpresaService } from '../../services/empresa.service';
 import { FlotaEmpresaService, TramiteMasivoRequest, ResumenEmpresa } from '../../services/flota-empresa.service';
 import { ResolucionHijaService } from '../../services/resolucion-hija.service';
 import { ResolucionPrimigenia } from '../../models/resolucion-primigenia.model';
+import { ResolucionPrimigeniaService } from '../../services/resolucion-primigenia.service';
 import { BusquedaGlobalService } from '../../services/busqueda-global.service';
 import { VehiculoDataService } from '../../services/vehiculo-data.service';
 import { TucService } from '../../services/tuc.service';
@@ -29,6 +30,7 @@ import { RutaModalComponent } from './ruta-modal.component';
 import { SustitucionModalComponent } from './sustitucion-modal.component';
 import { BajaExternaFormComponent } from '../bajas-externas/baja-externa-form/baja-externa-form.component';
 import { RenovacionTucModalComponent } from './renovacion-tuc-modal.component';
+import { TramiteAdministrativoService, TramiteAdministrativoPayload } from '../../services/tramite-administrativo.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -69,6 +71,8 @@ export class CentroTramites implements OnInit {
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
   private tucService = inject(TucService);
+  private tramiteAdminService = inject(TramiteAdministrativoService);
+  private resolucionPrimigeniaService = inject(ResolucionPrimigeniaService);
 
   // States for Drawer / Wizard
   isDrawerOpen = signal<boolean>(false);
@@ -357,16 +361,51 @@ export class CentroTramites implements OnInit {
       .map(c => c.key);
   });
 
-  tiposTramite = [
+  // Trámites de Flota Vehicular (con placas / TUCs)
+  tiposTramiteFlota = [
     { id: 'RENOVACION', nombre: 'Renovación', icono: 'autorenew', desc: 'Extensión de vigencia' },
     { id: 'SUSTITUCION', nombre: 'Sustitución', icono: 'sync_alt', desc: 'Reemplazo de unidad' },
     { id: 'INCREMENTO', nombre: 'Incremento', icono: 'trending_up', desc: 'Nuevas unidades' },
     { id: 'DUPLICADO', nombre: 'Duplicado', icono: 'file_copy', desc: 'Emisión de copia de TUC' },
     { id: 'CANJE', nombre: 'Canje', icono: 'change_circle', desc: 'Actualización de TUC' },
     { id: 'BAJAS', nombre: 'Bajas', icono: 'remove_circle', desc: 'Retiro definitivo' },
-    { id: 'CANCELACION', nombre: 'Cancelación', icono: 'cancel', desc: 'Cese de autorización' },
-    { id: 'MODIFICACION', nombre: 'Modificación', icono: 'tune', desc: 'Cambios de itinerario' }
+    { id: 'CANCELACION', nombre: 'Cancelación', icono: 'cancel', desc: 'Cese de autorización' }
   ];
+
+  // Trámites Administrativos y Corporativos (sin placas / actos administrativos)
+  tiposTramiteCorporativos = [
+    { id: 'CAMBIO_REPRESENTANTE', nombre: 'Representante Legal', icono: 'badge', desc: 'Nuevo representante SUNARP' },
+    { id: 'CAMBIO_DOMICILIO', nombre: 'Domicilio Legal', icono: 'location_on', desc: 'Actualizar sede de empresa' },
+    { id: 'MODIFICACION_RUTA', nombre: 'Modificación de Ruta', icono: 'alt_route', desc: 'Variación de itinerario' },
+    { id: 'MODIFICACION_FRECUENCIA', nombre: 'Modif. Frecuencia', icono: 'schedule', desc: 'Ajuste de salidas diarias' },
+    { id: 'FE_DE_ERRATAS', nombre: 'Fe de Erratas', icono: 'spellcheck', desc: 'Rectificación resolutiva' },
+    { id: 'REACTIVACION_JUDICIAL', nombre: 'Reactivación / Mandato Judicial', icono: 'gavel', desc: 'Rehabilitación por Mandato Judicial o R.D.' }
+  ];
+
+  tiposTramite = [
+    ...this.tiposTramiteFlota,
+    ...this.tiposTramiteCorporativos
+  ];
+
+  esTramiteSinPlacas = computed(() => {
+    const t = this.tramiteSeleccionado();
+    return t === 'CAMBIO_REPRESENTANTE' || 
+           t === 'CAMBIO_DOMICILIO' || 
+           t === 'MODIFICACION_RUTA' || 
+           t === 'MODIFICACION_FRECUENCIA' || 
+           t === 'FE_DE_ERRATAS' ||
+           t === 'REACTIVACION_JUDICIAL';
+  });
+
+  esTramiteEmpresa = computed(() => {
+    const t = this.tramiteSeleccionado();
+    return t === 'CAMBIO_REPRESENTANTE' || t === 'CAMBIO_DOMICILIO' || t === 'REACTIVACION_JUDICIAL';
+  });
+
+  esTramiteConcesion = computed(() => {
+    const t = this.tramiteSeleccionado();
+    return t === 'MODIFICACION_RUTA' || t === 'MODIFICACION_FRECUENCIA' || t === 'FE_DE_ERRATAS';
+  });
 
   // Forms
   datosOrigenForm = this.fb.group({
@@ -400,6 +439,24 @@ export class CentroTramites implements OnInit {
   cancelacionForm = this.fb.group({
     cancelacion_total: [true],
     motivo: ['CANCELACION DEFINITIVA DE AUTORIZACION']
+  });
+
+  tramiteAdminForm = this.fb.group({
+    nuevo_representante: [''],
+    nuevo_dni_representante: [''],
+    partida_registral_representante: [''],
+    asiento_registral: [''],
+    nuevo_domicilio: [''],
+    codigo_ruta: [''],
+    nuevo_itinerario: [''],
+    nueva_frecuencia: [''],
+    articulo_fe_erratas: ['ARTICULO PRIMERO'],
+    dice_texto: [''],
+    debe_decir_texto: [''],
+    sustento_observaciones: [''],
+    tipo_reactivacion: ['MANDATO_JUDICIAL'],
+    mandato_judicial_nro: [''],
+    juzgado_origen: ['']
   });
 
   // COMPUTED SIGNALS PARA FILTROS Y DATOS
@@ -567,16 +624,23 @@ export class CentroTramites implements OnInit {
         const mapeadas = lista.map((r: any) => {
           let anio = 'S/A';
           let fechaSort = '1970-01-01';
+
+          // 1. Extraer año prioritariamente del número de resolución (Ej. R-0673-2019 -> 2019)
+          if (r.nro_resolucion) {
+            const m = r.nro_resolucion.match(/(19\d\d|20\d\d)/);
+            if (m) anio = m[1];
+          }
+
+          // 2. Si hay fecha de resolución válida, usar su fecha y año de respaldo
           if (r.fecha_resolucion) {
             const d = new Date(r.fecha_resolucion);
             if (!isNaN(d.getFullYear())) {
-              anio = d.getFullYear().toString();
+              if (anio === 'S/A') anio = d.getFullYear().toString();
               fechaSort = d.toISOString();
             }
-          }
-          if (anio === 'S/A' && r.nro_resolucion) {
-            const m = r.nro_resolucion.match(/(19\d\d|20\d\d)/);
-            if (m) anio = m[1];
+          } else if (anio !== 'S/A') {
+            // Si no tiene fecha exacta pero sí año, ordenar cronológicamente por su año
+            fechaSort = `${anio}-01-01T00:00:00.000Z`;
           }
 
           const placasIng: string[] = Array.isArray(r.vehiculos_ingresantes) ? r.vehiculos_ingresantes : [];
@@ -604,7 +668,7 @@ export class CentroTramites implements OnInit {
             correlativo: '', // se asigna después del sort
             id: nroNorm,
             nro_resolucion_raw: r.nro_resolucion || '',
-            fecha: r.fecha_resolucion ? new Date(r.fecha_resolucion).toLocaleDateString('es-PE') : 'S/F',
+            fecha: r.fecha_resolucion ? new Date(r.fecha_resolucion).toLocaleDateString('es-PE') : 'No consignada',
             fechaSort,
             anio,
             empresa: razon,
@@ -879,52 +943,72 @@ export class CentroTramites implements OnInit {
     const razonSocial = typeof emp.razon_social === 'string' ? emp.razon_social :
                         (typeof emp.razonSocial === 'object' ? emp.razonSocial?.principal : (emp.razonSocial || 'EMPRESA'));
 
+    const estadoNormalizado = (emp.estado || 'AUTORIZADA').toUpperCase();
+
     this.empresaBuscada.set({
       ruc: emp.ruc,
       razon_social: razonSocial,
-      estado: emp.estado || 'ACTIVO',
+      estado: estadoNormalizado,
       flota: emp.total_vehiculos || emp.flota || 0,
-      vigencia: 'VIGENTE'
+      vigencia: estadoNormalizado === 'CANCELADA' ? 'CANCELADA' : 'VIGENTE'
     });
     
-    // Si ya trae primigenias en el objeto
-    if (emp.primigenias && emp.primigenias.length > 0) {
-      const resolucionesMock = emp.primigenias.map((p: string) => ({
-        id: p, nro_resolucion: p, fecha_resolucion: new Date(), ruc_empresa: emp.ruc, estado: 'VIGENTE'
-      }));
-      this.resoluciones.set(resolucionesMock as any);
-      if (resolucionesMock.length === 1) {
-        this.resolucionForm.patchValue({ nro_resolucion_primigenia: resolucionesMock[0].nro_resolucion });
-        this.cargarVehiculosResolucion(resolucionesMock[0].nro_resolucion);
-      }
-    } else {
-      // Buscar en el catálogo o servicio
-      this.flotaService.getResumenEmpresas().subscribe({
-        next: (res) => {
-          const empresaResumen = res.data.find(r => r.ruc === emp.ruc);
-          if (empresaResumen) {
-            this.empresaBuscada.update(e => ({...e, flota: empresaResumen.total_vehiculos}));
-            if (empresaResumen.primigenias && empresaResumen.primigenias.length > 0) {
-              const resolucionesMock = empresaResumen.primigenias.map(p => ({
-                id: p, nro_resolucion: p, fecha_resolucion: new Date(), ruc_empresa: emp.ruc, estado: 'VIGENTE'
-              }));
-              this.resoluciones.set(resolucionesMock as any);
-              if (resolucionesMock.length === 1) {
-                this.resolucionForm.patchValue({ nro_resolucion_primigenia: resolucionesMock[0].nro_resolucion });
-                this.cargarVehiculosResolucion(resolucionesMock[0].nro_resolucion);
-              }
-            } else {
-              this.resoluciones.set([]);
+    // Cargar resoluciones oficiales desde el servicio de resoluciones primigenias
+    this.resolucionPrimigeniaService.getResolucionesByRuc(emp.ruc).subscribe({
+      next: (resolucionesReales) => {
+        if (resolucionesReales && resolucionesReales.length > 0) {
+          const resAjustadas = resolucionesReales.map(r => {
+            if (estadoNormalizado === 'CANCELADA' && r.estado === 'VIGENTE') {
+              return { ...r, estado: 'CANCELADA' as any };
             }
+            return r;
+          });
+          this.resoluciones.set(resAjustadas);
+          if (resAjustadas.length === 1) {
+            this.resolucionForm.patchValue({ nro_resolucion_primigenia: resAjustadas[0].nro_resolucion });
+            this.resolucionSeleccionada.set(resAjustadas[0]);
+            this.cargarVehiculosResolucion(resAjustadas[0].nro_resolucion);
+          }
+        } else {
+          // Fallback a primigenias de flota
+          const prims = emp.primigenias || [];
+          const resolucionesMock = prims.map((p: string) => ({
+            id: p,
+            nro_resolucion: p,
+            fecha_resolucion: new Date(),
+            ruc_empresa: emp.ruc,
+            estado: estadoNormalizado === 'CANCELADA' ? 'CANCELADA' : 'VIGENTE'
+          }));
+          this.resoluciones.set(resolucionesMock as any);
+          if (resolucionesMock.length === 1) {
+            this.resolucionForm.patchValue({ nro_resolucion_primigenia: resolucionesMock[0].nro_resolucion });
+            this.resolucionSeleccionada.set(resolucionesMock[0] as any);
+            this.cargarVehiculosResolucion(resolucionesMock[0].nro_resolucion);
           }
         }
-      });
-    }
+      },
+      error: (err) => {
+        console.error('Error cargando resoluciones primigenias:', err);
+        const prims = emp.primigenias || [];
+        const resolucionesMock = prims.map((p: string) => ({
+          id: p,
+          nro_resolucion: p,
+          fecha_resolucion: new Date(),
+          ruc_empresa: emp.ruc,
+          estado: estadoNormalizado === 'CANCELADA' ? 'CANCELADA' : 'VIGENTE'
+        }));
+        this.resoluciones.set(resolucionesMock as any);
+      }
+    });
 
-    // Escuchar cambios en la resolución para cargar vehículos
+    // Escuchar cambios en la resolución para cargar vehículos y actualizar resolucionSeleccionada
     this.resolucionForm.get('nro_resolucion_primigenia')?.valueChanges.subscribe(res => {
       if (res) {
         this.cargarVehiculosResolucion(res);
+        const resObj = this.resoluciones().find(r => r.nro_resolucion === res);
+        this.resolucionSeleccionada.set(resObj || null);
+      } else {
+        this.resolucionSeleccionada.set(null);
       }
     });
   }
@@ -1005,12 +1089,70 @@ export class CentroTramites implements OnInit {
     }
   }
 
+  getEstadoResolucionLabel(estado: string | undefined): string {
+    const est = (estado || '').toUpperCase();
+    switch (est) {
+      case 'VIGENTE': return 'Vigente';
+      case 'CANCELADA': return 'Cancelada';
+      case 'INACTIVA': return 'Inactiva';
+      case 'VENCIDA': return 'Vencida';
+      case 'SUSPENDIDA': return 'Suspendida';
+      case 'ANULADA': return 'Anulada';
+      default: return est ? est : 'Inactiva';
+    }
+  }
+
+  getEstadoResolucionColor(estado: string | undefined): string {
+    const est = (estado || '').toUpperCase();
+    switch (est) {
+      case 'VIGENTE': return '#16a34a';
+      case 'CANCELADA':
+      case 'INACTIVA':
+      case 'ANULADA': return '#e11d48';
+      case 'VENCIDA': return '#d97706';
+      case 'SUSPENDIDA': return '#ea580c';
+      default: return '#64748b';
+    }
+  }
+
+  esEmpresaCancelada = computed(() => {
+    const emp = this.empresaBuscada();
+    return (emp?.estado || '').toUpperCase() === 'CANCELADA';
+  });
+
+  esResolucionInactiva = computed(() => {
+    const res = this.resolucionSeleccionada();
+    if (!res) return false;
+    const est = (res.estado || '').toUpperCase();
+    return est !== 'VIGENTE';
+  });
+
   puedeAvanzar(stepIndex: number): boolean {
     if (stepIndex === 0) {
-      return !!this.empresaBuscada() && !!this.tramiteSeleccionado();
+      if (!this.empresaBuscada() || !this.tramiteSeleccionado()) return false;
+      const estadoEmpresa = (this.empresaBuscada()?.estado || '').toUpperCase();
+      const esReactivacion = this.tramiteSeleccionado() === 'REACTIVACION_JUDICIAL';
+      // Bloquear trámites ordinarios para empresas canceladas
+      if ((estadoEmpresa === 'CANCELADA' || estadoEmpresa === 'INACTIVA') && !esReactivacion) {
+        return false;
+      }
+      return true;
     }
     if (stepIndex === 1) {
+      if (this.esTramiteEmpresa()) {
+        return !!this.datosOrigenForm.get('nro_resolucion_hija')?.value;
+      }
       const tieneResolucion = !!this.resolucionForm.get('nro_resolucion_primigenia')?.value;
+      if (!tieneResolucion) return false;
+
+      // Si la resolución seleccionada está inactiva o cancelada y no es reactivación judicial, bloquear
+      const resObj = this.resolucionSeleccionada();
+      const estadoRes = (resObj?.estado || '').toUpperCase();
+      const esReactivacion = this.tramiteSeleccionado() === 'REACTIVACION_JUDICIAL';
+      if (estadoRes && estadoRes !== 'VIGENTE' && !esReactivacion) {
+        return false;
+      }
+
       if (this.tramiteSeleccionado() === 'RENOVACION') {
         return tieneResolucion && this.renovacionForm.valid;
       }
@@ -1018,6 +1160,24 @@ export class CentroTramites implements OnInit {
     }
     if (stepIndex === 2) {
       const t = this.tramiteSeleccionado();
+      if (t === 'REACTIVACION_JUDICIAL') {
+        return !!this.tramiteAdminForm.get('mandato_judicial_nro')?.value && !!this.tramiteAdminForm.get('sustento_observaciones')?.value;
+      }
+      if (t === 'CAMBIO_REPRESENTANTE') {
+        return !!this.tramiteAdminForm.get('nuevo_representante')?.value && !!this.tramiteAdminForm.get('nuevo_dni_representante')?.value;
+      }
+      if (t === 'CAMBIO_DOMICILIO') {
+        return !!this.tramiteAdminForm.get('nuevo_domicilio')?.value;
+      }
+      if (t === 'MODIFICACION_RUTA') {
+        return !!this.tramiteAdminForm.get('nuevo_itinerario')?.value;
+      }
+      if (t === 'MODIFICACION_FRECUENCIA') {
+        return !!this.tramiteAdminForm.get('nueva_frecuencia')?.value;
+      }
+      if (t === 'FE_DE_ERRATAS') {
+        return !!this.tramiteAdminForm.get('debe_decir_texto')?.value;
+      }
       if (t === 'SUSTITUCION') return this.paresSustitucion().length > 0;
       if (t === 'INCREMENTO') return this.vehiculosNuevos().length > 0;
       if (t === 'BAJAS') return this.vehiculosBajaSeleccionados().length > 0;
@@ -2108,12 +2268,55 @@ export class CentroTramites implements OnInit {
     const tipo = this.tramiteSeleccionado();
     const resPrimigenia = this.resolucionForm.get('nro_resolucion_primigenia')?.value;
 
-    if (!emp || !tipo || !resPrimigenia) {
+    if (!emp || !tipo || (!resPrimigenia && !this.esTramiteEmpresa())) {
       this.snackBar.open('Complete la información de empresa y resolución', 'Cerrar', { duration: 4000 });
       return;
     }
 
     const origenVal = this.datosOrigenForm.value;
+
+    // Procesamiento especializado para trámites corporativos y de concesión (sin placas)
+    if (this.esTramiteSinPlacas()) {
+      const formVal = this.tramiteAdminForm.value;
+      const payload: TramiteAdministrativoPayload = {
+        ruc_empresa: emp.ruc,
+        razon_social: emp.razon_social || emp.razonSocial,
+        ambito: this.esTramiteEmpresa() ? 'EMPRESA' : 'CONCESION',
+        tipo_tramite: tipo as any,
+        nro_resolucion: origenVal.nro_resolucion_hija?.trim() || 'R-PENDIENTE',
+        fecha_resolucion: origenVal.fecha_emision_resolucion || undefined,
+        nro_expediente: origenVal.numero_origen || undefined,
+        fecha_expediente: origenVal.fecha_origen || undefined,
+        nro_resolucion_primigenia: (this.esTramiteConcesion() && resPrimigenia) ? resPrimigenia : undefined,
+        detalles: {
+          nuevo_representante: formVal.nuevo_representante,
+          nuevo_dni: formVal.nuevo_dni_representante,
+          partida_registral: formVal.partida_registral_representante,
+          asiento_registral: formVal.asiento_registral,
+          nuevo_domicilio: formVal.nuevo_domicilio,
+          codigo_ruta: formVal.codigo_ruta,
+          nuevo_itinerario: formVal.nuevo_itinerario,
+          nueva_frecuencia: formVal.nueva_frecuencia,
+          articulo_afectado: formVal.articulo_fe_erratas,
+          dice: formVal.dice_texto,
+          debe_decir: formVal.debe_decir_texto
+        },
+        observaciones: formVal.sustento_observaciones || undefined
+      };
+
+      this.tramiteAdminService.registrarTramite(payload).subscribe({
+        next: (resp) => {
+          this.snackBar.open(resp.mensaje || 'Trámite administrativo registrado y aplicado con éxito', 'OK', { duration: 5000 });
+          this.cancelarTramite();
+          this.cargarCatalogoEmpresas();
+          this.cargarHistorialTramites();
+        },
+        error: (err) => {
+          this.snackBar.open('Error al procesar trámite: ' + (err.error?.detail || err.message), 'Cerrar', { duration: 6000 });
+        }
+      });
+      return;
+    }
     const esDeOficio = origenVal.tipo_origen === 'OFICIO';
     const docOrigen = origenVal.numero_origen || undefined;
     const nroHija = tipo === 'RENOVACION'
@@ -2300,7 +2503,9 @@ export class CentroTramites implements OnInit {
         this.pageIndex.set(0);
 
         // Recargar datos actualizados
-        this.cargarVehiculosResolucion(resPrimigenia);
+        if (resPrimigenia) {
+          this.cargarVehiculosResolucion(resPrimigenia);
+        }
         this.cargarHistorialTramites();
         this.cargarCatalogoEmpresas();
 

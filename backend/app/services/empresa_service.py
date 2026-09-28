@@ -90,17 +90,20 @@ class EmpresaService:
         # Calcular score de riesgo
         score_riesgo = await self.calcular_score_riesgo(empresa_data, datos_sunat)
         
-        # Preparar documento - excluir estado para sobrescribirlo
+        # Preparar documento - excluir estado para resolverlo respetando el valor explícito
         # Usar mode='json' para convertir enums a strings
         empresa_dict = empresa_data.model_dump(by_alias=False, exclude={"estado"}, mode='json')
         empresa_dict["fechaRegistro"] = datetime.utcnow()
         empresa_dict["estaActivo"] = True
         
-        # Estado por defecto según el tipo de creación
-        if validar_sunat:
-            empresa_dict["estado"] = EstadoEmpresa.EN_TRAMITE.value  # Creación normal
+        # Respetar estado si fue provisto en empresa_data (ej. CANCELADA, AUTORIZADA)
+        if hasattr(empresa_data, 'estado') and empresa_data.estado:
+            val_estado = empresa_data.estado.value if hasattr(empresa_data.estado, 'value') else str(empresa_data.estado)
+            empresa_dict["estado"] = val_estado
+        elif validar_sunat:
+            empresa_dict["estado"] = EstadoEmpresa.EN_TRAMITE.value  # Creación normal por defecto
         else:
-            empresa_dict["estado"] = EstadoEmpresa.AUTORIZADA.value  # Carga masiva
+            empresa_dict["estado"] = EstadoEmpresa.AUTORIZADA.value  # Carga masiva por defecto
             
         empresa_dict["datosSunat"] = datos_sunat
         empresa_dict["ultimaValidacionSunat"] = datetime.utcnow()
@@ -260,7 +263,7 @@ class EmpresaService:
         if not empresa_actual:
             return None
             
-        update_data = empresa_data.model_dump(exclude_unset=True)
+        update_data = empresa_data.model_dump(exclude_unset=True, mode='json')
         if not update_data:
             return None
             

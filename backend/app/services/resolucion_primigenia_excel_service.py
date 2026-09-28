@@ -31,9 +31,10 @@ class ResolucionPrimigeniaExcelService:
             'EFICACIA ANTICIPADA',
             'TIPO AUTORIZACION',
             'LINK',
-            'FE_DE_ERRTAS',
+            'MODIFICACIONES',
             'HISTORIAL_CAMBIOS',
-            'EXPEDIENTE'
+            'EXPEDIENTE',
+            'MODALIDAD'
         ]
 
         # Plantilla limpia con la estructura exacta requerida
@@ -71,6 +72,14 @@ class ResolucionPrimigeniaExcelService:
 
         buffer.seek(0)
         return buffer
+
+    async def procesar_archivo_excel(self, file_content: Any, modo: str = "upsert") -> Dict[str, Any]:
+        """Procesa archivo Excel o CSV recibido como bytes o BytesIO (compatibilidad con inicializador_service)"""
+        if isinstance(file_content, bytes):
+            buffer = BytesIO(file_content)
+        else:
+            buffer = file_content
+        return await self.procesar_carga_masiva(buffer, modo=modo)
 
     async def procesar_carga_masiva(self, archivo_buffer: BytesIO, modo: str = "upsert") -> Dict[str, Any]:
         """Procesar archivo Excel o CSV (Google Sheets) con registros de resoluciones primigenias"""
@@ -180,24 +189,45 @@ class ResolucionPrimigeniaExcelService:
                 fecha_fin_raw = get_col_val(row, 'FECHA_FIN_VIGENCIA', 'FECHA_FIN', 'FECHA FIN', 'FIN_VIGENCIA')
                 fecha_fin = self._parse_fecha(fecha_fin_raw, fila, 'FECHA_FIN_VIGENCIA')
 
-                estado_str = get_col_val(row, 'ESTADO', 'ESTADO_LEGAL').upper() or 'VIGENTE'
-                estado = EstadoResolucionPrimigenia.VIGENTE
-                if estado_str in EstadoResolucionPrimigenia.__members__:
-                    estado = EstadoResolucionPrimigenia[estado_str]
+                estado_raw = get_col_val(row, 'ESTADO', 'ESTADO_LEGAL').upper().strip()
+                obs_raw = get_col_val(row, 'OBSERVACIONES', 'OBSERVACION').upper().strip()
 
-                tipo_aut_val = get_col_val(
+                if any(k in estado_raw for k in ['CANCEL', 'BAJA', 'REVOC', 'DENEG', 'ANULAD', 'INACTIV']) or 'CANCELAD' in obs_raw:
+                    estado = EstadoResolucionPrimigenia.CANCELADA
+                elif 'SUSPEND' in estado_raw:
+                    estado = EstadoResolucionPrimigenia.SUSPENDIDA
+                elif 'RENOVAD' in obs_raw or 'VENCID' in estado_raw:
+                    estado = EstadoResolucionPrimigenia.VENCIDA
+                elif fecha_fin and isinstance(fecha_fin, datetime) and fecha_fin < datetime.utcnow():
+                    estado = EstadoResolucionPrimigenia.VENCIDA
+                elif estado_raw in EstadoResolucionPrimigenia.__members__:
+                    estado = EstadoResolucionPrimigenia[estado_raw]
+                else:
+                    estado = EstadoResolucionPrimigenia.VIGENTE
+
+                # Capturar tipo_autorizacion unificado (lee MODALIDAD o TIPO AUTORIZACION del Sheet)
+                tipo_aut_raw = get_col_val(
                     row, 
-                    'TIPO AUTORIZACION', 'TIPO_AUTORIZACION', 
-                    'MODALIDAD', 'TIPO_SERVICIO', 'MODALIDAD_SERVICIO'
+                    'MODALIDAD', 'MODALIDAD_SERVICIO', 'MODALIDAD_AUTORIZADA',
+                    'TIPO_AUTORIZACION', 'TIPO AUTORIZACION', 'TIPO_SERVICIO'
                 ).upper()
-                if 'TURIS' in tipo_aut_val:
+
+                if 'TURIS' in tipo_aut_raw:
                     tipo_aut = 'TURISMO'
-                elif 'TRABAJ' in tipo_aut_val or 'PERSONAL' in tipo_aut_val:
+                elif 'TRABAJ' in tipo_aut_raw or 'PERSONAL' in tipo_aut_raw:
                     tipo_aut = 'TRABAJADORES'
-                elif 'CARGA' in tipo_aut_val or 'MERCAN' in tipo_aut_val:
+                elif 'CARGA' in tipo_aut_raw or 'MERCAN' in tipo_aut_raw:
                     tipo_aut = 'CARGA'
+                elif 'PASAJ' in tipo_aut_raw or 'PERSON' in tipo_aut_raw:
+                    tipo_aut = 'PASAJEROS'
+                elif tipo_aut_raw:
+                    tipo_aut = tipo_aut_raw
                 else:
                     tipo_aut = 'PASAJEROS'
+
+                modalidad_final = tipo_aut
+                # NOTA: La columna 'RAZON_SOCIAL' del Sheet de resoluciones se ignora deliberadamente,
+                # ya que es meramente referencial y la Razón Social oficial reside en el módulo Empresas (por RUC).
 
                 eficacia_raw = get_col_val(row, 'EFICACIA ANTICIPADA', 'EFICACIA_ANTICIPADA', 'EFICACIA').upper()
                 tiene_eficacia = (eficacia_raw in ['SI', 'SÍ', 'TRUE', '1', 'VERDADERO']) if eficacia_raw else None
@@ -209,6 +239,40 @@ class ResolucionPrimigeniaExcelService:
                 expedientes_raw = get_col_val(row, 'EXPEDIENTE', 'EXPEDIENTES', 'EXPEDIENTE_NUMERO', 'NRO_EXPEDIENTE', 'CODIGOS_EXPEDIENTE')
                 expedientes_list = [e.strip() for e in expedientes_raw.split(',') if e.strip()] if expedientes_raw else []
 
+                # Capturar Modificaciones / Actos Posteriores (unifica MODIFICACIONES, FE_DE_ERRTAS, FE_DE_ERRATAS, HISTORIAL_CAMBIOS)
+                modificaciones_list = []
+                mods_raw = get_col_val(row, 'MODIFICACIONES', 'MODIFICACION', 'FE_DE_ERRTAS', 'FE_DE_ERRATAS', 'HISTORIAL_CAMBIOS')
+                if mods_raw:
+                    from app.models.resolucion_primigenia import ModificacionHistorial
+                    partes = [p.strip() for p in re.split(r'[;\n]+', str(mods_raw)) if p.strip()]
+                    for parte in partes:
+                        tipo_mod = "MODIFICACION"
+                        parte_upper = parte.upper()
+                        if 'ERRATA' in parte_upper or 'RECTIF' in parte_upper:
+                            tipo_mod = "FE_DE_ERRATAS"
+                        elif 'CANCEL' in parte_upper:
+                            tipo_mod = "CANCELACION_PARCIAL"
+                        elif 'REPRESENTANTE' in parte_upper or 'LEGAL' in parte_upper:
+                            tipo_mod = "CAMBIO_REPRESENTANTE"
+                        elif 'RUTA' in parte_upper:
+                            tipo_mod = "MODIFICACION_RUTA"
+                        elif 'FLOTA' in parte_upper or 'INCREMENTO' in parte_upper:
+                            tipo_mod = "INCREMENTO_FLOTA"
+                        elif 'SUSTITUCION' in parte_upper:
+                            tipo_mod = "SUSTITUCION_VEHICULAR"
+                        elif 'RENOVACION' in parte_upper or 'RENOVA' in parte_upper:
+                            tipo_mod = "RENOVACION"
+                        
+                        match_res = re.search(r'\b(\d{3,4}[-/]\d{4}[A-Za-z0-9\-_()]*)\b', parte)
+                        nro_res_hija = match_res.group(1) if match_res else parte
+
+                        modificaciones_list.append(ModificacionHistorial(
+                            nro_resolucion_hija=nro_res_hija,
+                            tipo_modificacion=tipo_mod,
+                            fecha_acto=fecha_res or datetime.utcnow(),
+                            observacion=parte
+                        ))
+
                 # Verificar si ya existe por número de resolución
                 existente = await self.service.get_resolucion_by_numero(numero)
                 if existente:
@@ -217,6 +281,13 @@ class ResolucionPrimigeniaExcelService:
                         continue
                     else:
                         from app.models.resolucion_primigenia import ResolucionPrimigeniaUpdate
+                        # Combinar modificaciones previas con las nuevas
+                        mods_combinadas = list(existente.historial_modificaciones or [])
+                        existentes_hijas = {m.nro_resolucion_hija for m in mods_combinadas}
+                        for m in modificaciones_list:
+                            if m.nro_resolucion_hija not in existentes_hijas:
+                                mods_combinadas.append(m)
+
                         update_dto = ResolucionPrimigeniaUpdate(
                             ruc_empresa=ruc,
                             siglas=siglas_val or existente.siglas,
@@ -227,8 +298,10 @@ class ResolucionPrimigeniaExcelService:
                             estado=estado,
                             tiene_eficacia_anticipada=tiene_eficacia if tiene_eficacia is not None else existente.tiene_eficacia_anticipada,
                             tipo_autorizacion=tipo_aut,
+                            modalidad=modalidad_final,
                             link_documento=link_doc or existente.link_documento,
                             expedientes_codigos=expedientes_list or existente.expedientes_codigos,
+                            historial_modificaciones=mods_combinadas,
                             observaciones=obs or existente.observaciones
                         )
                         await self.service.update_resolucion_primigenia(existente.id, update_dto)
@@ -237,6 +310,7 @@ class ResolucionPrimigeniaExcelService:
                             "nro_resolucion": numero,
                             "ruc_empresa": ruc,
                             "tipo_autorizacion": tipo_aut,
+                            "modalidad": modalidad_final,
                             "estado": estado.value if hasattr(estado, 'value') else str(estado),
                             "accion": "ACTUALIZADO"
                         })
@@ -252,8 +326,10 @@ class ResolucionPrimigeniaExcelService:
                         estado=estado,
                         tiene_eficacia_anticipada=tiene_eficacia,
                         tipo_autorizacion=tipo_aut,
+                        modalidad=modalidad_final,
                         link_documento=link_doc,
                         expedientes_codigos=expedientes_list,
+                        historial_modificaciones=modificaciones_list,
                         observaciones=obs
                     )
                     creado = await self.service.create_resolucion_primigenia(dto)
@@ -262,6 +338,7 @@ class ResolucionPrimigeniaExcelService:
                         "nro_resolucion": creado.nro_resolucion,
                         "ruc_empresa": creado.ruc_empresa,
                         "tipo_autorizacion": creado.tipo_autorizacion,
+                        "modalidad": getattr(creado, "modalidad", modalidad_final),
                         "estado": creado.estado.value if hasattr(creado.estado, 'value') else str(creado.estado),
                         "accion": "CREADO"
                     })

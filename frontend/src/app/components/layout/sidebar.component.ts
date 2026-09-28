@@ -118,6 +118,24 @@ import { AuthService } from '../../services/auth.service';
                 </a>
               }
 
+              <!-- Módulo de Expedientes (Origen Administrativo) -->
+              @if (canAccess('resoluciones')) {
+                <a
+                  routerLink="/expedientes"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Expedientes' : ''"
+                  matTooltipPosition="right"
+                >
+                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title">Expedientes</span>
+                  }
+                </a>
+              }
+
               <!-- 3. Parque Automotor (Vehículos) -->
               @if (canAccess('vehiculos')) {
                 <div class="nav-accordion-group">
@@ -211,10 +229,6 @@ import { AuthService } from '../../services/auth.service';
                     <a routerLink="/resoluciones/carga-masiva" routerLinkActive="sub-active" class="sub-link">
                       <span class="sub-bullet"></span>
                       <span>Carga Masiva Resoluciones</span>
-                    </a>
-                    <a routerLink="/expedientes" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Expedientes</span>
                     </a>
                   </div>
                 }

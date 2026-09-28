@@ -227,6 +227,32 @@ export const routes: Routes = [
         data: { modulo: 'resoluciones' }
       },
 
+      // EXPEDIENTES (MÓDULO DE TRÁMITES Y DOCUMENTOS ADMINISTRATIVOS)
+      { 
+        path: 'expedientes', 
+        loadComponent: () => import('./components/expedientes/expedientes.component').then(m => m.ExpedientesComponent),
+        canActivate: [RoleGuard],
+        data: { modulo: 'resoluciones' }
+      },
+      { 
+        path: 'expedientes/nuevo', 
+        loadComponent: () => import('./components/expedientes/expediente-form.component').then(m => m.ExpedienteFormComponent),
+        canActivate: [RoleGuard],
+        data: { modulo: 'resoluciones' }
+      },
+      { 
+        path: 'expedientes/:id', 
+        loadComponent: () => import('./components/expedientes/expediente-detail.component').then(m => m.ExpedienteDetailComponent),
+        canActivate: [RoleGuard],
+        data: { modulo: 'resoluciones' }
+      },
+      { 
+        path: 'expedientes/:id/editar', 
+        loadComponent: () => import('./components/expedientes/expediente-form.component').then(m => m.ExpedienteFormComponent),
+        canActivate: [RoleGuard],
+        data: { modulo: 'resoluciones' }
+      },
+
       // MÓDULO INICIALIZADOR Y MIGRACIÓN MAESTRA DE DATOS
       { 
         path: 'inicializador-datos', 

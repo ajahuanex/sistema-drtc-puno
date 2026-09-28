@@ -39,6 +39,18 @@ class Tuc(BaseModel):
     empresaId: Optional[str] = None
     nroResolucion: str
     resolucionId: Optional[str] = None
+    nroResolucionHija: Optional[str] = None
+    resolucionHijaId: Optional[str] = None
+    tipo_resolucion_hija: Optional[str] = None
+    
+    # Trazabilidad con Expediente y Trámite
+    nroExpediente: Optional[str] = None
+    fechaExpediente: Optional[str] = None
+    expedienteId: Optional[str] = None
+    tipoTramite: Optional[str] = None
+    tramiteId: Optional[str] = None
+    origenEmision: Optional[str] = "CENTRO_TRAMITES"
+    
     fechaEmision: str
     fechaVencimiento: Optional[str] = None
     hashSeguridad: Optional[str] = None
@@ -96,6 +108,8 @@ class TucFiltros(BaseModel):
     ruc: Optional[str] = None
     razonSocial: Optional[str] = None
     nroResolucion: Optional[str] = None
+    nroExpediente: Optional[str] = None
+    tipoTramite: Optional[str] = None
     tipoEmision: Optional[TipoEmisionTuc] = None
     estado: Optional[EstadoTuc] = None
     fechaEmisionDesde: Optional[str] = None
@@ -110,6 +124,8 @@ class TucVerificacionPublica(BaseModel):
     fechaEmision: str
     fechaVencimiento: Optional[str] = None
     hashSeguridad: Optional[str] = None
+    nroExpediente: Optional[str] = None
+    tipoTramite: Optional[str] = None
     empresa: Dict[str, Any]
     vehiculo: Dict[str, Any]
     resolucion: Dict[str, Any]
