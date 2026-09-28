@@ -134,7 +134,7 @@ export const routes: Routes = [
       },
       { 
         path: 'vehiculos/carga-masiva', 
-        redirectTo: 'vehiculos-empresa/carga-masiva',
+        redirectTo: 'inicializador-datos',
         pathMatch: 'full'
       },
       { 
@@ -165,15 +165,13 @@ export const routes: Routes = [
       },
       { 
         path: 'vehiculos-empresa/carga-masiva', 
-        loadComponent: () => import('./components/vehiculos-empresa/carga-masiva-vehiculos-empresa.component').then(m => m.CargaMasivaVehiculosEmpresaComponent),
-        canActivate: [RoleGuard],
-        data: { modulo: 'vehiculos' }
+        redirectTo: 'inicializador-datos',
+        pathMatch: 'full'
       },
       { 
         path: 'vehiculos-empresa/carga-masiva-google-sheets', 
-        loadComponent: () => import('./components/vehiculos-empresa/carga-masiva-vehiculos-empresa.component').then(m => m.CargaMasivaVehiculosEmpresaComponent),
-        canActivate: [RoleGuard],
-        data: { modulo: 'vehiculos' }
+        redirectTo: 'inicializador-datos',
+        pathMatch: 'full'
       },
       
       // TUCS (Tarjetas Únicas de Circulación)

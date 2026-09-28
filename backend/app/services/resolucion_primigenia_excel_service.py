@@ -2,6 +2,7 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+import uuid
 import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.models.resolucion_primigenia import ResolucionPrimigeniaCreate, EstadoResolucionPrimigenia
@@ -342,6 +343,37 @@ class ResolucionPrimigeniaExcelService:
                         "estado": creado.estado.value if hasattr(creado.estado, 'value') else str(creado.estado),
                         "accion": "CREADO"
                     })
+
+                # Sincronizar resoluciones de RENOVACIÓN con resoluciones_hijas para visibilidad en Centro de Trámites
+                tipo_res_clean = get_col_val(row, 'TIPO_RESOLUCION', 'TIPO RESOLUCION', 'TIPO_TRAMITE', 'TRAMITE').upper()
+                if 'RENOV' in tipo_res_clean or 'RENOV' in obs_raw:
+                    await self.db["resoluciones_hijas"].update_one(
+                        {"nro_resolucion": numero},
+                        {
+                            "$set": {
+                                "nro_resolucion": numero,
+                                "nro_resolucion_primigenia": numero,
+                                "ruc_empresa": ruc,
+                                "tipo_acto": "RENOVACION",
+                                "tipo_tramite_origen": "RENOVACION",
+                                "fecha_resolucion": fecha_res or fecha_ini,
+                                "fecha_inicio_efectos": fecha_ini,
+                                "expediente_numero": expedientes_list[0] if expedientes_list else None,
+                                "link_documento": link_doc,
+                                "observaciones": obs or "Resolución de Renovación importada desde DB_RESOLUCIONES",
+                                "esta_activo": True,
+                                "fecha_actualizacion": datetime.utcnow()
+                            },
+                            "$setOnInsert": {
+                                "id": str(uuid.uuid4()),
+                                "vehiculos_ingresantes": [],
+                                "vehiculos_salientes": [],
+                                "numeros_tuc": [],
+                                "fecha_registro": datetime.utcnow()
+                            }
+                        },
+                        upsert=True
+                    )
             except Exception as e:
                 errores.append(f"Fila {fila}: Error al procesar ({str(e)})")
             finally:

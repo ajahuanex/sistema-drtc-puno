@@ -341,6 +341,12 @@
                           <span class="material-symbols-outlined sort-icon">{{ getSortIcon('razonSocial') }}</span>
                         </th>
                       }
+                      @if (columnaVisible('casillaElectronica')) {
+                        <th (click)="toggleSort('casillaElectronica')" class="sortable-th text-center" matTooltip="Ordenar por Casilla Electrónica MTC">
+                          <span>Casilla Electrónica</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('casillaElectronica') }}</span>
+                        </th>
+                      }
                       @if (columnaVisible('partidaRegistral')) {
                         <th (click)="toggleSort('partidaRegistral')" class="sortable-th">
                           <span>Partida Registral</span>
@@ -369,6 +375,12 @@
                         <th (click)="toggleSort('contacto')" class="sortable-th">
                           <span>Contacto</span>
                           <span class="material-symbols-outlined sort-icon">{{ getSortIcon('contacto') }}</span>
+                        </th>
+                      }
+                      @if (columnaVisible('observaciones')) {
+                        <th (click)="toggleSort('observaciones')" class="sortable-th obs-th" matTooltip="Observaciones del Expediente">
+                          <span>Observaciones</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('observaciones') }}</span>
                         </th>
                       }
                       @if (columnaVisible('estadoSunat')) {
@@ -427,6 +439,23 @@
                             </div>
                           </td>
                         }
+                        @if (columnaVisible('casillaElectronica')) {
+                          <td class="text-center casilla-col-td">
+                            @if (empresa.tieneCasillaElectronica || empresa.casillaElectronica) {
+                              <span class="badge-casilla badge-casilla-si"
+                                    [matTooltip]="'Casilla Electrónica MTC: ' + (empresa.casillaElectronica || 'Habilitada') + ' (RD 001-2021-MTC/18)'">
+                                <span class="material-symbols-outlined casilla-icon">mark_email_read</span>
+                                <span>{{ (empresa.casillaElectronica && empresa.casillaElectronica !== 'HABILITADA') ? empresa.casillaElectronica : 'Habilitada' }}</span>
+                              </span>
+                            } @else {
+                              <span class="badge-casilla badge-casilla-no"
+                                    matTooltip="Sin Casilla Electrónica MTC registrada / pendiente de vinculación">
+                                <span class="material-symbols-outlined casilla-icon">unsubscribe</span>
+                                <span>Sin Casilla</span>
+                              </span>
+                            }
+                          </td>
+                        }
                         @if (columnaVisible('partidaRegistral')) {
                           <td>
                             @if (empresa.partidaRegistral) {
@@ -453,7 +482,7 @@
                               }
                               @if ((empresa.tiposServicio || []).length > 2) {
                                 <span class="badge-modalidad badge-more" [matTooltip]="empresa.tiposServicio.join(', ')">
-                                  +{{ (empresa.tiposServicio || []).length - 2 }}
+                                   +{{ (empresa.tiposServicio || []).length - 2 }}
                                 </span>
                               }
                             </div>
@@ -510,6 +539,18 @@
                                 <span class="sin-datos">—</span>
                               }
                             </div>
+                          </td>
+                        }
+                        @if (columnaVisible('observaciones')) {
+                          <td class="observaciones-td">
+                            @if (empresa.observaciones) {
+                              <div class="observacion-bubble" [matTooltip]="empresa.observaciones">
+                                <span class="material-symbols-outlined obs-icon">info</span>
+                                <span class="obs-text">{{ empresa.observaciones }}</span>
+                              </div>
+                            } @else {
+                              <span class="sin-datos">—</span>
+                            }
                           </td>
                         }
                         @if (columnaVisible('estadoSunat')) {

@@ -34,19 +34,26 @@ class EmpresaMapper:
     
     @staticmethod
     def map_razon_social(razon_social_data: Any, datos_sunat: Optional[Dict[str, Any]] = None) -> RazonSocial:
-        """Mapea razonSocial antigua al nuevo modelo"""
+        """Mapea razonSocial al nuevo modelo.
+        La razón social SUNAT proviene de la API PCM y NUNCA se duplica con la principal."""
         sunat_nombre = None
-        if isinstance(datos_sunat, dict):
-            sunat_nombre = datos_sunat.get("ddp_nombre") or datos_sunat.get("razonSocial")
+        if isinstance(datos_sunat, dict) and datos_sunat.get("ddp_nombre"):
+            sunat_nombre = datos_sunat.get("ddp_nombre")
 
         if isinstance(razon_social_data, dict):
+            principal_val = razon_social_data.get("principal", "")
+            sunat_val = razon_social_data.get("sunat") or sunat_nombre
+            # Evitar duplicar sunat con principal
+            if sunat_val and principal_val and str(sunat_val).strip().upper() == str(principal_val).strip().upper():
+                sunat_val = None
             return RazonSocial(
-                principal=razon_social_data.get("principal", ""),
-                sunat=razon_social_data.get("sunat") or sunat_nombre or razon_social_data.get("comercial"),
-                minimo=razon_social_data.get("minimo")
+                principal=principal_val,
+                sunat=sunat_val,
+                minimo=razon_social_data.get("minimo"),
+                nombre_corto=razon_social_data.get("nombre_corto") or razon_social_data.get("minimo")
             )
         principal_val = str(razon_social_data) if razon_social_data is not None else ""
-        return RazonSocial(principal=principal_val, sunat=sunat_nombre)
+        return RazonSocial(principal=principal_val, sunat=None)
     
     @staticmethod
     def map_representante_legal(rep_data: Any) -> RepresentanteLegal:
@@ -137,17 +144,9 @@ class EmpresaMapper:
         if not empresa_id and "_id" in doc:
             empresa_id = str(doc["_id"])
             
-        # Campos opcionales con normalización de datosSunat
+        # Datos SUNAT reales (sin inventar estados ni duplicar nombres si está pendiente)
         datos_sunat_raw = doc.get("datosSunat")
-        datos_sunat_norm = (lambda ds: {
-            "ddp_nombre": ds.get("ddp_nombre") or ds.get("razonSocial") or "",
-            "ddp_estado": ds.get("ddp_estado") or ("00" if ds.get("valido") or ds.get("estado") == "ACTIVO" else "10"),
-            "desc_estado": ds.get("desc_estado") or ds.get("estado") or ("ACTIVO" if ds.get("valido") else "INACTIVO"),
-            "desc_flag22": ds.get("desc_flag22") or ds.get("condicion") or "HABIDO",
-            "esActivo": ds.get("esActivo") if "esActivo" in ds else (ds.get("valido") == True or ds.get("estado") == "ACTIVO"),
-            "esHabido": ds.get("esHabido") if "esHabido" in ds else (ds.get("condicion") == "HABIDO"),
-            **ds
-        } if isinstance(ds, dict) else None)(datos_sunat_raw)
+        datos_sunat_norm = dict(datos_sunat_raw) if isinstance(datos_sunat_raw, dict) else None
         
         empresa_dict = {
             "id": empresa_id,
@@ -167,6 +166,8 @@ class EmpresaMapper:
             "emailContacto": doc.get("emailContacto"),
             "telefonoContacto": doc.get("telefonoContacto"),
             "sitioWeb": doc.get("sitioWeb"),
+            "tieneCasillaElectronica": bool(doc.get("tieneCasillaElectronica") or doc.get("casillaElectronica")),
+            "casillaElectronica": doc.get("casillaElectronica"),
             
             # Campos complejos con valores por defecto
             "documentos": doc.get("documentos", []),

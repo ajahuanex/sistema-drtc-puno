@@ -67,4 +67,8 @@ export class InicializadorService {
     formData.append('file', file);
     return this.http.post<EjecutarResponse>(`${this.apiUrl}/ejecutar-file`, formData);
   }
+
+  limpiarTodoExceptoUsuarios(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/limpiar-todo-excepto-usuarios`, {});
+  }
 }

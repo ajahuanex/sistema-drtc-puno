@@ -78,9 +78,9 @@ export interface ColumnasState {
           </div>
         </div>
         <div class="header-actions">
-          <button mat-raised-button class="header-action-btn" (click)="irACargaMasiva()" matTooltip="Importar desde Excel / Google Sheets">
-            <mat-icon class="btn-icon">upload_file</mat-icon>
-            <span class="btn-text">Carga Masiva</span>
+          <button mat-raised-button class="header-action-btn" routerLink="/centro-tramites" matTooltip="Ir a Centro de Trámites para altas, bajas y sustituciones">
+            <mat-icon class="btn-icon">swap_horiz</mat-icon>
+            <span class="btn-text">Trámites Flota</span>
           </button>
         </div>
       </div>
@@ -2178,8 +2178,5 @@ export class VehiculosEmpresaComponent implements OnInit {
     const code = this.getTipoHijaCode(clean).toUpperCase();
     return map[code] || clean;
   }
-
-  irACargaMasiva(): void {
-    this.router.navigate(['/vehiculos-empresa/carga-masiva']);
-  }
 }
+

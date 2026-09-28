@@ -161,13 +161,13 @@ const ESTADOS_RUC: Record<string, string> = {
                       <mat-divider></mat-divider>
                       <div class="detail-grid">
                         <div class="detail-item full-width highlight-item">
-                          <span class="d-label">1. Razón Social Principal</span>
+                          <span class="d-label">1. Razón Social Principal (DRTC Padrón Oficial)</span>
                           <span class="d-value fw-700 color-primary fs-large">{{ emp.razonSocial.principal }}</span>
                         </div>
                         <div class="detail-item">
-                          <span class="d-label">2. Razón Social SUNAT</span>
-                          <span class="d-value fw-600">
-                            {{ emp.razonSocial.sunat || (sunatData()?.ddp_nombre) || 'Sin registrar en SUNAT' }}
+                          <span class="d-label">2. Razón Social SUNAT (Consulta API PCM)</span>
+                          <span class="d-value fw-600" [class.text-muted]="!emp.razonSocial.sunat && !sunatData()?.ddp_nombre">
+                            {{ emp.razonSocial.sunat || (sunatData()?.ddp_nombre) || 'Pendiente de consulta SUNAT' }}
                           </span>
                         </div>
                         <div class="detail-item">
@@ -177,6 +177,22 @@ const ESTADOS_RUC: Record<string, string> = {
                         <div class="detail-item">
                           <span class="d-label">4. Partida Registral (SUNARP)</span>
                           <span class="d-value fw-600" style="font-family:monospace;color:#2563eb;">{{ emp.partidaRegistral || 'Sin registrar' }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="d-label">5. Casilla Electrónica MTC</span>
+                          <span class="d-value">
+                            @if (emp.tieneCasillaElectronica || emp.casillaElectronica) {
+                              <span style="display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">
+                                <mat-icon style="font-size:14px;width:14px;height:14px;color:#059669;">mark_email_read</mat-icon>
+                                <span>{{ emp.casillaElectronica && emp.casillaElectronica !== 'HABILITADA' ? emp.casillaElectronica : 'HABILITADA' }}</span>
+                              </span>
+                            } @else {
+                              <span style="display:inline-flex;align-items:center;gap:4px;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">
+                                <mat-icon style="font-size:14px;width:14px;height:14px;color:#94a3b8;">unsubscribe</mat-icon>
+                                <span>NO REGISTRADA</span>
+                              </span>
+                            }
+                          </span>
                         </div>
                         <div class="detail-item full-width">
                           <span class="d-label">Observaciones y Registro</span>

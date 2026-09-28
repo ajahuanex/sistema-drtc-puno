@@ -1274,6 +1274,92 @@
       }
     }
 
+    /* ── Casilla Electrónica MTC ───────────────────────────────── */
+    .casilla-col-td {
+      white-space: nowrap;
+    }
+
+    .badge-casilla {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      line-height: 1.2;
+      transition: all 0.2s ease;
+
+      .casilla-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+
+      &.badge-casilla-si {
+        background-color: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+        .casilla-icon { color: #059669; }
+      }
+
+      &.badge-casilla-no {
+        background-color: #f8fafc;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        .casilla-icon { color: #94a3b8; }
+      }
+    }
+
+    /* ── Observaciones de Expediente ───────────────────────────── */
+    .obs-th {
+      min-width: 180px;
+      max-width: 260px;
+    }
+
+    .observaciones-td {
+      max-width: 260px;
+    }
+
+    .observacion-bubble {
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+      padding: 4px 8px;
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #334155;
+      line-height: 1.35;
+      cursor: help;
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+      }
+
+      .obs-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: #64748b;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .obs-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        word-break: break-word;
+      }
+    }
+
     .sin-datos { color: #94a3b8; font-size: 0.8rem; }
     .text-center { text-align: center; }
 
@@ -1847,6 +1933,33 @@
         background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%) !important;
         border-color: #4338ca !important;
         color: #e0e7ff !important;
+      }
+
+      .badge-casilla {
+        &.badge-casilla-si {
+          background-color: rgba(16, 185, 129, 0.15) !important;
+          color: #34d399 !important;
+          border-color: rgba(52, 211, 153, 0.3) !important;
+          .casilla-icon { color: #34d399 !important; }
+        }
+        &.badge-casilla-no {
+          background-color: rgba(148, 163, 184, 0.1) !important;
+          color: #94a3b8 !important;
+          border-color: #334155 !important;
+          .casilla-icon { color: #64748b !important; }
+        }
+      }
+
+      .observacion-bubble {
+        background-color: #131b2e !important;
+        border-color: #1e293b !important;
+        color: #cbd5e1 !important;
+        &:hover {
+          background-color: #17223b !important;
+          border-color: #334155 !important;
+        }
+        .obs-icon { color: #94a3b8 !important; }
+        .obs-text { color: #e2e8f0 !important; }
       }
 
       .btn-clear-selection { color: #a5b4fc !important; }

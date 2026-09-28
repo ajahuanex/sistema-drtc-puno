@@ -167,39 +167,57 @@ def _normalizar_hija(val) -> Optional[str]:
 
 def _normalizar_tuc(val, placa: Optional[str] = None) -> Optional[str]:
     """
-    Normalizar número TUC a 8 caracteres 'T-012345' (6 dígitos formateados).
-    Si el valor ingresado es una placa o contiene una placa (ej: '_V6Y958', '_VFH-950'),
-    normaliza a 'T-V6Y-958'.
-    Si no tiene TUC o es inválido/vacio y se provee placa válida (ej: 'A2B-123'),
-    retornar 'T-A2B-123'.
+    Normalizar número TUC individual:
+    - Si tiene dígitos numéricos (ej: '003771', '_11880', '008819`', '-011893'):
+      limpia caracteres espurios y formatea a 6 dígitos con prefijo 'T-' (ej: 'T-003771', 'T-011880').
+    - Si es electrónico (ej: 'TE-000001', 'TE123'): 'TE-000123'.
+    - Si es histórico previo con TA (ej: 'TA-011880'): conserva 'TA-011880'.
+    - Si el valor ingresado es una placa o contiene una placa (ej: '_V6Y958'): 'T-V6Y-958'.
+    - Si no tiene TUC o es inválido/vacío/guion y se provee placa válida (ej: 'A2B-123'):
+      se asigna la placa como 'T-A2B-123'.
     """
+    placa_str = ""
+    if placa is not None and not (isinstance(placa, float) and pd.isna(placa)):
+        p_sub = re.sub(r"[^A-Za-z0-9]", "", str(placa).strip().upper())
+        if p_sub and p_sub not in ("NAN", "NONE", "-"):
+            placa_str = f"{p_sub[:3]}-{p_sub[3:]}" if len(p_sub) == 6 else p_sub
+
     s = _clean_str(val)
-    if not s or s in ("-", "–", "—"):
-        if placa and placa != "-":
-            return f"T-{placa.upper()}"
+    if not s or s in ("-", "–", "—", "NAN", "NONE", "S/N", "SIN TUC"):
+        if placa_str:
+            return f"T-{placa_str}"
         return None
 
     s_upper = s.upper().strip()
 
-    # Si el valor es una placa con prefijo '_' o guion (ej: '_V6Y958', '_VFH-950')
-    s_clean_plate = re.sub(r"^[_ \-]+", "", s_upper)
-    m_plate = re.search(r"([A-Z0-9]{3})[-]?([A-Z0-9]{3})", s_clean_plate)
-    if m_plate and not s_clean_plate.isdigit():
-        return f"T-{m_plate.group(1)}-{m_plate.group(2)}"
+    if s_upper.startswith("TE-") or s_upper.startswith("TE"):
+        digits = re.sub(r"[^\d]", "", s_upper)
+        if digits:
+            return f"TE-{digits.zfill(6)}"
 
-    if s_upper.startswith("T-"):
-        sin_prefix = s_upper[2:]
-        if sin_prefix.isdigit():
-            return f"T-{sin_prefix.zfill(6)}"
-        return s_upper
+    if s_upper.startswith("TA-"):
+        sin_ta = s_upper[3:]
+        digits = re.sub(r"[^\d]", "", sin_ta)
+        if digits:
+            return f"TA-{digits.zfill(6)}"
+        return f"TA-{sin_ta}"
+
+    # Si el valor contiene una placa (ej: '_V6Y958', '_VFH-950')
+    clean_raw = re.sub(r"^[_ \-]+", "", s_upper)
+    m_plate = re.search(r"^[A-Z0-9]{3}[-]?[A-Z0-9]{3}$", clean_raw)
+    if m_plate and not clean_raw.isdigit():
+        p_sub = re.sub(r"[^A-Z0-9]", "", clean_raw)
+        return f"T-{p_sub[:3]}-{p_sub[3:]}" if len(p_sub) == 6 else f"T-{p_sub}"
 
     digits = re.sub(r"[^\d]", "", s)
-    if digits:
+    if digits and len(digits) >= 3:
         return f"T-{digits.zfill(6)}"
 
-    if placa and placa != "-":
-        return f"T-{placa.upper()}"
+    if placa_str:
+        return f"T-{placa_str}"
+
     return s_upper
+
 
 
 def _normalizar_rutas(val) -> List[str]:
@@ -342,6 +360,104 @@ class FlotaEmpresaExcelService:
         self.empresas_coll = db["empresas"]
         self.primigenias_coll = db["resoluciones_primigenias"]
         self.hijas_coll = db["resoluciones_hijas"]
+        self.vehiculos_data_coll = db["vehiculos_data"]
+
+    @staticmethod
+    def _resolver_tucs_dataframe(df: pd.DataFrame) -> Dict[int, str]:
+        """
+        Resuelve y garantiza la unicidad estricta de cada TUC en el DataFrame de la Matriz:
+        - Si tiene número físico: 'T-XXXXXX' (6 dígitos).
+        - Si tiene número electrónico: 'TE-XXXXXX'.
+        - Si no tiene TUC o es guion o nota: 'T-<PLACA>'.
+        - Si un número o placa se repite: El registro más reciente / habilitado conserva 'T-XXXXXX' / 'T-<PLACA>',
+          mientras que el más antiguo (antigüedad, ej. 2018/2019 o inhabilitado) pasa a 'TA-XXXXXX' o 'TA-<PLACA>'.
+        Retorna mapeo { row_index: final_tuc }.
+        """
+        tuc_resuelto_map: Dict[int, str] = {}
+        temp_rows = []
+
+        cols = {str(c).strip().upper(): c for c in df.columns}
+        col_tuc = cols.get('TUC') or (df.columns[6] if len(df.columns) > 6 else None)
+        col_placa = cols.get('PLACA') or (df.columns[4] if len(df.columns) > 4 else None)
+        col_estado = cols.get('ESTADO') or (df.columns[7] if len(df.columns) > 7 else None)
+        col_fecha_h = cols.get('FECHA HIJA') or cols.get('FECHA_RESOLUCION_HIJA')
+        col_fecha_c = cols.get('FECHA') or cols.get('FECHA_CRONOLOGICA')
+        col_fecha_e = cols.get('FECHA_EXPEDIENTE') or cols.get('FECHA EXPEDIENTE')
+        col_rdr = cols.get('RDR') or cols.get('NRO_RESOLUCION_HIJA')
+
+        for idx, row in df.iterrows():
+            val_tuc = row[col_tuc] if col_tuc is not None and col_tuc in row else None
+            val_placa = row[col_placa] if col_placa is not None and col_placa in row else None
+            val_estado = row[col_estado] if col_estado is not None and col_estado in row else None
+
+            raw_tuc = str(val_tuc or '').strip().upper() if pd.notna(val_tuc) else ''
+            raw_placa = str(val_placa or '').strip().upper() if pd.notna(val_placa) else ''
+            raw_estado = str(val_estado or '').strip().upper() if pd.notna(val_estado) else ''
+
+            if raw_placa in ('NAN', 'NONE', '', '-'):
+                placa_limpia = None
+            else:
+                p_sub = re.sub(r'[^A-Z0-9]', '', raw_placa)
+                placa_limpia = f'{p_sub[:3]}-{p_sub[3:]}' if len(p_sub) == 6 else p_sub
+
+            base_tuc = None
+            if raw_tuc.startswith('TE-') or raw_tuc.startswith('TE'):
+                digits = re.sub(r'[^\d]', '', raw_tuc)
+                if digits:
+                    base_tuc = f'TE-{digits.zfill(6)}'
+            elif raw_tuc.startswith('TA-'):
+                digits = re.sub(r'[^\d]', '', raw_tuc)
+                if digits:
+                    base_tuc = f'TA-{digits.zfill(6)}'
+            else:
+                clean_raw = re.sub(r'^[_ \-]+', '', raw_tuc)
+                m_plate = re.search(r'^[A-Z0-9]{3}[-]?[A-Z0-9]{3}$', clean_raw)
+                if m_plate and not clean_raw.isdigit():
+                    p_sub = re.sub(r'[^A-Z0-9]', '', clean_raw)
+                    base_tuc = f'T-{p_sub[:3]}-{p_sub[3:]}' if len(p_sub) == 6 else f'T-{p_sub}'
+                else:
+                    digits = re.sub(r'[^\d]', '', raw_tuc)
+                    if digits and len(digits) >= 3:
+                        base_tuc = f'T-{digits.zfill(6)}'
+                    elif placa_limpia:
+                        base_tuc = f'T-{placa_limpia}'
+
+            year = 2000
+            for f_col in [col_fecha_h, col_fecha_c, col_fecha_e, col_rdr]:
+                if f_col and f_col in row and pd.notna(row[f_col]):
+                    m_y = re.search(r'(19\d\d|20\d\d)', str(row[f_col]))
+                    if m_y:
+                        year = int(m_y.group(1))
+                        break
+
+            is_hab = 1 if 'HAB' in raw_estado and 'INH' not in raw_estado else 0
+            temp_rows.append({
+                'idx': idx,
+                'base_tuc': base_tuc,
+                'is_hab': is_hab,
+                'year': year,
+                'placa': placa_limpia
+            })
+
+        grupos: Dict[str, list] = {}
+        for r in temp_rows:
+            bt = r['base_tuc']
+            if not bt:
+                continue
+            grupos.setdefault(bt, []).append(r)
+
+        for bt, items in grupos.items():
+            if len(items) == 1:
+                tuc_resuelto_map[items[0]['idx']] = bt
+            else:
+                items.sort(key=lambda x: (x['is_hab'], x['year'], x['idx']), reverse=True)
+                tuc_resuelto_map[items[0]['idx']] = bt
+                sin_prefijo = re.sub(r'^(T|TE)-', '', bt)
+                for i, old_item in enumerate(items[1:]):
+                    ta_code = f'TA-{sin_prefijo}' if i == 0 else f'TA-{sin_prefijo}-{i+1}'
+                    tuc_resuelto_map[old_item['idx']] = ta_code
+
+        return tuc_resuelto_map
 
     # ------------------------------------------------------------------
     # HELPERS DE CRUCE E INTEGRACIÓN ENTRE MÓDULOS
@@ -447,7 +563,8 @@ class FlotaEmpresaExcelService:
         numero_tuc: Optional[str] = None,
         link_tuc: Optional[str] = None,
         link_notificacion: Optional[str] = None,
-        rutas: Optional[List[str]] = None
+        rutas: Optional[List[str]] = None,
+        tramite: Optional[str] = None
     ):
         """
         Validar y sincronizar la resolución hija en el módulo 'resoluciones_hijas'.
@@ -478,7 +595,23 @@ class FlotaEmpresaExcelService:
             "R": "RENOVACION",
             "FE": "FE_DE_ERRATAS",
         }
-        tipo_acto = mapeo_tipo.get((tipo_hija_code or "").upper(), "INCREMENTO_FLOTA" if (placa and placa != "-") else "OTROS")
+
+        # Detección inteligente por columna TRAMITE o sufijo de resolución
+        tramite_upper = str(tramite or "").upper().strip()
+        if "RENOV" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "R"):
+            tipo_acto = "RENOVACION"
+        elif "SUSTITUC" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "S") or (baja and str(baja).strip() not in ("-", "", "None", "NAN")):
+            tipo_acto = "SUSTITUCION_VEHICULAR"
+        elif "INCREMENT" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "I"):
+            tipo_acto = "INCREMENTO_FLOTA"
+        elif "RUTA" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "M"):
+            tipo_acto = "MODIFICACION_RUTA"
+        elif "CANCEL" in tramite_upper or "BAJA" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() in ("C", "B")):
+            tipo_acto = "CANCELACION_PARCIAL"
+        elif "ERRATA" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "FE"):
+            tipo_acto = "FE_DE_ERRATAS"
+        else:
+            tipo_acto = mapeo_tipo.get((tipo_hija_code or "").upper(), "INCREMENTO_FLOTA" if (placa and placa != "-") else "OTROS")
         
         hija_doc = None
         if nro_norm in hija_cache:
@@ -527,6 +660,7 @@ class FlotaEmpresaExcelService:
                 "ruc_empresa": ruc,
                 "razon_social": razon_social,
                 "tipo_acto": tipo_acto,
+                "tipo_tramite_origen": tramite or tipo_acto,
                 "fecha_resolucion": fecha_efecto,
                 "fecha_inicio_efectos": fecha_efecto,
                 "vehiculos_ingresantes": [placa] if (placa and placa not in ("-", "")) else [],
@@ -585,6 +719,8 @@ class FlotaEmpresaExcelService:
                 updates["link_documento"] = link_tuc
             if link_notificacion and not hija_doc.get("link_notificacion"):
                 updates["link_notificacion"] = link_notificacion
+            if tipo_acto == "RENOVACION" and hija_doc.get("tipo_acto") != "RENOVACION":
+                updates["tipo_acto"] = "RENOVACION"
                 
             push_updates = {}
             if placa and placa not in ("-", ""):
@@ -623,7 +759,7 @@ class FlotaEmpresaExcelService:
     # VALIDACIÓN Y PREVIEW
     # ------------------------------------------------------------------
 
-    def _procesar_fila(self, idx: int, row: pd.Series, columnas: list) -> dict:
+    def _procesar_fila(self, idx: int, row: pd.Series, columnas: list, tuc_override: Optional[str] = None) -> dict:
         """Procesar una fila del DataFrame y retornar dict con datos y errores."""
         errores = []
 
@@ -675,7 +811,12 @@ class FlotaEmpresaExcelService:
         porcentaje = _clean_str(get_col("D", ["PORCENTAJE", "porcentaje"]))
         placa, es_cronologico = _normalizar_placa(get_col("E", ["PLACA", "placa"]))
         rutas = _normalizar_rutas(get_col("F", ["RUTA", "ruta"]))
-        tuc = _normalizar_tuc(get_col("G", ["TUC", "tuc"]), placa=placa)
+        
+        if tuc_override is not None:
+            tuc = tuc_override
+        else:
+            tuc = _normalizar_tuc(get_col("G", ["TUC", "tuc"]), placa=placa)
+
         estado = _normalizar_estado(get_col("H", ["ESTADO", "estado"]))
         obs = _parse_observaciones(get_col("I", ["OBSERVACIONES", "observaciones"]))
         fecha_crono = _parse_fecha(get_col("J", ["FECHA", "fecha_cronologica"]))
@@ -753,10 +894,12 @@ class FlotaEmpresaExcelService:
         emp_cache = {}
         prim_cache = {}
         correlativo_preview = {}
+        tuc_resuelto_map = self._resolver_tucs_dataframe(df)
 
         for idx, row in df.head(n_filas).iterrows():
             try:
-                r = self._procesar_fila(idx, row, columnas)
+                tuc_override = tuc_resuelto_map.get(idx)
+                r = self._procesar_fila(idx, row, columnas, tuc_override=tuc_override)
                 clave_prim = f"{r.get('ruc')}_{r.get('nro_resolucion_primigenia')}"
                 correlativo_preview[clave_prim] = correlativo_preview.get(clave_prim, 0) + 1
                 r["orden_cronologico"] = correlativo_preview[clave_prim]
@@ -822,10 +965,12 @@ class FlotaEmpresaExcelService:
         hija_cache = {}
         expedientes_cache = set()
         correlativo_por_primigenia = {}
+        tuc_resuelto_map = self._resolver_tucs_dataframe(df)
 
         for idx, row in df.iterrows():
             try:
-                datos = self._procesar_fila(idx, row, columnas)
+                tuc_override = tuc_resuelto_map.get(idx)
+                datos = self._procesar_fila(idx, row, columnas, tuc_override=tuc_override)
                 if not datos["es_valido"] or not datos["ruc"] or not datos["nro_resolucion_primigenia"]:
                     omitidos += 1
                     errores_list.append({
@@ -857,11 +1002,21 @@ class FlotaEmpresaExcelService:
                         datos["nro_resolucion_primigenia"] = prim_doc.get("_nro_primigenia_resuelta")
 
                 # 3. Sincronizar/Auto-crear Resolución Hija en el módulo Resoluciones Hijas
-                if datos.get("nro_resolucion_hija"):
+                nro_hija_sincronizar = datos.get("nro_resolucion_hija")
+                tipo_hija_sincronizar = datos.get("tipo_resolucion_hija")
+                tramite_sincronizar = str(datos.get("tramite") or "").strip().upper()
+
+                # Si la fila corresponde a una RENOVACIÓN y no tiene número de hija explícito,
+                # la resolución que sustenta la renovación es la indicada en la columna B (primigenia/renovada)
+                if not nro_hija_sincronizar and "RENOV" in tramite_sincronizar:
+                    nro_hija_sincronizar = datos.get("nro_resolucion_primigenia")
+                    tipo_hija_sincronizar = "R"
+
+                if nro_hija_sincronizar:
                     await self._sincronizar_resolucion_hija(
-                        nro_hija=datos["nro_resolucion_hija"],
+                        nro_hija=nro_hija_sincronizar,
                         nro_prim=datos["nro_resolucion_primigenia"],
-                        tipo_hija_code=datos.get("tipo_resolucion_hija"),
+                        tipo_hija_code=tipo_hija_sincronizar,
                         ruc=datos["ruc"],
                         razon_social=datos["razon_social"],
                         placa=datos["placa"],
@@ -875,7 +1030,8 @@ class FlotaEmpresaExcelService:
                         numero_tuc=datos.get("numero_tuc"),
                         link_tuc=datos.get("link_tuc"),
                         link_notificacion=datos.get("link_notificacion"),
-                        rutas=datos.get("rutas")
+                        rutas=datos.get("rutas"),
+                        tramite=datos.get("tramite")
                     )
 
                 # 3.1 Sincronizar/Auto-crear Expediente en db.expedientes si viene num_expediente
@@ -997,6 +1153,16 @@ class FlotaEmpresaExcelService:
                 omitidos += 1
                 errores_list.append({"fila": idx + 2, "error": str(e)})
 
+        # Sincronización automática de TUCs al padrón oficial (db.tucs) con cruce de vehiculos_data
+        tuc_sync_res = {}
+        try:
+            from app.services.tuc_service import TucService
+            tuc_sync_res = await TucService.sincronizar_desde_flota_empresa(usuario="CARGA_MASIVA_MATRIZ")
+            logger.info(f"✅ TUCs sincronizadas automáticamente tras carga de matriz: {tuc_sync_res}")
+        except Exception as e_tuc_sync:
+            logger.warning(f"⚠️ Alerta: Error en sincronización automática de TUCs: {e_tuc_sync}")
+            tuc_sync_res = {"error": str(e_tuc_sync)}
+
         return {
             "total_filas": total,
             "creados": creados,
@@ -1004,6 +1170,7 @@ class FlotaEmpresaExcelService:
             "omitidos": omitidos,
             "errores": errores_list[:50],
             "modo": modo,
+            "sincronizacion_tucs": tuc_sync_res,
         }
 
     # ------------------------------------------------------------------

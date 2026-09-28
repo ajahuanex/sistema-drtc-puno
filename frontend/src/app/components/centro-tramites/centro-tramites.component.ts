@@ -643,9 +643,12 @@ export class CentroTramites implements OnInit {
             fechaSort = `${anio}-01-01T00:00:00.000Z`;
           }
 
-          const placasIng: string[] = Array.isArray(r.vehiculos_ingresantes) ? r.vehiculos_ingresantes : [];
-          const placasSal: string[] = Array.isArray(r.vehiculos_salientes) ? r.vehiculos_salientes : [];
-          const todasPlacas = [...placasIng, ...placasSal].join(' ');
+          const placasIng: string[] = Array.isArray(r.vehiculos_ingresantes) ? r.vehiculos_ingresantes.filter(Boolean) : [];
+          const placasSal: string[] = Array.isArray(r.vehiculos_salientes) ? r.vehiculos_salientes.filter(Boolean) : [];
+          const todasPlacas = Array.from(new Set([...placasIng, ...placasSal]));
+          const totalVehiculos = todasPlacas.length;
+          const placaPrincipal = placasIng[0] || placasSal[0] || (todasPlacas[0] ?? null);
+          const esSoloBaja = placasIng.length === 0 && placasSal.length > 0;
 
           const nroNorm = this.normalizarNumeroResolucion(r.nro_resolucion, r.fecha_resolucion || r.fecha_registro);
           const tipoActo = r.tipo_acto || r.tipo_tramite_origen || 'MODIFICACION';
@@ -682,9 +685,12 @@ export class CentroTramites implements OnInit {
             fecha_expediente: r.fecha_expediente || null,
             fecha_expediente_display: fechaExpDisplay,
             nro_resolucion_primigenia: r.nro_resolucion_primigenia,
+            placaPrincipal,
+            totalVehiculos,
+            esSoloBaja,
             placasIng,
             placasSal,
-            placasTexto: todasPlacas,
+            placasTexto: todasPlacas.join(' '),
             estado: r.esta_activo !== false ? 'PROCESADO' : 'INACTIVO',
             // datos extra para detalle
             observaciones: r.observaciones || '',
@@ -1124,6 +1130,11 @@ export class CentroTramites implements OnInit {
     const res = this.resolucionSeleccionada();
     if (!res) return false;
     const est = (res.estado || '').toUpperCase();
+    const t = this.tramiteSeleccionado();
+    // Para trámites de RENOVACIÓN, una resolución VENCIDA o VIGENTE es totalmente apta para renovar
+    if (t === 'RENOVACION' && (est === 'VENCIDA' || est === 'VIGENTE')) {
+      return false;
+    }
     return est !== 'VIGENTE';
   });
 
@@ -1149,11 +1160,18 @@ export class CentroTramites implements OnInit {
       const resObj = this.resolucionSeleccionada();
       const estadoRes = (resObj?.estado || '').toUpperCase();
       const esReactivacion = this.tramiteSeleccionado() === 'REACTIVACION_JUDICIAL';
+      const esRenovacion = this.tramiteSeleccionado() === 'RENOVACION';
+
       if (estadoRes && estadoRes !== 'VIGENTE' && !esReactivacion) {
-        return false;
+        // Para RENOVACION, se permite expresamente si la resolución está VENCIDA o VIGENTE
+        if (esRenovacion && (estadoRes === 'VENCIDA' || estadoRes === 'VIGENTE')) {
+          // Permitir avanzar con la renovación
+        } else {
+          return false;
+        }
       }
 
-      if (this.tramiteSeleccionado() === 'RENOVACION') {
+      if (esRenovacion) {
         return tieneResolucion && this.renovacionForm.valid;
       }
       return tieneResolucion;

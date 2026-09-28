@@ -174,8 +174,10 @@ export class EmpresasComponent implements OnInit {
     'seleccionar',
     'ruc',
     'razonSocial',
+    'casillaElectronica',
     'representante',
     'contacto',
+    'observaciones',
     'estadoSunat',
     'acciones'
   ]);
@@ -207,11 +209,13 @@ export class EmpresasComponent implements OnInit {
     { id: 'seleccionar', label: 'Seleccionar', visible: true },
     { id: 'ruc', label: 'RUC', visible: true },
     { id: 'razonSocial', label: 'Razón Social', visible: true },
+    { id: 'casillaElectronica', label: 'Casilla Electrónica (MTC)', visible: true },
     { id: 'partidaRegistral', label: 'Partida Registral (Columna)', visible: false },
     { id: 'estado', label: 'Estado Legal (Columna separada)', visible: false },
     { id: 'servicios', label: 'Tipos de Servicio (Columna separada)', visible: false },
     { id: 'representante', label: 'Representante / Socios', visible: true },
     { id: 'contacto', label: 'Contacto', visible: true },
+    { id: 'observaciones', label: 'Observaciones', visible: true },
     { id: 'estadoSunat', label: 'Estado SUNAT', visible: true },
     { id: 'acciones', label: 'Acciones', visible: true }
   ];
@@ -310,6 +314,17 @@ export class EmpresasComponent implements OnInit {
         case 'telefonoContacto':
           valA = a.telefonoContacto || '';
           valB = b.telefonoContacto || '';
+          break;
+        case 'casillaElectronica': {
+          const cA = (a.tieneCasillaElectronica || a.casillaElectronica) ? '1' : '0';
+          const cB = (b.tieneCasillaElectronica || b.casillaElectronica) ? '1' : '0';
+          valA = `${cA}_${a.casillaElectronica || ''}`;
+          valB = `${cB}_${b.casillaElectronica || ''}`;
+          break;
+        }
+        case 'observaciones':
+          valA = a.observaciones || '';
+          valB = b.observaciones || '';
           break;
         case 'estadoSunat': {
           const sA = this.sunatCache().get(a.ruc);
@@ -832,6 +847,9 @@ export class EmpresasComponent implements OnInit {
           ?.filter(s => s.tipoSocio === 'REPRESENTANTE_LEGAL')
           .map(s => s.dni)
           .join('; ') || '',
+        'Casilla Electrónica': (empresa.tieneCasillaElectronica || empresa.casillaElectronica)
+          ? (empresa.casillaElectronica || 'HABILITADA')
+          : 'NO REGISTRADA',
         'Observaciones': empresa.observaciones || ''
       }));
 

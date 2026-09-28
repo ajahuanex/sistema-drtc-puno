@@ -172,8 +172,16 @@ async def lifespan(app):
                 await col.create_index("vin", background=True)
                 await col.create_index("numero_motor", background=True)
                 logger.info("✅ Índices de vehiculos_data creados/verificados")
+
+                col_tucs = database["tucs"]
+                await col_tucs.create_index("nroTuc", unique=True, background=True)
+                await col_tucs.create_index("placa", background=True)
+                await col_tucs.create_index("ruc", background=True)
+                await col_tucs.create_index("estado", background=True)
+                await col_tucs.create_index("hashSeguridad", unique=True, sparse=True, background=True)
+                logger.info("✅ Índices de tucs creados/verificados")
             except Exception as idx_err:
-                logger.warning(f"⚠️ Error creando índices vehiculos_data: {idx_err}")
+                logger.warning(f"⚠️ Error creando índices de colecciones: {idx_err}")
 
         # Iniciar cron automático diario de validación SUNAT
         try:

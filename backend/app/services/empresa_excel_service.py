@@ -1051,6 +1051,8 @@ class EmpresaExcelService:
             limpiar_valor(row.get('EMPRESA', ''))
         )
         razon_social_sunat = limpiar_valor(row.get('Razón Social SUNAT', ''))
+        if razon_social_sunat and razon_social_principal and razon_social_sunat.strip().upper() == razon_social_principal.strip().upper():
+            razon_social_sunat = None
         razon_social_minimo = (
             limpiar_valor(row.get('RZ', '')) or
             limpiar_valor(row.get('Razón Social Mínimo', '')) or
@@ -1154,6 +1156,26 @@ class EmpresaExcelService:
         )
         if observaciones:
             update_data['observaciones'] = observaciones
+
+        # Casilla Electrónica MTC
+        casilla_raw = (
+            limpiar_valor(row.get('CASILLA_ELECTRONICA', '')) or
+            limpiar_valor(row.get('CASILLA', '')) or
+            limpiar_valor(row.get('Casilla Electrónica', '')) or
+            limpiar_valor(row.get('Casilla Electronica', '')) or
+            limpiar_valor(row.get('TIENE_CASILLA', ''))
+        )
+        if casilla_raw:
+            val_c_norm = str(casilla_raw).strip().upper()
+            if val_c_norm in ('SI', 'SÍ', 'TRUE', '1', 'ACTIVO', 'HABILITADA'):
+                update_data['tieneCasillaElectronica'] = True
+                update_data['casillaElectronica'] = "HABILITADA"
+            elif val_c_norm in ('NO', 'FALSE', '0', 'INACTIVO', 'SIN CASILLA'):
+                update_data['tieneCasillaElectronica'] = False
+                update_data['casillaElectronica'] = None
+            else:
+                update_data['tieneCasillaElectronica'] = True
+                update_data['casillaElectronica'] = str(casilla_raw).strip()
         
         # Tipo de servicio (soporta TIPO_SERVICIO)
         tipo_servicio = (
@@ -1209,6 +1231,8 @@ class EmpresaExcelService:
             limpiar_valor(row.get('EMPRESA', ''))
         )
         razon_social_sunat = limpiar_valor(row.get('Razón Social SUNAT', ''))
+        if razon_social_sunat and razon_social_principal and razon_social_sunat.strip().upper() == razon_social_principal.strip().upper():
+            razon_social_sunat = None
         razon_social_minimo = (
             limpiar_valor(row.get('RZ', '')) or
             limpiar_valor(row.get('Razón Social Mínimo', '')) or
@@ -1280,10 +1304,34 @@ class EmpresaExcelService:
             limpiar_valor(row.get('OBSERVACIONES', '')) or
             limpiar_valor(row.get('Observaciones', ''))
         )
+
+        # Casilla Electrónica MTC
+        casilla_raw = (
+            limpiar_valor(row.get('CASILLA_ELECTRONICA', '')) or
+            limpiar_valor(row.get('CASILLA', '')) or
+            limpiar_valor(row.get('Casilla Electrónica', '')) or
+            limpiar_valor(row.get('Casilla Electronica', '')) or
+            limpiar_valor(row.get('TIENE_CASILLA', ''))
+        )
+        tiene_casilla = False
+        casilla_val = None
+        if casilla_raw:
+            val_c_norm = str(casilla_raw).strip().upper()
+            if val_c_norm in ('SI', 'SÍ', 'TRUE', '1', 'ACTIVO', 'HABILITADA'):
+                tiene_casilla = True
+                casilla_val = "HABILITADA"
+            elif val_c_norm in ('NO', 'FALSE', '0', 'INACTIVO', 'SIN CASILLA'):
+                tiene_casilla = False
+                casilla_val = None
+            else:
+                tiene_casilla = True
+                casilla_val = str(casilla_raw).strip()
         
         # Crear objeto con los campos
         empresa_data = {
-            'ruc': ruc
+            'ruc': ruc,
+            'tieneCasillaElectronica': tiene_casilla,
+            'casillaElectronica': casilla_val
         }
         
         if razon_social:
@@ -1523,9 +1571,9 @@ class EmpresaExcelService:
             empresa_data['estado'] = EstadoEmpresa.AUTORIZADA.value
 
         # Agregar otros campos opcionales si están presentes
-        optional_fields = ['emailContacto', 'telefonoContacto', 'sitioWeb', 'observaciones', 'partidaRegistral']
+        optional_fields = ['emailContacto', 'telefonoContacto', 'sitioWeb', 'observaciones', 'partidaRegistral', 'tieneCasillaElectronica', 'casillaElectronica']
         for field in optional_fields:
-            if field in empresa_dict and empresa_dict[field]:
+            if field in empresa_dict and empresa_dict[field] is not None:
                 empresa_data[field] = empresa_dict[field]
 
         # Respaldo si viene con clave 'partida'

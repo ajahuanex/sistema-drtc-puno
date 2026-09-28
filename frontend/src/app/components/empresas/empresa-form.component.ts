@@ -261,6 +261,24 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, Socio, TipoSocio } from '../../m
                       <mat-icon matPrefix>language</mat-icon>
                       <input matInput formControlName="sitioWeb">
                     </mat-form-field>
+
+                    <!-- CASILLA ELECTRÓNICA MTC -->
+                    <mat-form-field appearance="outline" class="col-span-1">
+                      <mat-label>Casilla Electrónica MTC</mat-label>
+                      <mat-icon matPrefix>mark_email_read</mat-icon>
+                      <mat-select formControlName="tieneCasillaElectronica">
+                        <mat-option [value]="true">✅ Habilitada / Registrada</mat-option>
+                        <mat-option [value]="false">❌ Sin Casilla / No Registrada</mat-option>
+                      </mat-select>
+                      <mat-hint>Obligatoria según D.S. 001-2020-MTC</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="col-span-1">
+                      <mat-label>Código / Nro de Casilla (Opcional)</mat-label>
+                      <mat-icon matPrefix>badge</mat-icon>
+                      <input matInput formControlName="casillaElectronica" placeholder="Ej: CAS-2024-0012">
+                      <mat-hint>Identificador de casilla en sistema MTC</mat-hint>
+                    </mat-form-field>
                   </div>
                 </mat-card-content>
               </mat-card>
@@ -1079,6 +1097,8 @@ export class EmpresaFormComponent implements OnInit {
       tiposServicio: [[]],
       estado: ['AUTORIZADA'],
       observaciones: [''],
+      tieneCasillaElectronica: [false],
+      casillaElectronica: [''],
       emailContacto: ['', Validators.email],
       telefonoContacto: [''],
       sitioWeb: [''],
@@ -1211,6 +1231,8 @@ export class EmpresaFormComponent implements OnInit {
           partidaRegistral: empresa.partidaRegistral || '',
           estado: empresa.estado || 'AUTORIZADA',
           observaciones: empresa.observaciones || '',
+          tieneCasillaElectronica: !!(empresa.tieneCasillaElectronica || empresa.casillaElectronica),
+          casillaElectronica: empresa.casillaElectronica || '',
           emailContacto: empresa.emailContacto || '',
           telefonoContacto: empresa.telefonoContacto || '',
           sitioWeb: empresa.sitioWeb || '',
@@ -1281,6 +1303,8 @@ export class EmpresaFormComponent implements OnInit {
       emailContacto: v.emailContacto?.trim() || undefined,
       telefonoContacto: v.telefonoContacto?.trim() || undefined,
       sitioWeb: v.sitioWeb?.trim() || undefined,
+      tieneCasillaElectronica: v.tieneCasillaElectronica ?? false,
+      casillaElectronica: v.casillaElectronica?.trim() || (v.tieneCasillaElectronica ? 'HABILITADA' : undefined),
       observaciones: v.observaciones?.trim() || undefined
     };
 

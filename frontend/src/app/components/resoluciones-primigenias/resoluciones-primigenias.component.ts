@@ -698,19 +698,25 @@ import {
                       }
 
                       @if (columnaVisible('historial_modificaciones')) {
-                        <th (click)="toggleSort('historial_modificaciones')" class="sortable-th">
-                          <span>Modificaciones</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('historial_modificaciones') }}</mat-icon>
+                        <th (click)="toggleSort('historial_modificaciones')" class="sortable-th th-compact-col th-mod-col" matTooltip="Modificaciones y Actos Posteriores vinculados">
+                          <div class="th-content-icon">
+                            <mat-icon class="th-icon">alt_route</mat-icon>
+                            <span>Modif.</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('historial_modificaciones') }}</mat-icon>
+                          </div>
                         </th>
                       }
                       @if (columnaVisible('observaciones')) {
-                        <th (click)="toggleSort('observaciones')" class="sortable-th">
-                          <span>Observaciones</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('observaciones') }}</mat-icon>
+                        <th (click)="toggleSort('observaciones')" class="sortable-th th-compact-col th-obs-col" matTooltip="Observaciones Operativas">
+                          <div class="th-content-icon">
+                            <mat-icon class="th-icon">chat_bubble_outline</mat-icon>
+                            <span>Obs.</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('observaciones') }}</mat-icon>
+                          </div>
                         </th>
                       }
                       @if (columnaVisible('link_documento')) {
-                        <th>Drive</th>
+                        <th class="th-compact-col text-center" matTooltip="Expediente en Google Drive">Drive</th>
                       }
                       @if (columnaVisible('acciones')) {
                         <th class="text-center th-acciones-col">
@@ -824,39 +830,49 @@ import {
                           </td>
                         }
                         @if (columnaVisible('historial_modificaciones')) {
-                          <td>
+                          <td class="text-center td-compact-col td-mod-col">
                             @if (totalModificaciones(item) > 0) {
-                              <span class="badge-count badge-mod" [matTooltip]="getTooltipModificaciones(item)" style="cursor: pointer;" (click)="verDetalleModal(item)">
-                                {{ totalModificaciones(item) }} Mod.
-                              </span>
+                              <button type="button"
+                                      class="badge-icon-pill badge-mod-pill"
+                                      [matTooltip]="getTooltipModificaciones(item)"
+                                      (click)="verDetalleModal(item)">
+                                <mat-icon class="pill-icon">alt_route</mat-icon>
+                                <span class="pill-num">{{ totalModificaciones(item) }}</span>
+                              </button>
                             } @else {
-                              <span class="sin-datos">-</span>
+                              <span class="sin-datos">—</span>
                             }
                           </td>
                         }
                         @if (columnaVisible('observaciones')) {
-                          <td>
-                            @if (item.observaciones) {
-                              <span class="obs-text" [matTooltip]="item.observaciones">{{ item.observaciones }}</span>
+                          <td class="text-center td-compact-col td-obs-col">
+                            @if (item.observaciones && item.observaciones.trim() && item.observaciones.trim() !== '-') {
+                              <button type="button"
+                                      class="badge-icon-pill badge-obs-pill"
+                                      [matTooltip]="'Observación: ' + item.observaciones"
+                                      (click)="verDetalleModal(item)">
+                                <mat-icon class="pill-icon">comment</mat-icon>
+                              </button>
                             } @else {
-                              <span class="sin-datos">-</span>
+                              <span class="sin-datos">—</span>
                             }
                           </td>
                         }
                         @if (columnaVisible('link_documento')) {
-                          <td class="text-center">
+                          <td class="text-center td-compact-col">
                             @if (item.link_documento) {
                               <a [href]="item.link_documento" target="_blank" class="drive-link" matTooltip="Abrir en Google Drive">
                                 <mat-icon>open_in_new</mat-icon>
                               </a>
                             } @else {
-                              <span class="sin-datos">-</span>
+                              <span class="sin-datos">—</span>
                             }
                           </td>
                         }
                         @if (columnaVisible('acciones')) {
                           <td class="text-center actions-cell">
-                            <div class="row-actions-group">
+                            <!-- 1. Pantallas Grandes: Fila de Botones de Acción Directa -->
+                            <div class="row-actions-group actions-desktop-only">
                               <button type="button"
                                       class="table-action-btn action-view"
                                       (click)="verDetalleModal(item)"
@@ -869,6 +885,14 @@ import {
                                       matTooltip="Editar Resolución Primigenia">
                                 <mat-icon>edit</mat-icon>
                               </button>
+                              @if (item.link_documento) {
+                                <a [href]="item.link_documento"
+                                   target="_blank"
+                                   class="table-action-btn action-drive"
+                                   matTooltip="Abrir Expediente / Documento PDF en Google Drive">
+                                  <mat-icon>cloud_download</mat-icon>
+                                </a>
+                              }
                               <button type="button"
                                       class="table-action-btn action-hija"
                                       (click)="crearHijaVinculada(item)"
@@ -881,6 +905,41 @@ import {
                                       matTooltip="Desactivar o Eliminar">
                                 <mat-icon>delete</mat-icon>
                               </button>
+                            </div>
+
+                            <!-- 2. Pantallas Compactas / Responsive: Menú Desplegable (3 Puntos) -->
+                            <div class="actions-dropdown-only">
+                              <button type="button"
+                                      class="table-action-btn action-menu-trigger"
+                                      [matMenuTriggerFor]="itemActionsMenu"
+                                      matTooltip="Opciones y Acciones">
+                                <mat-icon>more_vert</mat-icon>
+                              </button>
+                              <mat-menu #itemActionsMenu="matMenu" xPosition="before">
+                                <button mat-menu-item (click)="verDetalleModal(item)">
+                                  <mat-icon color="primary">visibility</mat-icon>
+                                  <span>Ver Detalle e Historial</span>
+                                </button>
+                                <button mat-menu-item (click)="editarResolucionModal(item)">
+                                  <mat-icon style="color: #f59e0b;">edit</mat-icon>
+                                  <span>Editar Resolución</span>
+                                </button>
+                                @if (item.link_documento) {
+                                  <a mat-menu-item [href]="item.link_documento" target="_blank">
+                                    <mat-icon style="color: #0284c7;">cloud_download</mat-icon>
+                                    <span>Abrir en Google Drive</span>
+                                  </a>
+                                }
+                                <button mat-menu-item (click)="crearHijaVinculada(item)">
+                                  <mat-icon style="color: #0d9488;">alt_route</mat-icon>
+                                  <span>Registrar Modificación (Hija)</span>
+                                </button>
+                                <mat-divider></mat-divider>
+                                <button mat-menu-item (click)="eliminarResolucion(item.id)">
+                                  <mat-icon color="warn">delete</mat-icon>
+                                  <span style="color: #dc2626; font-weight: 600;">Eliminar Resolución</span>
+                                </button>
+                              </mat-menu>
                             </div>
                           </td>
                         }
@@ -1605,26 +1664,122 @@ import {
     }
 
     .th-acciones-col {
-      width: 195px;
-      min-width: 195px;
+      width: 180px;
+      min-width: 180px;
       text-align: center;
       font-weight: 700;
       letter-spacing: 0.03em;
+      transition: width 0.2s ease, min-width 0.2s ease;
     }
 
     .actions-cell {
       white-space: nowrap;
-      width: 195px;
-      min-width: 195px;
+      width: 180px;
+      min-width: 180px;
       padding: 0.35rem 0.5rem !important;
       text-align: center;
+      transition: width 0.2s ease, min-width 0.2s ease;
+    }
+
+    .actions-desktop-only {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .actions-dropdown-only {
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Columnas Compactas Modificaciones & Observaciones */
+    .th-compact-col {
+      width: 72px;
+      min-width: 72px;
+      max-width: 80px;
+      text-align: center;
+      padding: 0.5rem 0.25rem !important;
+
+      .th-content-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        font-size: 0.8rem;
+
+        .th-icon {
+          font-size: 15px;
+          width: 15px;
+          height: 15px;
+          color: #64748b;
+        }
+      }
+    }
+
+    .td-compact-col {
+      width: 72px;
+      min-width: 72px;
+      max-width: 80px;
+      text-align: center;
+      padding: 0.35rem 0.25rem !important;
+    }
+
+    .badge-icon-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      background: transparent;
+
+      .pill-icon {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
+      }
+
+      &.badge-mod-pill {
+        background-color: #e0f2fe;
+        color: #0369a1;
+        border-color: #bae6fd;
+        &:hover {
+          background-color: #0284c7;
+          color: #ffffff;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 5px rgba(2, 132, 199, 0.25);
+        }
+      }
+
+      &.badge-obs-pill {
+        background-color: #fef3c7;
+        color: #d97706;
+        border-color: #fde68a;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border-radius: 8px;
+        &:hover {
+          background-color: #d97706;
+          color: #ffffff;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 5px rgba(217, 119, 6, 0.25);
+        }
+      }
     }
 
     .row-actions-group {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
+      gap: 4px;
       position: relative;
       z-index: 5;
     }
@@ -1709,7 +1864,20 @@ import {
         }
       }
 
-      /* 4. Registrar Hija (Teal / Modificatoria) */
+      /* 4. Drive (Cyan / Azul Celeste) */
+      &.action-drive {
+        background: #f0f9ff;
+        border-color: #bae6fd;
+        color: #0284c7;
+
+        &:hover {
+          background: #0284c7;
+          border-color: #0369a1;
+          color: #ffffff;
+        }
+      }
+
+      /* 5. Registrar Hija (Teal / Modificatoria) */
       &.action-hija {
         background: #f0fdfa;
         border-color: #99f6e4;
@@ -1722,7 +1890,7 @@ import {
         }
       }
 
-      /* 5. Eliminar / Desactivar (Rojo) */
+      /* 6. Eliminar / Desactivar (Rojo) */
       &.action-delete {
         background: #fef2f2;
         border-color: #fecaca;
@@ -1733,6 +1901,38 @@ import {
           border-color: #b91c1c;
           color: #ffffff;
         }
+      }
+
+      /* 7. Menú Trigger 3 Puntos */
+      &.action-menu-trigger {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+
+        &:hover {
+          background: #0f172a;
+          border-color: #0f172a;
+          color: #ffffff;
+        }
+      }
+    }
+
+    /* ── Breakpoint Responsive: Cuando la tabla necesita ancho se convierte en 1 solo ícono menú ── */
+    @media (max-width: 1536px) {
+      .th-acciones-col,
+      .actions-cell {
+        width: 58px !important;
+        min-width: 58px !important;
+        max-width: 65px !important;
+        padding: 0.35rem 0.25rem !important;
+      }
+
+      .actions-desktop-only {
+        display: none !important;
+      }
+
+      .actions-dropdown-only {
+        display: inline-flex !important;
       }
     }
 
@@ -2540,10 +2740,24 @@ import {
           &:hover { background: #0d9488 !important; color: #ffffff !important; }
         }
 
+        &.action-drive {
+          border-color: rgba(2, 132, 199, 0.4) !important;
+          color: #38bdf8 !important;
+          background: rgba(2, 132, 199, 0.15) !important;
+          &:hover { background: #0284c7 !important; color: #ffffff !important; }
+        }
+
         &.action-delete {
           border-color: rgba(239, 68, 68, 0.4) !important;
           color: #f87171 !important;
           &:hover { background: #dc2626 !important; color: #ffffff !important; }
+        }
+
+        &.action-menu-trigger {
+          border-color: #334155 !important;
+          color: #94a3b8 !important;
+          background: #1e293b !important;
+          &:hover { background: #38bdf8 !important; color: #090d16 !important; }
         }
       }
 
@@ -2660,6 +2874,31 @@ import {
           color: #7dd3fc !important;
           border: 1px solid rgba(3, 105, 161, 0.35) !important;
         }
+      }
+
+      .badge-icon-pill {
+        &.badge-mod-pill {
+          background-color: rgba(3, 105, 161, 0.25) !important;
+          color: #7dd3fc !important;
+          border-color: rgba(3, 105, 161, 0.4) !important;
+          &:hover {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+          }
+        }
+        &.badge-obs-pill {
+          background-color: rgba(217, 119, 6, 0.2) !important;
+          color: #fbbf24 !important;
+          border-color: rgba(217, 119, 6, 0.35) !important;
+          &:hover {
+            background-color: #d97706 !important;
+            color: #ffffff !important;
+          }
+        }
+      }
+
+      .th-compact-col .th-content-icon .th-icon {
+        color: #94a3b8 !important;
       }
 
       /* BADGES DE MODALIDAD EN DARK */
@@ -3303,7 +3542,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     { key: 'acciones', label: 'Acciones', required: true }
   ];
 
-  // 'siglas' NO está incluida por defecto aquí para que quede desactivada inicialmente
+  // 'siglas' y 'link_documento' no están incluidas por defecto (Drive ahora está integrado en Acciones)
   columnasVisiblesState = signal<string[]>([
     'select',
     'nro_resolucion',
@@ -3317,7 +3556,6 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     'tiene_eficacia_anticipada',
     'historial_modificaciones',
     'observaciones',
-    'link_documento',
     'acciones'
   ]);
 
@@ -3344,8 +3582,22 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
   }
 
   restablecerColumnas(): void {
-    const todas = this.columnasDisponibles.map(c => c.key);
-    this.columnasVisiblesState.set(todas);
+    const defaultCols = [
+      'select',
+      'nro_resolucion',
+      'ruc_empresa',
+      'tipo_autorizacion',
+      'fecha_resolucion',
+      'fecha_inicio_vigencia',
+      'anios_vigencia',
+      'fecha_fin_vigencia',
+      'estado',
+      'tiene_eficacia_anticipada',
+      'historial_modificaciones',
+      'observaciones',
+      'acciones'
+    ];
+    this.columnasVisiblesState.set(defaultCols);
     this.guardarPreferenciasColumnas();
   }
 
@@ -3363,7 +3615,8 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
         if (Array.isArray(parsed) && parsed.length > 0) {
           const requeridas = this.columnasDisponibles.filter(c => c.required).map(c => c.key);
           const validas = parsed.filter((k: string) => this.columnasDisponibles.some(c => c.key === k));
-          const unificadas = [...new Set([...requeridas, ...validas])];
+          // Excluir link_documento por defecto ya que Drive se integró en la columna Acciones
+          const unificadas = [...new Set([...requeridas, ...validas])].filter(k => k !== 'link_documento');
           this.columnasVisiblesState.set(unificadas);
         }
       }

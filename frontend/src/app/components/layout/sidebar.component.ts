@@ -171,10 +171,6 @@ import { AuthService } from '../../services/auth.service';
                         <span class="sub-bullet"></span>
                         <span>Flota por Empresa</span>
                       </a>
-                      <a routerLink="/vehiculos-empresa/carga-masiva" routerLinkActive="sub-active" class="sub-link">
-                        <span class="sub-bullet"></span>
-                        <span>Carga Masiva Flota</span>
-                      </a>
                       <a routerLink="/vehiculos-data" routerLinkActive="sub-active" class="sub-link">
                         <span class="sub-bullet"></span>
                         <span>Datos Técnicos</span>

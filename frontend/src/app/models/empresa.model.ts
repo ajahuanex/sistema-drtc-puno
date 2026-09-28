@@ -77,6 +77,8 @@ export interface Empresa {
   sitioWeb?: string;
   observaciones?: string;
   partidaRegistral?: string;
+  tieneCasillaElectronica?: boolean;
+  casillaElectronica?: string;
   // Datos SUNAT persistidos
   datosSunat?: SunatData;
   ultimaValidacionSunat?: Date;
@@ -122,6 +124,8 @@ export interface EmpresaCreate {
   razonSocial: RazonSocial;
   direccionFiscal: string;
   partidaRegistral?: string;
+  tieneCasillaElectronica?: boolean;
+  casillaElectronica?: string;
   socios: Socio[];
   tiposServicio: TipoServicio[];
   estado?: EstadoEmpresa;
@@ -136,6 +140,8 @@ export interface EmpresaUpdate {
   razonSocial?: RazonSocial;
   direccionFiscal?: string;
   partidaRegistral?: string;
+  tieneCasillaElectronica?: boolean;
+  casillaElectronica?: string;
   socios?: Socio[];
   estado?: EstadoEmpresa;
   tiposServicio?: TipoServicio[];

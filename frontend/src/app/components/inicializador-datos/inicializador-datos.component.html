@@ -23,10 +23,17 @@
         <mat-progress-bar mode="determinate" [value]="progresoGlobal()"></mat-progress-bar>
       </div>
 
-      <button mat-flat-button color="accent" class="btn-ir-tramites" routerLink="/centro-tramites" (click)="irACentroTramites()">
-        <mat-icon>alt_route</mat-icon>
-        <span>Centro de Trámites</span>
-      </button>
+      <div class="header-action-buttons">
+        <button mat-stroked-button class="btn-limpiar-bd" (click)="confirmarLimpiarTodo()" [disabled]="isLoading() || isExecuting()" matTooltip="Vaciar colecciones operativas preservando usuarios y configuraciones">
+          <mat-icon>delete_sweep</mat-icon>
+          <span>Reiniciar BD</span>
+        </button>
+
+        <button mat-flat-button color="accent" class="btn-ir-tramites" routerLink="/centro-tramites" (click)="irACentroTramites()">
+          <mat-icon>alt_route</mat-icon>
+          <span>Centro de Trámites</span>
+        </button>
+      </div>
     </div>
   </header>
 

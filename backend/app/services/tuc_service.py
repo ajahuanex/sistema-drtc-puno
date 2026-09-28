@@ -367,6 +367,24 @@ class TucService:
         errores = []
         now_iso = datetime.now().isoformat()
 
+        # Precargar mapa de fichas técnicas vehiculares desde 'vehiculos_data'
+        placas_list = list({str(r.get("placa") or "").strip().upper() for r in registros_flota if r.get("placa")})
+        veh_map = {}
+        if placas_list:
+            v_cursor = db.vehiculos_data.find({
+                "$or": [
+                    {"placa_actual": {"$in": placas_list}},
+                    {"placa": {"$in": placas_list}}
+                ]
+            })
+            async for v_doc in v_cursor:
+                p_k = (v_doc.get("placa_actual") or v_doc.get("placa") or "").strip().upper()
+                if p_k:
+                    veh_map[p_k] = v_doc
+                    clean_pk = re.sub(r"[^A-Z0-9]", "", p_k)
+                    if clean_pk:
+                        veh_map[clean_pk] = v_doc
+
         # Obtener TUCs ya existentes en lote
         tucs_existentes_cursor = db.tucs.find({}, {"nroTuc": 1, "placa": 1})
         tucs_set = set()
@@ -388,9 +406,29 @@ class TucService:
                 nro_prim_raw = str(reg.get("nro_resolucion_primigenia") or "").strip().upper()
                 nro_resolucion = nro_hija_raw or nro_prim_raw or "RDR-FLOTA-EMPRESA"
                 
-                tipo_emision = TipoEmisionTuc.ELECTRONICA.value if raw_tuc.startswith("TE-") or "E-" in raw_tuc else TipoEmisionTuc.FISICA.value
-                estado_tuc = EstadoTuc.VIGENTE.value if reg.get("estado") == "HABILITADO" else EstadoTuc.ANULADA.value
-                
+                # Clasificación inteligente de TUC según prefijo y reglas de negocio
+                is_antiguedad = raw_tuc.startswith("TA-")
+                is_electronica = raw_tuc.startswith("TE-") or "E-" in raw_tuc
+                is_t_placa = bool(re.match(r"^T-[A-Z0-9]{3}-[A-Z0-9]{3}$", raw_tuc))
+
+                if is_antiguedad:
+                    tipo_emision = TipoEmisionTuc.FISICA.value
+                    estado_tuc = EstadoTuc.ANULADA.value
+                    motivo_val = MotivoEmision.HISTORICO_MIGRADO.value
+                    obs_tuc = reg.get("observaciones") or f"TUC Histórica por Antigüedad (Reemplazada) - Placa previa: {placa}"
+                elif is_electronica:
+                    tipo_emision = TipoEmisionTuc.ELECTRONICA.value
+                    estado_tuc = EstadoTuc.VIGENTE.value if reg.get("estado") == "HABILITADO" else EstadoTuc.ANULADA.value
+                    obs_tuc = reg.get("observaciones") or reg.get("detalles") or "TUC Electrónica oficial migrada desde base matriz"
+                elif is_t_placa:
+                    tipo_emision = TipoEmisionTuc.FISICA.value
+                    estado_tuc = EstadoTuc.VIGENTE.value if reg.get("estado") == "HABILITADO" else EstadoTuc.ANULADA.value
+                    obs_tuc = reg.get("observaciones") or f"TUC provisional asignada con número de placa ({placa})"
+                else:
+                    tipo_emision = TipoEmisionTuc.FISICA.value
+                    estado_tuc = EstadoTuc.VIGENTE.value if reg.get("estado") == "HABILITADO" else EstadoTuc.ANULADA.value
+                    obs_tuc = reg.get("observaciones") or reg.get("detalles") or "TUC Física oficial migrada desde base matriz"
+
                 f_emision_raw = reg.get("fecha_emision_resolucion") or reg.get("fecha_cronologica") or reg.get("fecha_expediente")
                 f_emision = str(f_emision_raw)[:10] if f_emision_raw and str(f_emision_raw) != "NaT" else date.today().isoformat()
                 f_venc = str(reg.get("fecha_vigencia_hasta"))[:10] if reg.get("fecha_vigencia_hasta") else None
@@ -425,31 +463,35 @@ class TucService:
                     if s_match:
                         tipo_hija_val = s_match.group(1).upper()
 
-                map_motivo = {
-                    "S": MotivoEmision.SUSTITUCION_VEHICULO.value,
-                    "I": MotivoEmision.INCREMENTO_FLOTA.value,
-                    "FE": "FE_DE_ERRATAS",
-                    "M": "MODIFICACION",
-                    "R": MotivoEmision.RENOVACION_AUTORIZACION.value,
-                    "D": MotivoEmision.DUPLICADO_TUC.value,
-                    "C": MotivoEmision.CANJE_TUC.value,
-                    "O": "OTROS"
-                }
-                motivo_val = map_motivo.get(tipo_hija_val, MotivoEmision.INCREMENTO_FLOTA.value)
+                if not is_antiguedad:
+                    map_motivo = {
+                        "S": MotivoEmision.SUSTITUCION_VEHICULO.value,
+                        "I": MotivoEmision.INCREMENTO_FLOTA.value,
+                        "FE": "FE_DE_ERRATAS",
+                        "M": "MODIFICACION",
+                        "R": MotivoEmision.RENOVACION_AUTORIZACION.value,
+                        "D": MotivoEmision.DUPLICADO_TUC.value,
+                        "C": MotivoEmision.CANJE_TUC.value,
+                        "O": "OTROS"
+                    }
+                    motivo_val = map_motivo.get(tipo_hija_val, MotivoEmision.INCREMENTO_FLOTA.value)
 
+                # Cruzar con vehiculos_data para alimentar datos técnicos reales
+                v_info = veh_map.get(placa) or veh_map.get(re.sub(r"[^A-Z0-9]", "", placa)) or {}
                 datos_vehiculo = {
                     "placa": placa,
-                    "categoria": reg.get("categoria", "M2"),
-                    "marca": reg.get("marca", ""),
-                    "modelo": reg.get("modelo", ""),
-                    "anioFabricacion": reg.get("anio_fabricacion"),
-                    "color": reg.get("color", ""),
-                    "carroceria": reg.get("carroceria", ""),
-                    "clase": reg.get("clase", ""),
-                    "combustible": reg.get("combustible", "DIESEL"),
-                    "numeroMotor": reg.get("numero_motor", ""),
-                    "numeroSerie": reg.get("numero_serie", ""),
-                    "chasis": reg.get("vin", "")
+                    "categoria": v_info.get("categoria") or reg.get("categoria", "M2"),
+                    "marca": v_info.get("marca") or reg.get("marca", ""),
+                    "modelo": v_info.get("modelo") or reg.get("modelo", ""),
+                    "anioFabricacion": v_info.get("anio_fabricacion") or v_info.get("anio") or reg.get("anio_fabricacion"),
+                    "color": v_info.get("color") or reg.get("color", ""),
+                    "carroceria": v_info.get("carroceria") or reg.get("carroceria", ""),
+                    "clase": v_info.get("clase") or reg.get("clase", ""),
+                    "combustible": v_info.get("combustible") or reg.get("combustible", "DIESEL"),
+                    "numeroMotor": v_info.get("numero_motor") or reg.get("numero_motor", ""),
+                    "numeroSerie": v_info.get("numero_serie") or v_info.get("vin") or reg.get("numero_serie", ""),
+                    "chasis": v_info.get("vin") or v_info.get("chasis") or reg.get("vin", ""),
+                    "asientos": v_info.get("asientos") or reg.get("asientos")
                 }
 
                 emp_info = emp_map.get(ruc, {})
@@ -481,6 +523,10 @@ class TucService:
                     "ruc": ruc,
                     "razonSocial": razon_social,
                     "nroResolucion": nro_resolucion,
+                    "nroResolucionHija": nro_hija_raw or None,
+                    "nroExpediente": reg.get("num_expediente"),
+                    "fechaExpediente": str(reg.get("fecha_expediente"))[:10] if reg.get("fecha_expediente") else None,
+                    "tipoTramite": reg.get("tramite") or tipo_hija_val or "AUTORIZACION",
                     "fechaEmision": f_emision,
                     "fechaVencimiento": f_venc,
                     "hashSeguridad": hash_seg,
@@ -489,7 +535,7 @@ class TucService:
                     "datosEmpresa": datos_empresa,
                     "datosResolucion": datos_resolucion,
                     "rutasHabilitadas": rutas_habilitadas,
-                    "observaciones": reg.get("observaciones") or reg.get("detalles") or "Sincronizado desde Flota por Empresa",
+                    "observaciones": obs_tuc,
                     "fechaActualizacion": now_iso
                 }
 
@@ -508,9 +554,13 @@ class TucService:
                                 "fechaRegistro": now_iso,
                                 "historialCambios": [{
                                     "fecha": now_iso,
-                                    "accion": "MIGRACION_FLOTA_EMPRESA",
+                                    "accion": "ARCHIVO_HISTORICO_ANTIGUEDAD" if is_antiguedad else "MIGRACION_MATRIZ_OPERACIONAL",
                                     "usuario": usuario,
-                                    "detalle": f"TUC importada desde registro histórico de Flota Empresa ({placa})"
+                                    "detalle": (
+                                        f"TUC histórica marcada como TA por antigüedad (sustituida/reemplazada) ({placa})"
+                                        if is_antiguedad
+                                        else f"TUC oficial migrada desde base de datos matriz ({placa})"
+                                    )
                                 }]
                             }
                         },

@@ -128,6 +128,50 @@
       }
     }
 
+    .header-action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      @media (max-width: 640px) {
+        width: 100%;
+        flex-direction: column;
+      }
+    }
+
+    .btn-limpiar-bd {
+      border: 1px solid #fecdd3;
+      background: #fff1f2;
+      color: #be123c;
+      height: 48px;
+      padding: 0 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+
+      mat-icon {
+        color: #be123c;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      &:hover:not(:disabled) {
+        background: #ffe4e6;
+        border-color: #fda4af;
+        color: #9f1239;
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
     .btn-ir-tramites {
       background: #00236f;
       color: #ffffff;

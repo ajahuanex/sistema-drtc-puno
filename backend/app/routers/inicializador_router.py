@@ -142,8 +142,10 @@ async def limpiar_todo_excepto_usuarios(
     """
     try:
         colecciones_protegidas = {
-            "usuarios", "users", "roles", "permisos", "permissions", 
-            "refresh_tokens", "auth", "system.indexes"
+            "usuarios", "users", "roles", "permisos", "permissions", "roles_permisos",
+            "refresh_tokens", "auth", "system.indexes",
+            "configuraciones", "configuracion_sistema", "parametros_sistema",
+            "localidades", "infraestructuras"
         }
         
         todas_las_colecciones = await db.list_collection_names()

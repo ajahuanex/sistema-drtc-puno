@@ -67,22 +67,25 @@ class EmpresaService:
             raise ValidationErrorException("ruc", f"RUC debe tener exactamente 11 dígitos: {empresa_data.ruc}")
         
         # Validar SUNAT solo si se solicita
+        # Validar SUNAT solo si se solicita explícitamente
         datos_sunat = None
         if validar_sunat:
             datos_sunat = await self.validar_ruc_sunat(empresa_data.ruc)
         else:
-            # Datos SUNAT por defecto para carga masiva
+            # Para carga masiva o registro sin validación externa previa,
+            # NO duplicar con razonSocial.principal.
+            # Los datos de SUNAT provendrán exclusivamente de la API PCM.
             datos_sunat = {
-                "valido": True,
-                "ddp_nombre": empresa_data.razonSocial.principal,
-                "razonSocial": empresa_data.razonSocial.principal,
-                "ddp_estado": "00",
-                "desc_estado": "ACTIVO",
-                "estado": "ACTIVO",
-                "desc_flag22": "HABIDO",
-                "condicion": "HABIDO",
-                "esActivo": True,
-                "esHabido": True,
+                "valido": None,
+                "ddp_nombre": None,
+                "razonSocial": None,
+                "ddp_estado": None,
+                "desc_estado": "PENDIENTE_CONSULTA",
+                "estado": "PENDIENTE_CONSULTA",
+                "desc_flag22": "PENDIENTE_CONSULTA",
+                "condicion": "PENDIENTE_CONSULTA",
+                "esActivo": None,
+                "esHabido": None,
                 "direccion": empresa_data.direccionFiscal,
                 "fecha_actualizacion": datetime.utcnow()
             }
@@ -106,7 +109,18 @@ class EmpresaService:
             empresa_dict["estado"] = EstadoEmpresa.AUTORIZADA.value  # Carga masiva por defecto
             
         empresa_dict["datosSunat"] = datos_sunat
-        empresa_dict["ultimaValidacionSunat"] = datetime.utcnow()
+        empresa_dict["ultimaValidacionSunat"] = datetime.utcnow() if (validar_sunat and datos_sunat and datos_sunat.get("valido")) else None
+
+        # Razón Social SUNAT: Proviene EXCLUSIVAMENTE de la API PCM
+        # NUNCA duplicar con razonSocial.principal
+        if "razonSocial" in empresa_dict and isinstance(empresa_dict["razonSocial"], dict):
+            if validar_sunat and datos_sunat and datos_sunat.get("ddp_nombre"):
+                empresa_dict["razonSocial"]["sunat"] = datos_sunat["ddp_nombre"]
+            else:
+                # Si no se consultó API PCM o es idéntica a principal, asegurar None
+                if empresa_dict["razonSocial"].get("sunat") == empresa_dict["razonSocial"].get("principal"):
+                    empresa_dict["razonSocial"]["sunat"] = None
+
         empresa_dict["scoreRiesgo"] = score_riesgo
         empresa_dict["auditoria"] = []
         
@@ -296,10 +310,30 @@ class EmpresaService:
         auditoria_existente = [a.model_dump() for a in empresa_actual.auditoria]
         update_data["auditoria"] = auditoria_existente + [auditoria.model_dump()]
         
+        # Manejo estricto de razón social: no duplicar principal en sunat y preservar datos SUNAT existentes
+        if "razonSocial" in update_data and update_data["razonSocial"]:
+            rz_raw = update_data["razonSocial"]
+            rz_dict = rz_raw.model_dump() if hasattr(rz_raw, "model_dump") else (dict(rz_raw) if isinstance(rz_raw, dict) else {"principal": str(rz_raw)})
+            
+            # Si sunat vino igual a principal, anularlo (solo API PCM provee sunat oficial)
+            if rz_dict.get("sunat") and rz_dict.get("principal") and str(rz_dict["sunat"]).strip().upper() == str(rz_dict["principal"]).strip().upper():
+                rz_dict["sunat"] = None
+                
+            # Si en la actualización no se especificó sunat, preservar el que ya existía si fue validado
+            if not rz_dict.get("sunat") and empresa_actual.razonSocial and empresa_actual.razonSocial.sunat:
+                rz_dict["sunat"] = empresa_actual.razonSocial.sunat
+                
+            update_data["razonSocial"] = rz_dict
+
         if "ruc" in update_data:
             datos_sunat = await self.validar_ruc_sunat(update_data["ruc"])
             update_data["datosSunat"] = datos_sunat
-            update_data["ultimaValidacionSunat"] = datetime.utcnow()
+            update_data["ultimaValidacionSunat"] = datetime.utcnow() if (datos_sunat and datos_sunat.get("valido")) else None
+            if datos_sunat and datos_sunat.get("ddp_nombre"):
+                rz_target = update_data.get("razonSocial") or (empresa_actual.razonSocial.model_dump() if hasattr(empresa_actual.razonSocial, "model_dump") else empresa_actual.razonSocial)
+                if isinstance(rz_target, dict):
+                    rz_target["sunat"] = datos_sunat["ddp_nombre"]
+                    update_data["razonSocial"] = rz_target
             
         # Recalcular score
         score_riesgo = await self.calcular_score_riesgo_actualizado(empresa_actual, update_data)
@@ -660,13 +694,16 @@ class EmpresaService:
             print(f"Error consultando SUNAT para RUC {ruc}: {e}")
             
         return {
-            "valido": True,
-            "ddp_nombre": "Empresa",
-            "ddp_estado": "00",
-            "desc_estado": "ACTIVO",
-            "esActivo": True,
-            "esHabido": True,
-            "fechaConsulta": datetime.utcnow().isoformat()
+            "valido": False,
+            "ddp_nombre": None,
+            "ddp_estado": None,
+            "desc_estado": "NO_DISPONIBLE",
+            "desc_flag22": "NO_DISPONIBLE",
+            "esActivo": None,
+            "esHabido": None,
+            "fechaConsulta": datetime.utcnow().isoformat(),
+            "razonSocial": None,
+            "nota": "No se pudo consultar API SUNAT"
         }
 
     # ---------------------------------------------------------------------

@@ -239,6 +239,33 @@ export class InicializadorDatosComponent implements OnInit {
     this.router.navigate(['/centro-tramites']);
   }
 
+  confirmarLimpiarTodo(): void {
+    const seguro = confirm(
+      '¿Está seguro de reiniciar las bases de datos operativas?\n\n' +
+      'Se vaciarán las colecciones de Empresas, Resoluciones, Rutas, Vehículos, Matriz/Flota, TUCs y Auditoría.\n' +
+      'Los Usuarios, Roles, Permisos, Configuraciones y Parámetros se mantendrán intactos.'
+    );
+    if (!seguro) return;
+
+    this.isLoading.set(true);
+    this.addLog('warning', 'general', 'Iniciando vaciado de colecciones operativas respetando usuarios y configuraciones...');
+    this.inicializadorService.limpiarTodoExceptoUsuarios().subscribe({
+      next: (res) => {
+        this.isLoading.set(false);
+        this.snackBar.open(res.mensaje || 'Base de datos operativa reiniciada con éxito.', 'Cerrar', { duration: 5000 });
+        this.addLog('success', 'general', `Limpieza exitosa: ${res.total_eliminados} registros eliminados.`);
+        this.previewData.set(null);
+        this.cargarEstado();
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        const msg = err.error?.detail || err.message || 'Error al limpiar la base de datos';
+        this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 6000 });
+        this.addLog('error', 'general', `Fallo al limpiar: ${msg}`);
+      }
+    });
+  }
+
   private addLog(tipo: 'info' | 'success' | 'warning' | 'error', etapaId: string, mensaje: string): void {
     const entry: LogEntry = {
       timestamp: new Date().toLocaleTimeString(),

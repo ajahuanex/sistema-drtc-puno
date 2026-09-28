@@ -226,7 +226,12 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
         # 4. Resoluciones primigenias autorizadas (vigentes y no vencidas de empresas activas)
         resoluciones_primigenias = total_rp_vigentes_activas
 
-        # 5. Total de sustituciones e incrementos y desglose por empresa
+        # 5. Total de renovaciones, sustituciones e incrementos y desglose por empresa
+        total_renovaciones = await db["resoluciones_hijas"].count_documents({
+            "tipo_acto": "RENOVACION",
+            "esta_activo": True
+        })
+
         total_sustituciones = await db["resoluciones_hijas"].count_documents({
             "tipo_acto": "SUSTITUCION_VEHICULAR",
             "esta_activo": True
@@ -238,10 +243,11 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
         })
 
         tramites_cursor = db["resoluciones_hijas"].aggregate([
-            {"$match": {"esta_activo": True, "tipo_acto": {"$in": ["SUSTITUCION_VEHICULAR", "INCREMENTO_FLOTA"]}}},
+            {"$match": {"esta_activo": True, "tipo_acto": {"$in": ["RENOVACION", "SUSTITUCION_VEHICULAR", "INCREMENTO_FLOTA"]}}},
             {"$group": {
                 "_id": "$ruc_empresa",
                 "razon_social_doc": {"$first": "$razon_social"},
+                "renovaciones": {"$sum": {"$cond": [{"$eq": ["$tipo_acto", "RENOVACION"]}, 1, 0]}},
                 "sustituciones": {"$sum": {"$cond": [{"$eq": ["$tipo_acto", "SUSTITUCION_VEHICULAR"]}, 1, 0]}},
                 "incrementos": {"$sum": {"$cond": [{"$eq": ["$tipo_acto", "INCREMENTO_FLOTA"]}, 1, 0]}},
                 "totalTramites": {"$sum": 1}
@@ -305,9 +311,10 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
                 "total": len(resoluciones_por_vencer_60),
                 "items": sorted(resoluciones_por_vencer_60, key=lambda x: x["diasRestantes"])
             },
+            "totalRenovaciones": total_renovaciones,
             "totalSustituciones": total_sustituciones,
             "totalIncrementos": total_incrementos,
-            "totalTramitesFlota": total_sustituciones + total_incrementos,
+            "totalTramitesFlota": total_renovaciones + total_sustituciones + total_incrementos,
             "topEmpresasTramites": top_empresas_tramites,
             "totalFlotaHabilitada": total_flota_habilitada,
             "topFlotasPorEmpresa": flotas_por_empresa
