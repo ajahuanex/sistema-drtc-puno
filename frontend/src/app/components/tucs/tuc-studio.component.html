@@ -1,0 +1,1704 @@
+<div class="tuc-studio-container">
+  <!-- =================================================================== -->
+  <!-- 1. TOP APP BAR (HEADER INSTITUCIONAL DRTC PUNO)                     -->
+  <!-- =================================================================== -->
+  <header class="studio-header">
+    <div class="header-left">
+      <!-- Escudo / Icono DRTC Puno -->
+      <button mat-icon-button (click)="volver()" class="btn-back" matTooltip="Volver al Catálogo de TUCs">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+
+      <div class="brand-block">
+        <div class="brand-icon">
+          <mat-icon>verified</mat-icon>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title-row">
+            <h1 class="brand-title">DRTC Puno - TUC Studio Calibrador</h1>
+            <span class="badge-version">Motor HTML v4.3</span>
+          </div>
+          <span class="brand-sub">DIRECCIÓN REGIONAL DE TRANSPORTES Y COMUNICACIONES // PUNO</span>
+        </div>
+      </div>
+
+      <!-- Quick Vehicle Search with Autocomplete -->
+      <div class="search-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input type="text"
+               [ngModel]="searchPlaca()"
+               (ngModelChange)="searchPlaca.set($event)"
+               (keyup.enter)="cargarDatosVehiculoPrueba(searchPlaca())"
+               placeholder="Placa prueba (ej. VBE-959)..."
+               class="search-input" />
+        <button mat-button class="btn-load-placa" (click)="cargarDatosVehiculoPrueba(searchPlaca())">
+          Cargar
+        </button>
+      </div>
+
+      <!-- Paper Format Selector (A4 vs DUAL PVC) -->
+      <div class="format-switcher-tabs">
+        <button type="button"
+                class="format-tab-btn"
+                [class.active]="formatoPapel() === 'DUAL_PVC'"
+                (click)="cambiarFormatoPapel('DUAL_PVC', 'portrait')"
+                matTooltip="Formato tarjeta plástica / PVC térmico oficial (85.60 × 108.00 mm)">
+          <mat-icon>credit_card</mat-icon>
+          <span>Tarjeta Dual PVC</span>
+        </button>
+        <button type="button"
+                class="format-tab-btn"
+                [class.active]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
+                (click)="cambiarFormatoPapel('A4', 'portrait')"
+                matTooltip="Hoja A4 Vertical completa (210 × 297 mm)">
+          <mat-icon>description</mat-icon>
+          <span>A4 Vertical</span>
+        </button>
+        <button type="button"
+                class="format-tab-btn"
+                [class.active]="formatoPapel() === 'A4' && orientacion() === 'landscape'"
+                (click)="cambiarFormatoPapel('A4', 'landscape')"
+                matTooltip="Hoja A4 Horizontal (297 × 210 mm)">
+          <mat-icon>landscape</mat-icon>
+          <span>A4 Horizontal</span>
+        </button>
+      </div>
+
+      <!-- Selector de Modo de Hojas (1 Hoja vs 2 Hojas Anverso/Reverso) -->
+      <div class="hojas-switcher-tabs">
+        <button type="button"
+                class="hojas-tab-btn"
+                [class.active]="modoHojas() === 'UNA_HOJA'"
+                (click)="cambiarModoHojas('UNA_HOJA')"
+                matTooltip="Imprimir todo en 1 sola página">
+          <mat-icon>auto_stories</mat-icon>
+          <span>1 Hoja</span>
+        </button>
+        <button type="button"
+                class="hojas-tab-btn"
+                [class.active]="modoHojas() === 'DOS_HOJAS'"
+                (click)="cambiarModoHojas('DOS_HOJAS')"
+                matTooltip="Imprimir en 2 hojas separadas (Hoja 1: Anverso, Hoja 2: Reverso - Salto de página dúplex)">
+          <mat-icon>filter_2</mat-icon>
+          <span>2 Hojas (Anverso/Reverso)</span>
+        </button>
+      </div>
+
+      <!-- Mode Switcher Tabs: {{TAGS}} vs Datos Reales -->
+      <div class="mode-switcher">
+        <button type="button"
+                class="mode-btn"
+                [class.active]="modoVista() === 'tags'"
+                (click)="modoVista.set('tags')">
+          [Tags]
+        </button>
+        <button type="button"
+                class="mode-btn"
+                [class.active]="modoVista() === 'reales'"
+                (click)="modoVista.set('reales')">
+          [Datos Reales]
+        </button>
+      </div>
+    </div>
+
+    <!-- Actions & Print Button -->
+    <div class="header-right">
+      <button mat-stroked-button class="btn-action-neutral" (click)="restablecerOficial()" matTooltip="Restablecer plantilla a coordenadas oficiales de DRTC Puno">
+        <mat-icon>restart_alt</mat-icon>
+        <span class="btn-text">Restablecer</span>
+      </button>
+
+      <button mat-raised-button color="primary" class="btn-save" (click)="guardarConfiguracion()" [disabled]="isSaving()">
+        @if (isSaving()) {
+          <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
+          <span>Guardando...</span>
+        } @else {
+          <mat-icon>save</mat-icon>
+          <span>Guardar Plantilla</span>
+        }
+      </button>
+
+      <!-- Primary Action: Instant HTML Print -->
+      <button mat-raised-button class="btn-print-instant" (click)="imprimirHtmlInstantaneo()" [disabled]="isPrinting()" matTooltip="Abre la ventana de impresión nativa en menos de 0.05s">
+        <mat-icon>print</mat-icon>
+        <span>Imprimir TUC (F9)</span>
+        <span class="badge-speed">
+          <mat-icon style="font-size:12px;width:12px;height:12px;">bolt</mat-icon>
+          <span>0.05s</span>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =================================================================== -->
+  <!-- MAIN WORKBENCH: 3-PANE LAYOUT                                       -->
+  <!-- =================================================================== -->
+  <div class="studio-body">
+
+    <!-- ================================================================= -->
+    <!-- 2. PANEL LATERAL IZQUIERDO (VARIABLES, LOGOS & CÓDIGOS QR)         -->
+    <!-- ================================================================= -->
+    <aside class="sidebar-left">
+      <div class="sidebar-header">
+        <div class="sidebar-title-row">
+          <div class="title-with-icon">
+            <mat-icon class="icon-accent">data_object</mat-icon>
+            <h2 class="sidebar-title">Elementos de Plantilla</h2>
+          </div>
+          <span class="chip-count">{{ variablesFiltradas().length }}</span>
+        </div>
+
+        <!-- Botones de Acción para Agregar Elementos -->
+        <div class="add-elements-grid">
+          <button type="button" class="btn-add-action btn-add-txt" (click)="abrirModalNuevaVariable()" matTooltip="Agregar campo de texto dinámico">
+            <mat-icon>title</mat-icon>
+            <span>+ Texto</span>
+          </button>
+          <button type="button" class="btn-add-action btn-add-img" (click)="abrirModalImagen()" matTooltip="Agregar Logo, Escudo, Marca de agua o Imagen">
+            <mat-icon>image</mat-icon>
+            <span>+ Logo / Imagen</span>
+          </button>
+          <button type="button" class="btn-add-action btn-add-qr" (click)="abrirModalQR()" matTooltip="Agregar Código QR interactivo de validación">
+            <mat-icon>qr_code_2</mat-icon>
+            <span>+ QR</span>
+          </button>
+        </div>
+
+        <!-- Barra de selección múltiple rápida -->
+        <div class="selection-actions-bar">
+          <button type="button" class="btn-sel-all" (click)="seleccionarTodasLasVariables()" matTooltip="Seleccionar todos los elementos para moverlos juntos">
+            <mat-icon>select_all</mat-icon>
+            <span>Seleccionar Todo</span>
+          </button>
+          @if (totalSeleccionados() > 0) {
+            <button type="button" class="btn-desel-all" (click)="deseleccionarTodas()" matTooltip="Deseleccionar todos">
+              <mat-icon>deselect</mat-icon>
+              <span>Limpiar ({{ totalSeleccionados() }})</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div class="filter-box">
+        <mat-icon class="filter-icon">filter_list</mat-icon>
+        <input type="text"
+               [ngModel]="filtroVariable()"
+               (ngModelChange)="filtroVariable.set($event)"
+               placeholder="Filtrar elementos..."
+               class="filter-input" />
+      </div>
+
+      <!-- Scrollable Accordions list -->
+      <div class="variables-list">
+
+        <!-- Categoría: Logotipos & Códigos QR -->
+        @if (varsGraficos().length > 0) {
+          <div class="var-category-block category-graphics">
+            <div class="category-header">
+              <span class="category-name">Logotipos & Códigos QR</span>
+              <span class="category-badge badge-graphics">{{ varsGraficos().length }}</span>
+            </div>
+            <div class="category-items">
+              @for (v of varsGraficos(); track v.id) {
+                <div class="var-item item-graphic"
+                     [class.selected]="estaSeleccionada(v)"
+                     [class.hidden-var]="!v.visible"
+                     (click)="seleccionarVariable(v, $event)">
+                  <div class="var-info">
+                    <span class="var-tag">
+                      <mat-icon class="icon-tiny">{{ v.tipo === 'qr' ? 'qr_code_2' : 'image' }}</mat-icon>
+                      {{ v.tag }}
+                    </span>
+                    <span class="var-coords">{{ v.label }} ({{ v.width_mm || 15 }}×{{ v.height_mm || 15 }}mm)</span>
+                  </div>
+                  <div class="var-actions">
+                    <button type="button" class="icon-btn" (click)="toggleVisibilidad(v, $event)" [matTooltip]="v.visible ? 'Ocultar' : 'Mostrar'">
+                      <mat-icon>{{ v.visible ? 'visibility' : 'visibility_off' }}</mat-icon>
+                    </button>
+                    <button type="button" class="icon-btn btn-delete" (click)="eliminarVariable(v, $event)" matTooltip="Eliminar elemento">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Categoría: Autorización & Empresa -->
+        @if (varsAutorizacion().length > 0) {
+          <div class="var-category-block">
+            <div class="category-header">
+              <span class="category-name">Datos Autorización & Empresa</span>
+              <span class="category-badge">{{ varsAutorizacion().length }}</span>
+            </div>
+            <div class="category-items">
+              @for (v of varsAutorizacion(); track v.id) {
+                <div class="var-item"
+                     [class.selected]="estaSeleccionada(v)"
+                     [class.hidden-var]="!v.visible"
+                     (click)="seleccionarVariable(v, $event)">
+                  <div class="var-info">
+                    <span class="var-tag">{{ v.tag }}</span>
+                    <span class="var-coords">X:{{ v.x_mm }} Y:{{ v.y_mm }}</span>
+                  </div>
+                  <div class="var-actions">
+                    <button type="button" class="icon-btn" (click)="toggleVisibilidad(v, $event)" [matTooltip]="v.visible ? 'Ocultar' : 'Mostrar'">
+                      <mat-icon>{{ v.visible ? 'visibility' : 'visibility_off' }}</mat-icon>
+                    </button>
+                    <button type="button" class="icon-btn" (click)="toggleBloqueo(v, $event)" [matTooltip]="v.bloqueado ? 'Desbloquear' : 'Bloquear'">
+                      <mat-icon>{{ v.bloqueado ? 'lock' : 'lock_open' }}</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Categoría: Ficha Técnica Vehicular -->
+        @if (varsVehiculo().length > 0) {
+          <div class="var-category-block">
+            <div class="category-header">
+              <span class="category-name">Ficha Técnica Vehicular</span>
+              <span class="category-badge">{{ varsVehiculo().length }}</span>
+            </div>
+            <div class="category-items">
+              @for (v of varsVehiculo(); track v.id) {
+                <div class="var-item"
+                     [class.selected]="estaSeleccionada(v)"
+                     [class.hidden-var]="!v.visible"
+                     (click)="seleccionarVariable(v, $event)">
+                  <div class="var-info">
+                    <span class="var-tag">{{ v.tag }}</span>
+                    <span class="var-coords">X:{{ v.x_mm }} Y:{{ v.y_mm }}</span>
+                  </div>
+                  <div class="var-actions">
+                    <button type="button" class="icon-btn" (click)="toggleVisibilidad(v, $event)">
+                      <mat-icon>{{ v.visible ? 'visibility' : 'visibility_off' }}</mat-icon>
+                    </button>
+                    <button type="button" class="icon-btn" (click)="toggleBloqueo(v, $event)">
+                      <mat-icon>{{ v.bloqueado ? 'lock' : 'lock_open' }}</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Categoría: Rutas Autorizadas -->
+        @if (varsRutas().length > 0) {
+          <div class="var-category-block">
+            <div class="category-header">
+              <span class="category-name">Rutas Autorizadas</span>
+              <span class="category-badge">{{ varsRutas().length }}</span>
+            </div>
+            <div class="category-items">
+              @for (v of varsRutas(); track v.id) {
+                <div class="var-item"
+                     [class.selected]="estaSeleccionada(v)"
+                     [class.hidden-var]="!v.visible"
+                     (click)="seleccionarVariable(v, $event)">
+                  <div class="var-info">
+                    <span class="var-tag">{{ v.tag }}</span>
+                    <span class="var-coords">Multilínea X:{{ v.x_mm }}</span>
+                  </div>
+                  <div class="var-actions">
+                    <button type="button" class="icon-btn" (click)="toggleVisibilidad(v, $event)">
+                      <mat-icon>{{ v.visible ? 'visibility' : 'visibility_off' }}</mat-icon>
+                    </button>
+                    <button type="button" class="icon-btn" (click)="toggleBloqueo(v, $event)">
+                      <mat-icon>{{ v.bloqueado ? 'lock' : 'lock_open' }}</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Categoría: Acto Resolutivo Reverso -->
+        @if (varsActoReverso().length > 0) {
+          <div class="var-category-block">
+            <div class="category-header">
+              <span class="category-name">Acto Resolutivo Reverso</span>
+              <span class="category-badge">{{ varsActoReverso().length }}</span>
+            </div>
+            <div class="category-items">
+              @for (v of varsActoReverso(); track v.id) {
+                <div class="var-item"
+                     [class.selected]="estaSeleccionada(v)"
+                     [class.hidden-var]="!v.visible"
+                     (click)="seleccionarVariable(v, $event)">
+                  <div class="var-info">
+                    <span class="var-tag">{{ v.tag }}</span>
+                    <span class="var-coords">X:{{ v.x_mm }} Y:{{ v.y_mm }}</span>
+                  </div>
+                  <div class="var-actions">
+                    <button type="button" class="icon-btn" (click)="toggleVisibilidad(v, $event)">
+                      <mat-icon>{{ v.visible ? 'visibility' : 'visibility_off' }}</mat-icon>
+                    </button>
+                    <button type="button" class="icon-btn" (click)="toggleBloqueo(v, $event)">
+                      <mat-icon>{{ v.bloqueado ? 'lock' : 'lock_open' }}</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Categoría: Variables Dinámicas / Personalizadas -->
+        @if (varsPersonalizadas().length > 0) {
+          <div class="var-category-block">
+            <div class="category-header">
+              <span class="category-name">Personalizadas / Dinámicas</span>
+              <span class="category-badge">{{ varsPersonalizadas().length }}</span>
+            </div>
+            <div class="category-items">
+              @for (v of varsPersonalizadas(); track v.id) {
+                <div class="var-item dynamic-item"
+                     [class.selected]="estaSeleccionada(v)"
+                     [class.hidden-var]="!v.visible"
+                     (click)="seleccionarVariable(v, $event)">
+                  <div class="var-info">
+                    <span class="var-tag">{{ v.tag }}</span>
+                    <span class="var-coords">{{ v.label }}</span>
+                  </div>
+                  <div class="var-actions">
+                    <button type="button" class="icon-btn" (click)="toggleVisibilidad(v, $event)">
+                      <mat-icon>{{ v.visible ? 'visibility' : 'visibility_off' }}</mat-icon>
+                    </button>
+                    <button type="button" class="icon-btn btn-delete" (click)="eliminarVariable(v, $event)" matTooltip="Eliminar variable dinámica">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+      </div>
+
+      <!-- Footer SideNav Status -->
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="dot-green"></span>
+          <span>{{ config()?.variables?.length || 25 }} Elementos</span>
+        </div>
+        <span class="tolerance-tag">{{ totalSeleccionados() }} seleccionados</span>
+      </div>
+    </aside>
+
+    <!-- ================================================================= -->
+    <!-- 3. LIENZO CENTRAL DE CALIBRACIÓN MILIMÉTRICA                       -->
+    <!-- ================================================================= -->
+    <main class="workbench-main">
+      <!-- Controls Topbar -->
+      <div class="workbench-toolbar">
+        <div class="toolbar-left">
+          <!-- Zoom Controls -->
+          <div class="zoom-controls">
+            <button type="button" class="tool-btn" (click)="zoom.set(Math.max(25, zoom() - 15))" title="Alejar">
+              <mat-icon>zoom_out</mat-icon>
+            </button>
+            <span class="zoom-label">{{ zoom() }}%</span>
+            <button type="button" class="tool-btn" (click)="zoom.set(Math.min(200, zoom() + 15))" title="Acercar">
+              <mat-icon>zoom_in</mat-icon>
+            </button>
+            <button type="button"
+                    class="tool-btn-text"
+                    [class.btn-active-scale]="zoom() === 100"
+                    (click)="zoom.set(100)"
+                    matTooltip="Visualizar a tamaño real físico (100% escala 1:1)">
+              100% Tamaño Real
+            </button>
+            @if (formatoPapel() === 'A4') {
+              <button type="button"
+                      class="tool-btn-text btn-fit-a4"
+                      [class.btn-active-scale]="zoom() === 50"
+                      (click)="zoom.set(50)"
+                      matTooltip="Ajustar hoja completa A4 en pantalla (50%)">
+                Ver Hoja (50%)
+              </button>
+            }
+          </div>
+
+          <div class="separator-v"></div>
+
+          <!-- Margins Quick Controls -->
+          <div class="margins-quick-toolbar">
+            <span class="mq-lbl">Margen Izq:</span>
+            <div class="mq-stepper">
+              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_izq_mm', -1)">-</button>
+              <span class="mq-val">{{ margenIzq() }}mm</span>
+              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_izq_mm', 1)">+</button>
+            </div>
+
+            <span class="mq-lbl ml-2">Margen Der:</span>
+            <div class="mq-stepper">
+              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_der_mm', -1)">-</button>
+              <span class="mq-val">{{ margenDer() }}mm</span>
+              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_der_mm', 1)">+</button>
+            </div>
+          </div>
+
+          <div class="separator-v"></div>
+
+          <!-- Toggles -->
+          <div class="toggles-row">
+            <label class="toggle-lbl">
+              <input type="checkbox" [ngModel]="guiasMargenes()" (ngModelChange)="guiasMargenes.set($event)" />
+              <span>Líneas Márgenes</span>
+            </label>
+            <label class="toggle-lbl">
+              <input type="checkbox" [ngModel]="guiasSmart()" (ngModelChange)="guiasSmart.set($event)" />
+              <span>Guías Smart</span>
+            </label>
+            <label class="toggle-lbl">
+              <input type="checkbox" [ngModel]="reglasMm()" (ngModelChange)="reglasMm.set($event)" />
+              <span>Reglas mm</span>
+            </label>
+            <label class="toggle-lbl">
+              <input type="checkbox" [ngModel]="rejilla()" (ngModelChange)="rejilla.set($event)" />
+              <span>Rejilla 1mm</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          @if (formatoPapel() === 'A4') {
+            <span class="format-spec">Formato:</span>
+            <span class="format-badge a4-badge">
+              HOJA A4 ({{ orientacion() === 'portrait' ? '210 × 297 mm' : '297 × 210 mm' }})
+            </span>
+            <span class="empty-headers-badge" matTooltip="La hoja impresa no incluirá URL, títulos ni números de página del navegador">
+              <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle;margin-right:2px;">check_circle</mat-icon>
+              Encabezados y Pie Vacíos
+            </span>
+            <span class="real-size-badge">{{ modoHojas() === 'DOS_HOJAS' ? '2 Hojas Separadas' : '1 Sola Hoja' }}</span>
+          } @else {
+            <span class="format-spec">ISO/IEC 7810 ID-1 Dual:</span>
+            <span class="format-badge">85.60 × 108.00 mm</span>
+            <span class="pvc-badge">PVC TÉRMICO DRTC</span>
+          }
+        </div>
+      </div>
+
+      <!-- Barra flotante contextual cuando hay varios elementos seleccionados -->
+      @if (totalSeleccionados() > 1) {
+        <div class="multi-select-floating-bar">
+          <div class="ms-counter">
+            <mat-icon>layers</mat-icon>
+            <span><strong>{{ totalSeleccionados() }}</strong> elementos seleccionados</span>
+          </div>
+          <div class="ms-actions">
+            <button type="button" class="ms-btn" (click)="alinearAMargenIzquierdo()" matTooltip="Alinear selección al margen izquierdo ({{ margenIzq() }}mm)">
+              <mat-icon>align_horizontal_left</mat-icon>
+              <span>Margen Izq</span>
+            </button>
+            <button type="button" class="ms-btn" (click)="centrarEntreMargenes()" matTooltip="Centrar selección horizontalmente">
+              <mat-icon>align_horizontal_center</mat-icon>
+              <span>Centrar</span>
+            </button>
+            <button type="button" class="ms-btn" (click)="alinearAMargenDerecho()" matTooltip="Alinear selección al margen derecho ({{ margenDer() }}mm)">
+              <mat-icon>align_horizontal_right</mat-icon>
+              <span>Margen Der</span>
+            </button>
+            <div class="separator-v"></div>
+            <button type="button" class="ms-btn" (click)="ajustarCoordenada('x_mm', -0.5)" matTooltip="Mover 0.5mm a la izquierda">← 0.5mm</button>
+            <button type="button" class="ms-btn" (click)="ajustarCoordenada('x_mm', 0.5)" matTooltip="Mover 0.5mm a la derecha">→ 0.5mm</button>
+            <button type="button" class="ms-btn" (click)="ajustarCoordenada('y_mm', -0.5)" matTooltip="Mover 0.5mm arriba">↑ 0.5mm</button>
+            <button type="button" class="ms-btn" (click)="ajustarCoordenada('y_mm', 0.5)" matTooltip="Mover 0.5mm abajo">↓ 0.5mm</button>
+            <div class="separator-v"></div>
+            <button type="button" class="ms-btn btn-cancel" (click)="deseleccionarTodas()">
+              <mat-icon>close</mat-icon>
+              <span>Deseleccionar</span>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Canvas Area with Rulers and Centered TUC Card -->
+      <div class="canvas-viewport" [class.canvas-grid]="rejilla()">
+
+        <!-- Horizontal Top Ruler -->
+        @if (reglasMm()) {
+          <div class="ruler-horizontal">
+            <div class="ruler-h-ticks">
+              @if (formatoPapel() === 'A4') {
+                <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span><span>125</span><span>150</span><span>175</span><span>200</span><span>210mm</span>
+              } @else {
+                <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span><span>70</span><span>80</span><span>85.6mm</span>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="canvas-content-wrapper">
+          <!-- Vertical Left Ruler -->
+          @if (reglasMm()) {
+            <div class="ruler-vertical" [style.height]="formatoPapel() === 'A4' ? (orientacion() === 'portrait' ? '297mm' : '210mm') : '108mm'">
+              @if (formatoPapel() === 'A4') {
+                @if (orientacion() === 'portrait') {
+                  <span>0</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150</span><span>180</span><span>210</span><span>240</span><span>270</span><span>297mm</span>
+                } @else {
+                  <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span><span>125</span><span>150</span><span>175</span><span>200</span><span>210mm</span>
+                }
+              } @else {
+                <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span><span>70</span><span>80</span><span>90</span><span>100</span><span>108mm</span>
+              }
+            </div>
+          }
+
+          <!-- ========================================================= -->
+          <!-- CASO A: MODO 1 HOJA (ANVERSO Y REVERSO EN UNA SOLA HOJA)  -->
+          <!-- ========================================================= -->
+          @if (modoHojas() === 'UNA_HOJA') {
+            <div class="tuc-sheet-container" [style.transform]="'scale(' + (zoom() / 100) + ')'">
+              <div class="tuc-card-sheet"
+                   [class.format-dual-pvc]="formatoPapel() === 'DUAL_PVC'"
+                   [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
+                   [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'"
+                   id="tuc-physical-sheet">
+
+                <!-- Líneas Guías de Margen Izquierdo y Derecho -->
+                @if (guiasMargenes()) {
+                  <div class="margin-guide margin-guide-left" [style.left.mm]="margenIzq()">
+                    <span class="margin-guide-lbl">Margen Izq: {{ margenIzq() }}mm</span>
+                  </div>
+                  <div class="margin-guide margin-guide-right" [style.right.mm]="margenDer()">
+                    <span class="margin-guide-lbl">Margen Der: {{ margenDer() }}mm</span>
+                  </div>
+                }
+
+                <!-- Decoración Tarjeta Dual PVC -->
+                @if (formatoPapel() === 'DUAL_PVC') {
+                  <div class="fold-divider">
+                    <span class="fold-label">DOBLEZ OFICIAL (54.0 mm)</span>
+                  </div>
+                  <div class="anverso-header-brand">
+                    <div class="brand-crest"><mat-icon style="color:#1e3a8a; font-size:24px;">account_balance</mat-icon></div>
+                    <div class="brand-crest-texts">
+                      <div class="text-gob">GOBIERNO REGIONAL PUNO</div>
+                      <div class="text-drtc">DIRECCIÓN REGIONAL DE TRANSPORTES Y COMUNICACIONES</div>
+                    </div>
+                    <div class="tuc-correlativo">
+                      <div class="tuc-corr-lbl">Certificado Oficial</div>
+                      <div class="tuc-corr-val">{{ datosVehiculo()?.numero_tuc || 'TUC-2025-008921' }}</div>
+                    </div>
+                  </div>
+                  <div class="tuc-doc-title"><span>TARJETA ÚNICA DE CIRCULACIÓN - TUC</span></div>
+                }
+
+                <!-- EN FORMATO A4: Hoja limpia a tamaño real con encabezados y pie vacíos -->
+                @if (formatoPapel() === 'A4') {
+                  <div class="a4-watermark-guide">
+                    <span class="a4-guide-lbl">HOJA A4 ({{ orientacion() === 'portrait' ? '210 × 297 mm' : '297 × 210 mm' }}) — ENCABEZADOS Y PIE VACÍOS</span>
+                  </div>
+                }
+
+                <!-- ELEMENTOS EN EL LIENZO -->
+                @for (v of config()?.variables; track v.id) {
+                  @if (v.visible) {
+                    <div class="positioned-var"
+                         [class.is-selected]="estaSeleccionada(v)"
+                         [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr'"
+                         [class.is-dragging]="isDragging() && estaSeleccionada(v)"
+                         [class.has-two-lines]="v.max_lineas === 2"
+                         [class.has-multiline]="v.max_lineas === 0"
+                         [style.left.mm]="v.x_mm"
+                         [style.top.mm]="v.y_mm"
+                         [style.width.mm]="v.width_mm"
+                         [style.height.mm]="v.height_mm"
+                         [style.fontSize.pt]="v.font_size_pt"
+                         [style.color]="v.color"
+                         [style.textAlign]="v.align"
+                         (mousedown)="iniciarArrastre(v, $event)"
+                         (click)="seleccionarVariable(v, $event)"
+                         matTooltip="Arrastra con el ratón para mover">
+
+                      @if (v.tipo === 'imagen') {
+                        <img [src]="v.imagen_url" [alt]="v.label" [style.width.mm]="v.width_mm || 18" [style.height.mm]="v.height_mm || 15" [style.opacity]="v.opacidad ?? 1.0" class="canvas-img" />
+                      } @else if (v.tipo === 'qr') {
+                        <img [src]="obtenerQrPreviewUrl(v)" [alt]="v.label" [style.width.mm]="v.width_mm || 14" [style.height.mm]="v.height_mm || 14" class="canvas-qr" />
+                      } @else if (v.tag === '{{TABLA_RUTAS}}') {
+                        @if (modoVista() === 'tags') {
+                          <div class="tags-placeholder-box"><strong>{{ '{{TABLA_RUTAS}}' }}</strong></div>
+                        } @else {
+                          <div class="rutas-table-render">
+                            @if (rutasVehiculo().length > 0) {
+                              @for (r of rutasVehiculo(); track r.codigo) {
+                                <div class="ruta-row">
+                                  <strong class="r-cod">Ruta {{ r.codigo ? (r.codigo.toString().length === 1 ? '0' + r.codigo : r.codigo) : '01' }}:</strong>
+                                  <span class="r-orig">{{ r.origen }}</span>
+                                  <span class="r-itin"> - {{ r.itinerario }} - </span>
+                                  <span class="r-dest">{{ r.destino }}</span>
+                                </div>
+                              }
+                            } @else {
+                              <div class="r-empty">Ruta 01: JULIACA - PUTINA - ANANEA - LA RINCONADA</div>
+                            }
+                          </div>
+                        }
+                      } @else {
+                        <div class="var-rendered-content"
+                             [class.clamp-2-lines]="v.max_lineas === 2"
+                             [class.multiline-free]="v.max_lineas === 0"
+                             [innerHTML]="obtenerHtmlRender(v)"></div>
+                      }
+
+                      @if (estaSeleccionada(v)) {
+                        <div class="selection-overlay">
+                          <span class="handle handle-tl"></span>
+                          <span class="handle handle-tr"></span>
+                          <span class="handle handle-bl"></span>
+                          <span class="handle handle-br"></span>
+                          <span class="tag-floating-badge">{{ v.tag }} [{{ v.x_mm }}mm, {{ v.y_mm }}mm]</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+
+              </div>
+            </div>
+          }
+
+          <!-- ========================================================= -->
+          <!-- CASO B: MODO 2 HOJAS SEPARADAS (HOJA 1: ANVERSO, HOJA 2: REVERSO) -->
+          <!-- ========================================================= -->
+          @if (modoHojas() === 'DOS_HOJAS') {
+            <div class="sheets-dual-layout" [style.transform]="'scale(' + (zoom() / 100) + ')'">
+
+              <!-- HOJA 1: ANVERSO -->
+              <div class="sheet-page-wrapper">
+                <div class="sheet-page-header-tag">
+                  <mat-icon>file_copy</mat-icon>
+                  <span>PÁGINA 1: ANVERSO</span>
+                </div>
+                <div class="tuc-card-sheet"
+                     [class.format-dual-pvc]="formatoPapel() === 'DUAL_PVC'"
+                     [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
+                     [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'">
+
+                  <!-- Líneas Guías de Margen -->
+                  @if (guiasMargenes()) {
+                    <div class="margin-guide margin-guide-left" [style.left.mm]="margenIzq()">
+                      <span class="margin-guide-lbl">Margen Izq: {{ margenIzq() }}mm</span>
+                    </div>
+                    <div class="margin-guide margin-guide-right" [style.right.mm]="margenDer()">
+                      <span class="margin-guide-lbl">Margen Der: {{ margenDer() }}mm</span>
+                    </div>
+                  }
+
+                  <!-- Elementos de Anverso -->
+                  @for (v of varsAnverso(); track v.id) {
+                    <div class="positioned-var"
+                         [class.is-selected]="estaSeleccionada(v)"
+                         [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr'"
+                         [class.is-dragging]="isDragging() && estaSeleccionada(v)"
+                         [class.has-two-lines]="v.max_lineas === 2"
+                         [class.has-multiline]="v.max_lineas === 0"
+                         [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
+                         [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
+                         [style.left.mm]="v.x_mm"
+                         [style.top.mm]="v.y_mm"
+                         [style.width.mm]="v.width_mm"
+                         [style.height.mm]="v.height_mm"
+                         [style.fontSize.pt]="v.font_size_pt"
+                         [style.color]="v.color"
+                         [style.textAlign]="v.align"
+                         (mousedown)="iniciarArrastre(v, $event)"
+                         (click)="seleccionarVariable(v, $event)">
+
+                      @if (v.tipo === 'imagen') {
+                        <img [src]="v.imagen_url" [alt]="v.label" [style.width.mm]="v.width_mm || 18" [style.height.mm]="v.height_mm || 15" [style.opacity]="v.opacidad ?? 1.0" class="canvas-img" />
+                      } @else if (v.tipo === 'qr') {
+                        <img [src]="obtenerQrPreviewUrl(v)" [alt]="v.label" [style.width.mm]="v.width_mm || 14" [style.height.mm]="v.height_mm || 14" class="canvas-qr" />
+                      } @else {
+                        <div class="var-rendered-content"
+                             [class.clamp-2-lines]="v.max_lineas === 2"
+                             [class.multiline-free]="v.max_lineas === 0"
+                             [innerHTML]="obtenerHtmlRender(v)"></div>
+                      }
+
+                      @if (estaSeleccionada(v)) {
+                        <div class="selection-overlay">
+                          <span class="handle handle-tl"></span>
+                          <span class="handle handle-tr"></span>
+                          <span class="handle handle-bl"></span>
+                          <span class="handle handle-br"></span>
+                          <span class="tag-floating-badge">{{ v.tag }} [{{ v.x_mm }}mm, {{ v.y_mm }}mm]</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- HOJA 2: REVERSO -->
+              <div class="sheet-page-wrapper">
+                <div class="sheet-page-header-tag reverso-tag">
+                  <mat-icon>find_in_page</mat-icon>
+                  <span>PÁGINA 2: REVERSO</span>
+                </div>
+                <div class="tuc-card-sheet"
+                     [class.format-dual-pvc]="formatoPapel() === 'DUAL_PVC'"
+                     [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
+                     [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'">
+
+                  <!-- Líneas Guías de Margen -->
+                  @if (guiasMargenes()) {
+                    <div class="margin-guide margin-guide-left" [style.left.mm]="margenIzq()">
+                      <span class="margin-guide-lbl">Margen Izq: {{ margenIzq() }}mm</span>
+                    </div>
+                    <div class="margin-guide margin-guide-right" [style.right.mm]="margenDer()">
+                      <span class="margin-guide-lbl">Margen Der: {{ margenDer() }}mm</span>
+                    </div>
+                  }
+
+                  <!-- Elementos de Reverso -->
+                  @for (v of varsReverso(); track v.id) {
+                    <div class="positioned-var"
+                         [class.is-selected]="estaSeleccionada(v)"
+                         [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr'"
+                         [class.is-dragging]="isDragging() && estaSeleccionada(v)"
+                         [class.has-two-lines]="v.max_lineas === 2"
+                         [class.has-multiline]="v.max_lineas === 0"
+                         [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
+                         [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
+                         [style.left.mm]="v.x_mm"
+                         [style.top.mm]="v.y_mm"
+                         [style.width.mm]="v.width_mm"
+                         [style.height.mm]="v.height_mm"
+                         [style.fontSize.pt]="v.font_size_pt"
+                         [style.color]="v.color"
+                         [style.textAlign]="v.align"
+                         (mousedown)="iniciarArrastre(v, $event)"
+                         (click)="seleccionarVariable(v, $event)">
+
+                      @if (v.tipo === 'imagen') {
+                        <img [src]="v.imagen_url" [alt]="v.label" [style.width.mm]="v.width_mm || 18" [style.height.mm]="v.height_mm || 15" [style.opacity]="v.opacidad ?? 1.0" class="canvas-img" />
+                      } @else if (v.tipo === 'qr') {
+                        <img [src]="obtenerQrPreviewUrl(v)" [alt]="v.label" [style.width.mm]="v.width_mm || 14" [style.height.mm]="v.height_mm || 14" class="canvas-qr" />
+                      } @else if (v.tag === '{{TABLA_RUTAS}}') {
+                        <div class="rutas-table-render">
+                          @if (rutasVehiculo().length > 0) {
+                            @for (r of rutasVehiculo(); track r.codigo) {
+                              <div class="ruta-row">
+                                <strong class="r-cod">Ruta {{ r.codigo ? (r.codigo.toString().length === 1 ? '0' + r.codigo : r.codigo) : '01' }}:</strong>
+                                <span class="r-orig">{{ r.origen }}</span> - <span class="r-dest">{{ r.destino }}</span>
+                              </div>
+                            }
+                          } @else {
+                            <div class="r-empty">Ruta 01: JULIACA - PUTINA - ANANEA - LA RINCONADA</div>
+                          }
+                        </div>
+                      } @else {
+                        <div class="var-rendered-content"
+                             [class.clamp-2-lines]="v.max_lineas === 2"
+                             [class.multiline-free]="v.max_lineas === 0"
+                             [innerHTML]="obtenerHtmlRender(v)"></div>
+                      }
+
+                      @if (estaSeleccionada(v)) {
+                        <div class="selection-overlay">
+                          <span class="handle handle-tl"></span>
+                          <span class="handle handle-tr"></span>
+                          <span class="handle handle-bl"></span>
+                          <span class="handle handle-br"></span>
+                          <span class="tag-floating-badge">{{ v.tag }} [{{ v.x_mm }}mm, {{ v.y_mm }}mm]</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+            </div>
+          }
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ================================================================= -->
+    <!-- 4. PANEL LATERAL DERECHO (INSPECTOR DE POSICIÓN, MÁRGENES & ESTILOS) -->
+    <!-- ================================================================= -->
+    <aside class="sidebar-right">
+      <!-- Tabs Switcher: Propiedades vs Código -->
+      <div class="inspector-tabs">
+        <button type="button"
+                class="tab-btn"
+                [class.active]="tabInspector() === 'propiedades'"
+                (click)="tabInspector.set('propiedades')">
+          <mat-icon>tune</mat-icon>
+          <span>Propiedades</span>
+        </button>
+        <button type="button"
+                class="tab-btn"
+                [class.active]="tabInspector() === 'codigo'"
+                (click)="tabInspector.set('codigo')">
+          <mat-icon>code</mat-icon>
+          <span>Código HTML</span>
+        </button>
+      </div>
+
+      <!-- TAB 1: PROPIEDADES DE POSICIÓN Y ESTILO -->
+      @if (tabInspector() === 'propiedades') {
+        <div class="inspector-body">
+
+          <!-- BANNER MULTI-SELECCIÓN -->
+          @if (esMultipleSeleccion()) {
+            <div class="multi-select-card">
+              <div class="multi-select-header">
+                <mat-icon>layers</mat-icon>
+                <span>{{ totalSeleccionados() }} Elementos Seleccionados</span>
+              </div>
+              <p class="multi-select-hint">Puedes moverlos todos juntos arrastrando con el ratón en el lienzo.</p>
+
+              <div class="multi-align-buttons">
+                <button type="button" class="btn-align-action" (click)="alinearAMargenIzquierdo()" matTooltip="Alinear selección al Margen Izquierdo ({{ margenIzq() }}mm)">
+                  <mat-icon>align_horizontal_left</mat-icon>
+                  <span>Margen Izq</span>
+                </button>
+                <button type="button" class="btn-align-action" (click)="centrarEntreMargenes()" matTooltip="Centrar selección horizontalmente">
+                  <mat-icon>align_horizontal_center</mat-icon>
+                  <span>Centrar</span>
+                </button>
+                <button type="button" class="btn-align-action" (click)="alinearAMargenDerecho()" matTooltip="Alinear selección al Margen Derecho ({{ margenDer() }}mm)">
+                  <mat-icon>align_horizontal_right</mat-icon>
+                  <span>Margen Der</span>
+                </button>
+              </div>
+            </div>
+          }
+
+          <!-- CONFIGURACIÓN DE MÁRGENES LATERALES DE LA HOJA -->
+          <div class="prop-group">
+            <div class="group-title-with-toggle">
+              <label class="group-title">Márgenes de Hoja (mm)</label>
+              <label class="toggle-lbl-small">
+                <input type="checkbox" [ngModel]="guiasMargenes()" (ngModelChange)="guiasMargenes.set($event)" />
+                <span>Ver Guías</span>
+              </label>
+            </div>
+
+            <div class="coord-grid">
+              <div class="coord-field">
+                <span class="coord-label">Margen Izquierdo:</span>
+                <div class="num-control">
+                  <button type="button" class="step-btn" (click)="ajustarMargen('margen_izq_mm', -1)">-</button>
+                  <input type="number" step="1" [ngModel]="config()?.margen_izq_mm" (ngModelChange)="config()!.margen_izq_mm = $event; notificarCambio()" class="coord-input" />
+                  <button type="button" class="step-btn" (click)="ajustarMargen('margen_izq_mm', 1)">+</button>
+                </div>
+              </div>
+
+              <div class="coord-field">
+                <span class="coord-label">Margen Derecho:</span>
+                <div class="num-control">
+                  <button type="button" class="step-btn" (click)="ajustarMargen('margen_der_mm', -1)">-</button>
+                  <input type="number" step="1" [ngModel]="config()?.margen_der_mm" (ngModelChange)="config()!.margen_der_mm = $event; notificarCambio()" class="coord-input" />
+                  <button type="button" class="step-btn" (click)="ajustarMargen('margen_der_mm', 1)">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="margin-actions-row mt-2">
+              <button type="button" class="btn-margin-align" (click)="alinearAMargenIzquierdo()" matTooltip="Alinear el elemento activo al margen izquierdo">
+                <mat-icon>align_horizontal_left</mat-icon>
+                <span>Alinear Izq</span>
+              </button>
+              <button type="button" class="btn-margin-align" (click)="centrarEntreMargenes()" matTooltip="Centrar entre los márgenes izquierdo y derecho">
+                <mat-icon>align_horizontal_center</mat-icon>
+                <span>Centrar</span>
+              </button>
+              <button type="button" class="btn-margin-align" (click)="alinearAMargenDerecho()" matTooltip="Alinear el elemento activo al margen derecho">
+                <mat-icon>align_horizontal_right</mat-icon>
+                <span>Alinear Der</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- DETALLE DEL ELEMENTO SELECCIONADO -->
+          @if (selectedVariable(); as sel) {
+            <!-- Header Element Info -->
+            <div class="selected-header-card">
+              <div class="sel-tag-name">
+                @if (sel.tipo === 'imagen') {
+                  <mat-icon class="icon-inline">image</mat-icon>
+                } @else if (sel.tipo === 'qr') {
+                  <mat-icon class="icon-inline">qr_code_2</mat-icon>
+                }
+                {{ sel.tag }}
+              </div>
+              <div class="sel-meta-row">
+                <span class="sel-category-chip">{{ sel.tipo === 'imagen' ? 'IMAGEN' : (sel.tipo === 'qr' ? 'QR CODE' : sel.categoria) }}</span>
+                <span class="sel-seccion-chip">{{ sel.seccion | uppercase }}</span>
+              </div>
+              <div class="sel-label-text">{{ sel.label }}</div>
+            </div>
+
+            <!-- Precision Coordinate Inputs (mm) -->
+            <div class="prop-group">
+              <label class="group-title">Coordenadas Milimétricas (mm)</label>
+
+              <div class="coord-grid">
+                <!-- X Position -->
+                <div class="coord-field">
+                  <span class="coord-label">X (Horizontal):</span>
+                  <div class="num-control">
+                    <button type="button" class="step-btn" (click)="ajustarCoordenada('x_mm', -0.5)">-</button>
+                    <input type="number" step="0.5" [(ngModel)]="sel.x_mm" (ngModelChange)="notificarCambio()" class="coord-input" />
+                    <button type="button" class="step-btn" (click)="ajustarCoordenada('x_mm', 0.5)">+</button>
+                  </div>
+                </div>
+
+                <!-- Y Position -->
+                <div class="coord-field">
+                  <span class="coord-label">Y (Vertical):</span>
+                  <div class="num-control">
+                    <button type="button" class="step-btn" (click)="ajustarCoordenada('y_mm', -0.5)">-</button>
+                    <input type="number" step="0.5" [(ngModel)]="sel.y_mm" (ngModelChange)="notificarCambio()" class="coord-input" />
+                    <button type="button" class="step-btn" (click)="ajustarCoordenada('y_mm', 0.5)">+</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dimensions (Width & Height) -->
+              <div class="coord-grid mt-2">
+                <div class="coord-field">
+                  <span class="coord-label">Ancho (mm):</span>
+                  <div class="num-control">
+                    <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', -1)">-</button>
+                    <input type="number" step="1" [(ngModel)]="sel.width_mm" (ngModelChange)="notificarCambio()" placeholder="Auto" class="coord-input" />
+                    <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', 1)">+</button>
+                  </div>
+                </div>
+
+                @if (sel.tipo === 'imagen' || sel.tipo === 'qr') {
+                  <div class="coord-field">
+                    <span class="coord-label">Alto (mm):</span>
+                    <div class="num-control">
+                      <button type="button" class="step-btn" (click)="ajustarTamanio('height_mm', -1)">-</button>
+                      <input type="number" step="1" [(ngModel)]="sel.height_mm" (ngModelChange)="notificarCambio()" placeholder="Auto" class="coord-input" />
+                      <button type="button" class="step-btn" (click)="ajustarTamanio('height_mm', 1)">+</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- CONFIGURACIÓN ESPECÍFICA PARA TIPO: IMAGEN / LOGO -->
+            @if (sel.tipo === 'imagen') {
+              <div class="prop-group">
+                <label class="group-title">Propiedades de Imagen / Logo</label>
+
+                <div class="field-row">
+                  <span class="field-lbl">Ruta / URL:</span>
+                  <input type="text" [(ngModel)]="sel.imagen_url" (ngModelChange)="notificarCambio()" class="text-input font-mono" />
+                </div>
+
+                <!-- Presets Institucionales DRTC -->
+                <div class="presets-picker-box mt-2">
+                  <span class="field-lbl">Logos Institucionales:</span>
+                  <div class="presets-chips">
+                    @for (p of presetsImagenes; track p.url) {
+                      <button type="button"
+                              class="preset-chip"
+                              [class.active]="sel.imagen_url === p.url"
+                              (click)="sel.imagen_url = p.url; notificarCambio()">
+                        {{ p.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                <!-- Opacidad / Transparencia -->
+                <div class="field-row mt-2">
+                  <span class="field-lbl">Opacidad: {{ ((sel.opacidad ?? 1.0) * 100) | number:'1.0-0' }}%</span>
+                  <div class="num-control">
+                    <button type="button" class="step-btn" (click)="ajustarOpacidad(-0.1)">-</button>
+                    <input type="range" min="0.1" max="1" step="0.05" [(ngModel)]="sel.opacidad" (ngModelChange)="notificarCambio()" class="range-slider" />
+                    <button type="button" class="step-btn" (click)="ajustarOpacidad(0.1)">+</button>
+                  </div>
+                </div>
+
+                <!-- Section Toggle -->
+                <div class="field-row">
+                  <span class="field-lbl">Sección / Hoja:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'anverso'" (click)="sel.seccion = 'anverso'; notificarCambio()">Hoja 1 (Anverso)</button>
+                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'reverso'" (click)="sel.seccion = 'reverso'; notificarCambio()">Hoja 2 (Reverso)</button>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- CONFIGURACIÓN ESPECÍFICA PARA TIPO: CÓDIGO QR -->
+            @if (sel.tipo === 'qr') {
+              <div class="prop-group">
+                <label class="group-title">Configuración Código QR Dinámico</label>
+
+                <div class="field-row">
+                  <span class="field-lbl">Contenido / Enlace:</span>
+                  <textarea [(ngModel)]="sel.qr_contenido"
+                            (ngModelChange)="notificarCambio()"
+                            rows="3"
+                            placeholder="https://drtc-puno.gob.pe/verificar-tuc/{{ '{{PLACA}}' }}"
+                            class="text-area-mono"></textarea>
+                </div>
+
+                <!-- Tags dinámicos rápidos -->
+                <div class="quick-tags-box">
+                  <span class="quick-tags-lbl">Insertar Tag Dinámico:</span>
+                  <div class="tags-pill-row">
+                    <button type="button" class="pill-btn" (click)="sel.qr_contenido = (sel.qr_contenido || '') + '{{PLACA}}'; notificarCambio()">+ {{ '{{PLACA}}' }}</button>
+                    <button type="button" class="pill-btn" (click)="sel.qr_contenido = (sel.qr_contenido || '') + '{{RUC}}'; notificarCambio()">+ {{ '{{RUC}}' }}</button>
+                    <button type="button" class="pill-btn" (click)="sel.qr_contenido = (sel.qr_contenido || '') + '{{EMPRESA}}'; notificarCambio()">+ {{ '{{EMPRESA}}' }}</button>
+                  </div>
+                </div>
+
+                <!-- Section Toggle -->
+                <div class="field-row mt-2">
+                  <span class="field-lbl">Sección / Hoja:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'anverso'" (click)="sel.seccion = 'anverso'; notificarCambio()">Hoja 1 (Anverso)</button>
+                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'reverso'" (click)="sel.seccion = 'reverso'; notificarCambio()">Hoja 2 (Reverso)</button>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- CONFIGURACIÓN PARA VARIABLES DE TEXTO -->
+            @if (sel.tipo !== 'imagen' && sel.tipo !== 'qr') {
+
+              <!-- 1. PREFIJO (CON SU PROPIO PESO Y TAMAÑO DE LETRA) -->
+              <div class="prop-group">
+                <div class="group-title-with-toggle">
+                  <label class="group-title">Prefijo de la Variable</label>
+                  @if (sel.prefix || sel.etiqueta) {
+                    <button type="button" class="btn-unlink-label" (click)="desvincularEtiqueta(sel)" matTooltip="Convertir el prefijo en un elemento independiente">
+                      <mat-icon style="font-size:14px;width:14px;height:14px;">call_split</mat-icon>
+                      <span>Desvincular</span>
+                    </button>
+                  }
+                </div>
+
+                <div class="field-row">
+                  <span class="field-lbl">Texto Prefijo:</span>
+                  <input type="text"
+                         [ngModel]="sel.prefix !== undefined ? sel.prefix : (sel.etiqueta || '')"
+                         (ngModelChange)="sel.prefix = $event; sel.etiqueta = $event; notificarCambio()"
+                         placeholder="Ej: Placa : , RUC : "
+                         class="text-input" />
+                </div>
+
+                <div class="field-row">
+                  <span class="field-lbl">Peso Prefijo:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="(sel.prefix_font_weight || sel.etiqueta_font_weight || 'bold') === 'bold'"
+                            (click)="setPrefixFontWeight('bold')">
+                      <strong>Negrita</strong>
+                    </button>
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="(sel.prefix_font_weight || sel.etiqueta_font_weight) === 'normal'"
+                            (click)="setPrefixFontWeight('normal')">
+                      Normal
+                    </button>
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <span class="field-lbl">Tamaño Prefijo (pt):</span>
+                  <div class="num-control">
+                    <button type="button" class="step-btn" (click)="ajustarPrefixFontSize(-0.5)">-</button>
+                    <input type="number" step="0.5" [ngModel]="sel.prefix_font_size_pt || sel.font_size_pt" (ngModelChange)="sel.prefix_font_size_pt = $event; notificarCambio()" class="coord-input" />
+                    <button type="button" class="step-btn" (click)="ajustarPrefixFontSize(0.5)">+</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. VALOR DE LA VARIABLE (CON SU PROPIO PESO Y TAMAÑO) -->
+              <div class="prop-group">
+                <label class="group-title">Valor de la Variable</label>
+
+                <div class="field-row">
+                  <span class="field-lbl">Tamaño Valor (pt):</span>
+                  <div class="num-control">
+                    <button type="button" class="step-btn" (click)="ajustarCoordenada('font_size_pt', -0.5)">-</button>
+                    <input type="number" step="0.5" [(ngModel)]="sel.font_size_pt" (ngModelChange)="notificarCambio()" class="coord-input" />
+                    <button type="button" class="step-btn" (click)="ajustarCoordenada('font_size_pt', 0.5)">+</button>
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <span class="field-lbl">Peso Valor:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button" class="btn-toggle" [class.active]="(sel.font_weight || 'normal') === 'normal'" (click)="setValorFontWeight('normal')">Normal</button>
+                    <button type="button" class="btn-toggle" [class.active]="sel.font_weight === 'bold'" (click)="setValorFontWeight('bold')"><strong>Negrita</strong></button>
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <span class="field-lbl">Color:</span>
+                  <div class="color-picker-box">
+                    <input type="color" [(ngModel)]="sel.color" (ngModelChange)="notificarCambio()" class="color-circle" />
+                    <input type="text" [(ngModel)]="sel.color" (ngModelChange)="notificarCambio()" class="color-text" />
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <span class="field-lbl">Alineación:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button" class="btn-toggle" [class.active]="sel.align === 'left'" (click)="sel.align = 'left'; notificarCambio()" title="Izquierda">
+                      <mat-icon style="font-size:16px;width:16px;height:16px;">format_align_left</mat-icon>
+                    </button>
+                    <button type="button" class="btn-toggle" [class.active]="sel.align === 'center'" (click)="sel.align = 'center'; notificarCambio()" title="Centro">
+                      <mat-icon style="font-size:16px;width:16px;height:16px;">format_align_center</mat-icon>
+                    </button>
+                    <button type="button" class="btn-toggle" [class.active]="sel.align === 'right'" (click)="sel.align = 'right'; notificarCambio()" title="Derecha">
+                      <mat-icon style="font-size:16px;width:16px;height:16px;">format_align_right</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. SUFIJO (CON SU PROPIO PESO Y TAMAÑO DE LETRA) -->
+              <div class="prop-group">
+                <label class="group-title">Sufijo de la Variable</label>
+
+                <div class="field-row">
+                  <span class="field-lbl">Texto Sufijo:</span>
+                  <input type="text" [(ngModel)]="sel.suffix" (ngModelChange)="notificarCambio()" placeholder="Ej:  kg,  t,  m" class="text-input" />
+                </div>
+
+                <div class="field-row">
+                  <span class="field-lbl">Peso Sufijo:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="(sel.suffix_font_weight || 'normal') === 'normal'"
+                            (click)="setSuffixFontWeight('normal')">
+                      Normal
+                    </button>
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="sel.suffix_font_weight === 'bold'"
+                            (click)="setSuffixFontWeight('bold')">
+                      <strong>Negrita</strong>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <span class="field-lbl">Tamaño Sufijo (pt):</span>
+                  <div class="num-control">
+                    <button type="button" class="step-btn" (click)="ajustarSuffixFontSize(-0.5)">-</button>
+                    <input type="number" step="0.5" [ngModel]="sel.suffix_font_size_pt || sel.font_size_pt" (ngModelChange)="sel.suffix_font_size_pt = $event; notificarCambio()" class="coord-input" />
+                    <button type="button" class="step-btn" (click)="ajustarSuffixFontSize(0.5)">+</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. ANCHO MÁXIMO & SALTO DE LÍNEA (CON INTERLINEADO MUY CORTITO) -->
+              <div class="prop-group">
+                <label class="group-title">Ancho Máximo & Salto de Línea</label>
+
+                <!-- Ancho Máximo en mm -->
+                <div class="field-row">
+                  <span class="field-lbl">Ancho Máx (mm):</span>
+                  <div class="num-control">
+                    <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', -1)">-</button>
+                    <input type="number" step="1" [(ngModel)]="sel.width_mm" (ngModelChange)="notificarCambio()" placeholder="Auto" class="coord-input" />
+                    <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', 1)">+</button>
+                  </div>
+                </div>
+
+                <!-- Espacio de Salto (Interlineado Cortito) -->
+                <div class="field-row">
+                  <span class="field-lbl">Espacio Salto:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="(sel.line_height || 1.05) <= 1.0"
+                            (click)="sel.line_height = 0.98; notificarCambio()"
+                            matTooltip="Espacio de renglón ultra pegado">
+                      Muy Corto (1.0)
+                    </button>
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="(sel.line_height || 1.05) > 1.0 && (sel.line_height || 1.05) <= 1.1"
+                            (click)="sel.line_height = 1.05; notificarCambio()"
+                            matTooltip="Espacio compacto estándar TUC">
+                      Corto (1.05)
+                    </button>
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="(sel.line_height || 1.05) > 1.1"
+                            (click)="sel.line_height = 1.2; notificarCambio()">
+                      Normal (1.2)
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Límite de Filas -->
+                <div class="field-row">
+                  <span class="field-lbl">Límite Filas:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="sel.max_lineas === 1"
+                            (click)="setMaxLineas(1)"
+                            matTooltip="1 sola fila sin salto">
+                      1 Fila
+                    </button>
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="sel.max_lineas === 2"
+                            (click)="setMaxLineas(2)"
+                            matTooltip="Hasta 2 filas con corte según ancho">
+                      2 Filas
+                    </button>
+                    <button type="button"
+                            class="btn-toggle"
+                            [class.active]="!sel.max_lineas || sel.max_lineas === 0"
+                            (click)="setMaxLineas(0)"
+                            matTooltip="Salto según ancho libremente">
+                      Libre
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Flujo Vertical: Evitar solapamiento con texto inferior -->
+                <div class="vertical-flow-card mt-2">
+                  <div class="flow-header">
+                    <mat-icon class="icon-flow">vertical_align_bottom</mat-icon>
+                    <div class="flow-title-wrap">
+                      <span class="flow-title">Ajuste de Texto Inferior</span>
+                      <span class="flow-subtitle">Evita que se sobreencime con lo que está abajo</span>
+                    </div>
+                  </div>
+
+                  <label class="toggle-lbl flow-toggle-lbl">
+                    <input type="checkbox"
+                           [ngModel]="autoDesplazarTextoInferior()"
+                           (ngModelChange)="autoDesplazarTextoInferior.set($event)" />
+                    <span class="font-semibold">Auto-bajar texto al pasar a multilínea</span>
+                  </label>
+
+                  <div class="flow-buttons-grid">
+                    <button type="button"
+                            class="btn-flow btn-flow-down"
+                            (click)="bajarTextoInferior(3.5)"
+                            matTooltip="Bajar todo el texto situado debajo en 1 renglón (+3.5mm)">
+                      <mat-icon>south</mat-icon>
+                      <span>Bajar texto (+3.5mm)</span>
+                    </button>
+                    <button type="button"
+                            class="btn-flow btn-flow-up"
+                            (click)="bajarTextoInferior(-3.5)"
+                            matTooltip="Subir todo el texto situado debajo en 1 renglón (-3.5mm)">
+                      <mat-icon>north</mat-icon>
+                      <span>Subir texto (-3.5mm)</span>
+                    </button>
+                  </div>
+
+                  <div class="flow-fine-tune">
+                    <span class="fine-lbl">Ajuste fino:</span>
+                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(-1.0)">-1mm</button>
+                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(-0.5)">-0.5mm</button>
+                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(0.5)">+0.5mm</button>
+                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(1.0)">+1mm</button>
+                  </div>
+                </div>
+
+                <!-- Resaltado entre comillas -->
+                <div class="quoted-toggle-card mt-2">
+                  <label class="toggle-lbl">
+                    <input type="checkbox"
+                           [ngModel]="sel.resaltar_comillas !== false"
+                           (ngModelChange)="toggleResaltarComillas()" />
+                    <span class="font-semibold">Resaltar texto entre comillas</span>
+                  </label>
+                  <p class="quoted-desc">
+                    El texto entre <code>"..."</code> aparecerá en <strong>Negrita</strong> y <strong>+1 tamaño</strong> (ideal para razón social de empresas).
+                  </p>
+                </div>
+              </div>
+
+              <!-- 5. ORIENTACIÓN VERTICAL DE LA LETRA -->
+              <div class="prop-group">
+                <label class="group-title">Orientación de la Letra</label>
+                <div class="orientation-buttons-grid">
+                  <button type="button"
+                          class="btn-orient"
+                          [class.active]="!sel.orientacion_texto || sel.orientacion_texto === 'horizontal'"
+                          (click)="setOrientacionTexto('horizontal')">
+                    <mat-icon>text_fields</mat-icon>
+                    <span>Horizontal</span>
+                  </button>
+                  <button type="button"
+                          class="btn-orient"
+                          [class.active]="sel.orientacion_texto === 'vertical' || sel.rotacion === 90"
+                          (click)="setOrientacionTexto('vertical')"
+                          matTooltip="Orientación vertical hacia abajo (90°)">
+                    <mat-icon>south</mat-icon>
+                    <span>Vertical (90°)</span>
+                  </button>
+                  <button type="button"
+                          class="btn-orient"
+                          [class.active]="sel.orientacion_texto === 'vertical_270' || sel.rotacion === 270"
+                          (click)="setOrientacionTexto('vertical_270')"
+                          matTooltip="Orientación vertical hacia arriba (270°)">
+                    <mat-icon>north</mat-icon>
+                    <span>Vertical (270°)</span>
+                  </button>
+                </div>
+
+                <!-- Section Toggle -->
+                <div class="field-row mt-2">
+                  <span class="field-lbl">Sección / Hoja:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'anverso'" (click)="sel.seccion = 'anverso'; notificarCambio()">Hoja 1 (Anverso)</button>
+                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'reverso'" (click)="sel.seccion = 'reverso'; notificarCambio()">Hoja 2 (Reverso)</button>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Quick Action button -->
+            <button mat-raised-button color="primary" class="w-full mt-2" (click)="guardarConfiguracion()">
+              <mat-icon>save</mat-icon>
+              <span>Guardar Calibración</span>
+            </button>
+          } @else {
+            <div class="empty-inspector">
+              <mat-icon>touch_app</mat-icon>
+              <p>Seleccione uno o varios elementos para moverlos con el ratón o ajustar márgenes y propiedades.</p>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- TAB 2: CÓDIGO HTML GENERADO -->
+      @if (tabInspector() === 'codigo') {
+        <div class="inspector-body code-tab-body">
+          <div class="code-info-box">
+            <span class="code-badge">HTML / CSS Nativo 300 DPI</span>
+            <p>Código ultra liviano sin dependencias externas. Se genera e imprime en menos de 0.05 segundos en el navegador.</p>
+          </div>
+
+          <pre class="code-block"><code>{{ getCodigoHtmlSnippet() }}</code></pre>
+
+          <button mat-stroked-button class="w-full mb-2" (click)="copiarSnippet()">
+            <mat-icon>content_copy</mat-icon>
+            <span>Copiar Snippet HTML</span>
+          </button>
+
+          <button mat-raised-button class="w-full btn-print-direct" (click)="imprimirHtmlInstantaneo()">
+            <mat-icon>open_in_new</mat-icon>
+            <span>Abrir Vista de Impresión</span>
+          </button>
+        </div>
+      }
+    </aside>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- MODAL: AGREGAR LOGO / IMAGEN                                        -->
+  <!-- =================================================================== -->
+  @if (mostrarModalImagen()) {
+    <div class="modal-backdrop" (click)="cerrarModalImagen()">
+      <div class="modal-window" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-header-title">
+            <mat-icon class="icon-plus">image</mat-icon>
+            <h3>Agregar Logotipo o Imagen</h3>
+          </div>
+          <button mat-icon-button (click)="cerrarModalImagen()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-content">
+          <div class="form-row">
+            <label class="form-label">Seleccionar Imagen Institucional DRTC Puno:</label>
+            <div class="presets-gallery">
+              @for (p of presetsImagenes; track p.url) {
+                <div class="preset-card"
+                     [class.selected]="nuevaImagenForm.imagen_url === p.url"
+                     (click)="seleccionarPresetImagen(p.url, p.label)">
+                  <img [src]="p.url" [alt]="p.label" class="preset-img-preview" />
+                  <span class="preset-card-lbl">{{ p.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">O Ingrese Ruta / URL Personalizada:</label>
+            <input type="text" [(ngModel)]="nuevaImagenForm.imagen_url" class="form-input font-mono" />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Tag Identificador:</label>
+              <input type="text" [(ngModel)]="nuevaImagenForm.tag" placeholder="{{ '{{LOGO_NUEVO}}' }}" class="form-input font-mono" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Nombre / Etiqueta:</label>
+              <input type="text" [(ngModel)]="nuevaImagenForm.label" placeholder="Ej: Logo Escudo" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Sección / Hoja de Impresión:</label>
+              <select [(ngModel)]="nuevaImagenForm.seccion" class="form-select">
+                <option value="anverso">Hoja 1 (Anverso)</option>
+                <option value="reverso">Hoja 2 (Reverso)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Opacidad (0.1 a 1.0):</label>
+              <input type="number" step="0.1" min="0.1" max="1.0" [(ngModel)]="nuevaImagenForm.opacidad" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Ancho (mm):</label>
+              <input type="number" step="1" [(ngModel)]="nuevaImagenForm.width_mm" class="form-input" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Alto (mm):</label>
+              <input type="number" step="1" [(ngModel)]="nuevaImagenForm.height_mm" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Posición X inicial (mm):</label>
+              <input type="number" step="0.5" [(ngModel)]="nuevaImagenForm.x_mm" class="form-input" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Posición Y inicial (mm):</label>
+              <input type="number" step="0.5" [(ngModel)]="nuevaImagenForm.y_mm" class="form-input" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button mat-button (click)="cerrarModalImagen()">Cancelar</button>
+          <button mat-raised-button color="primary" (click)="guardarNuevaImagen()">
+            <mat-icon>add_photo_alternate</mat-icon>
+            <span>Insertar Imagen en Lienzo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- =================================================================== -->
+  <!-- MODAL: AGREGAR CÓDIGO QR DINÁMICO                                   -->
+  <!-- =================================================================== -->
+  @if (mostrarModalQR()) {
+    <div class="modal-backdrop" (click)="cerrarModalQR()">
+      <div class="modal-window" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-header-title">
+            <mat-icon class="icon-plus">qr_code_2</mat-icon>
+            <h3>Agregar Código QR de Seguridad</h3>
+          </div>
+          <button mat-icon-button (click)="cerrarModalQR()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-content">
+          <div class="form-row">
+            <label class="form-label">Contenido / Enlace Dinámico del QR:</label>
+            <textarea [(ngModel)]="nuevoQRForm.qr_contenido" rows="3" class="form-input font-mono"></textarea>
+            <span class="form-help">Puede usar etiquetas dinámicas que se reemplazarán con los datos del vehículo (ej: {{ '{{PLACA}}' }}, {{ '{{NRO_TUC}}' }}).</span>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Tag de Identificación:</label>
+              <input type="text" [(ngModel)]="nuevoQRForm.tag" placeholder="{{ '{{QR_VALIDACION}}' }}" class="form-input font-mono" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Nombre / Etiqueta:</label>
+              <input type="text" [(ngModel)]="nuevoQRForm.label" placeholder="Código QR Oficial" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Sección / Hoja de Impresión:</label>
+              <select [(ngModel)]="nuevoQRForm.seccion" class="form-select">
+                <option value="reverso">Hoja 2 (Reverso - Recomendado)</option>
+                <option value="anverso">Hoja 1 (Anverso)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Tamaño QR (Ancho / Alto mm):</label>
+              <input type="number" step="1" [(ngModel)]="nuevoQRForm.width_mm" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Posición X inicial (mm):</label>
+              <input type="number" step="0.5" [(ngModel)]="nuevoQRForm.x_mm" class="form-input" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Posición Y inicial (mm):</label>
+              <input type="number" step="0.5" [(ngModel)]="nuevoQRForm.y_mm" class="form-input" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button mat-button (click)="cerrarModalQR()">Cancelar</button>
+          <button mat-raised-button color="primary" (click)="guardarNuevoQR()">
+            <mat-icon>qr_code</mat-icon>
+            <span>Crear y Ubicar Código QR</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- =================================================================== -->
+  <!-- MODAL: AGREGAR NUEVA VARIABLE DE TEXTO                              -->
+  <!-- =================================================================== -->
+  @if (mostrarModalNuevaVar()) {
+    <div class="modal-backdrop" (click)="cerrarModalNuevaVariable()">
+      <div class="modal-window" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-header-title">
+            <mat-icon class="icon-plus">add_circle</mat-icon>
+            <h3>Agregar Nuevo Campo de Texto</h3>
+          </div>
+          <button mat-icon-button (click)="cerrarModalNuevaVariable()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-content">
+          <div class="form-row">
+            <label class="form-label">Tag de la Variable (ej: {{ '{{FECHA_EMISION}}' }}):</label>
+            <input type="text" [(ngModel)]="nuevaVarForm.tag" placeholder="{{ '{{NUEVO_CAMPO}}' }}" class="form-input font-mono" />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Etiqueta / Nombre Descriptivo:</label>
+            <input type="text" [(ngModel)]="nuevaVarForm.label" placeholder="Ej: Fecha de Emisión" class="form-input" />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Sección / Hoja:</label>
+              <select [(ngModel)]="nuevaVarForm.seccion" class="form-select">
+                <option value="anverso">Hoja 1 (Anverso)</option>
+                <option value="reverso">Hoja 2 (Reverso)</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Categoría:</label>
+              <select [(ngModel)]="nuevaVarForm.categoria" class="form-select">
+                <option value="personalizado">Personalizado</option>
+                <option value="autorizacion">Autorización & Empresa</option>
+                <option value="vehiculo">Ficha Vehicular</option>
+                <option value="rutas">Rutas</option>
+                <option value="acto_reverso">Acto Resolutivo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Posición X inicial (mm):</label>
+              <input type="number" step="0.5" [(ngModel)]="nuevaVarForm.x_mm" class="form-input" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Posición Y inicial (mm):</label>
+              <input type="number" step="0.5" [(ngModel)]="nuevaVarForm.y_mm" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Etiqueta / Prefijo (Visible):</label>
+              <input type="text" [(ngModel)]="nuevaVarForm.prefix" placeholder="Ej: Placa : , RUC : " class="form-input" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Peso de Etiqueta:</label>
+              <select [(ngModel)]="nuevaVarForm.etiqueta_font_weight" class="form-select">
+                <option value="bold">Negrita (Estándar TUC)</option>
+                <option value="normal">Normal</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Tamaño Fuente (pt):</label>
+              <input type="number" step="0.5" [(ngModel)]="nuevaVarForm.font_size_pt" class="form-input" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Peso del Valor:</label>
+              <select [(ngModel)]="nuevaVarForm.font_weight" class="form-select">
+                <option value="normal">Normal (Estándar TUC)</option>
+                <option value="bold">Negrita</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Orientación Letra:</label>
+              <select [(ngModel)]="nuevaVarForm.orientacion_texto" class="form-select">
+                <option value="horizontal">Horizontal (0°)</option>
+                <option value="vertical">Vertical (90° ↓)</option>
+                <option value="vertical_270">Vertical (270° ↑)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Distribución Filas:</label>
+              <select [(ngModel)]="nuevaVarForm.max_lineas" class="form-select">
+                <option [ngValue]="1">1 Fila (Nowrap)</option>
+                <option [ngValue]="2">Hasta 2 Filas (Auto-ajuste)</option>
+                <option [ngValue]="0">Multilínea Libre</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Valor de Prueba:</label>
+            <input type="text" [(ngModel)]="nuevaVarForm.valor_ejemplo" placeholder="Texto que se muestra en vista previa" class="form-input" />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button mat-button (click)="cerrarModalNuevaVariable()">Cancelar</button>
+          <button mat-raised-button color="primary" (click)="guardarNuevaVariable()">
+            <mat-icon>add</mat-icon>
+            <span>Crear Campo y Ubicar en Lienzo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

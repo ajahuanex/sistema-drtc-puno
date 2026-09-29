@@ -36,6 +36,62 @@ export interface GoogleDocsStatus {
   configuracion?: TucPlantillaConfig;
 }
 
+export interface VariablePlantillaTuc {
+  id: string;
+  tag: string;
+  label: string;
+  categoria: 'autorizacion' | 'vehiculo' | 'rutas' | 'acto_reverso' | 'personalizado' | 'imagen' | 'qr';
+  seccion: 'anverso' | 'reverso';
+  tipo?: 'texto' | 'imagen' | 'qr';
+  imagen_url?: string;
+  qr_contenido?: string;
+  opacidad?: number;
+  x_mm: number;
+  y_mm: number;
+  width_mm?: number;
+  height_mm?: number;
+  font_size_pt: number;
+  font_weight: 'normal' | 'bold';
+  color: string;
+  align: 'left' | 'center' | 'right';
+  visible: boolean;
+  bloqueado?: boolean;
+  prefix?: string;
+  prefix_font_weight?: 'normal' | 'bold';
+  prefix_font_size_pt?: number;
+  suffix?: string;
+  suffix_font_weight?: 'normal' | 'bold';
+  suffix_font_size_pt?: number;
+  line_height?: number; // Espacio entre líneas por defecto muy cortito (ej: 1.05)
+  es_dinamica?: boolean;
+  valor_ejemplo?: string;
+  etiqueta?: string;
+  etiqueta_font_weight?: 'normal' | 'bold';
+  etiqueta_color?: string;
+  etiqueta_font_size_pt?: number;
+  max_lineas?: number;
+  resaltar_comillas?: boolean;
+  orientacion_texto?: 'horizontal' | 'vertical' | 'vertical_270';
+  rotacion?: number;
+}
+
+export interface PlantillaTucCalibradorConfig {
+  _id?: string;
+  nombre: string;
+  formato_papel?: 'DUAL_PVC' | 'A4';
+  orientacion?: 'portrait' | 'landscape';
+  modo_hojas?: 'UNA_HOJA' | 'DOS_HOJAS';
+  ancho_mm: number;
+  alto_mm: number;
+  anverso_alto_mm: number;
+  reverso_alto_mm: number;
+  margen_izq_mm: number;
+  margen_der_mm: number;
+  variables: VariablePlantillaTuc[];
+  activa?: boolean;
+  fecha_actualizacion?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -248,4 +304,30 @@ export class TucService {
   registrarLoteKardex(lote: Partial<TucKardexStock>): Observable<TucKardexStock> {
     return this.http.post<TucKardexStock>(`${this.apiUrl}/kardex/lotes`, lote);
   }
+
+  // --- CALIBRADOR DE VARIABLES Y PLANTILLAS HTML INSTANTÁNEAS ---
+  getCalibradorConfig(): Observable<PlantillaTucCalibradorConfig> {
+    return this.http.get<PlantillaTucCalibradorConfig>(`${this.apiUrl}/calibrador-config`);
+  }
+
+  guardarCalibradorConfig(config: PlantillaTucCalibradorConfig): Observable<PlantillaTucCalibradorConfig> {
+    return this.http.put<PlantillaTucCalibradorConfig>(`${this.apiUrl}/calibrador-config`, config);
+  }
+
+  restablecerCalibradorConfig(): Observable<PlantillaTucCalibradorConfig> {
+    return this.http.post<PlantillaTucCalibradorConfig>(`${this.apiUrl}/calibrador-config/restablecer`, {});
+  }
+
+  getUrlRenderHtml(placaOId: string): string {
+    return `${this.apiUrl}/render-html/${encodeURIComponent(placaOId)}`;
+  }
+
+  imprimirHtmlDirecto(placaOId: string): void {
+    const url = this.getUrlRenderHtml(placaOId);
+    const win = window.open(url, '_blank', 'width=850,height=1100');
+    if (win) {
+      win.focus();
+    }
+  }
 }
+

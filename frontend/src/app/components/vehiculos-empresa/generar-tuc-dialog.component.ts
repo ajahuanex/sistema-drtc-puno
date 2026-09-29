@@ -151,10 +151,20 @@ export interface GenerarTucDialogData {
                     <div class="rutas-list">
                       @for (r of tucData()?.datos?.rutas_detalle; track r.codigo) {
                         <div class="ruta-item">
-                          <span class="ruta-cod">RUTA {{ r.codigo }}:</span>
-                          <span>{{ r.origen }} - {{ r.itinerario ? r.itinerario + ' - ' : '' }}{{ r.destino }}</span>
+                          <span class="ruta-cod">Ruta {{ r.codigo ? (r.codigo.toString().length === 1 ? '0' + r.codigo : r.codigo) : '01' }}:</span>
+                          @if (r.origen || r.destino) {
+                            <span class="ruta-origen">{{ r.origen }}</span>
+                            @if (r.itinerario) {
+                              <span class="ruta-itin"> - {{ r.itinerario }} - </span>
+                            } @else if (r.destino) {
+                              <span> - </span>
+                            }
+                            <span class="ruta-destino">{{ r.destino }}</span>
+                          } @else if (r.tramo) {
+                            <span class="ruta-destino">{{ r.tramo }}</span>
+                          }
                           @if (r.frecuencia) {
-                            <span class="ruta-frec">({{ r.frecuencia }})</span>
+                            <span class="ruta-frec">{{ r.frecuencia }}</span>
                           }
                         </div>
                       }
@@ -167,9 +177,13 @@ export interface GenerarTucDialogData {
                 <div class="divider-line"></div>
 
                 <!-- SECCIÓN 4: ACTO RESOLUTIVO -->
-                <div class="tuc-footer-resolucion">
-                  <span>R.D.R N° <strong>{{ tucData()?.datos?.num_resolucion_acto || '-' }}</strong>-GRP/GRI/DRTC ({{ tucData()?.datos?.fecha_resolucion_acto || '-' }}) ({{ tucData()?.datos?.tipo_resolucion_acto || 'AUTORIZACION' }})</span>
-                </div>
+                @if (!tucData()?.datos?.es_fila_en_blanco && tucData()?.datos?.num_resolucion_acto) {
+                  <div class="tuc-footer-resolucion">
+                    <span>R.D.R N° <strong>{{ tucData()?.datos?.num_resolucion_acto }}</strong>-GRP/GRI/DRTC ({{ tucData()?.datos?.fecha_resolucion_acto || '-' }}) ({{ tucData()?.datos?.tipo_resolucion_acto }})</span>
+                  </div>
+                } @else {
+                  <div class="tuc-footer-resolucion-vacia" style="height: 14px;"></div>
+                }
 
               </div>
             </div>
@@ -241,9 +255,17 @@ export interface GenerarTucDialogData {
                       <mat-icon>print</mat-icon>
                       <span>Imprimir Tarjeta Ahora</span>
                     </button>
+                    <button mat-raised-button style="background: #059669; color: #ffffff;" (click)="imprimirHtmlInstantaneo()" matTooltip="Impresión HTML ultra rápida instantánea (<0.05s)">
+                      <mat-icon>bolt</mat-icon>
+                      <span>Impresión HTML Ultra Rápida (0.05s)</span>
+                    </button>
                     <button mat-stroked-button color="primary" (click)="abrirVistaImpresionA4()" matTooltip="Abre documento oficial A4 listo para imprimir">
                       <mat-icon>open_in_new</mat-icon>
                       <span>Vista Completa A4</span>
+                    </button>
+                    <button mat-stroked-button style="border-color: #1e3a8a; color: #1e3a8a;" (click)="abrirCalibradorStudio()" matTooltip="Abrir módulo TUC Studio para calibrar milimétricamente las variables y agregar nuevos campos">
+                      <mat-icon>tune</mat-icon>
+                      <span>Calibrador de Plantilla y Variables</span>
                     </button>
                   </div>
                 </div>
@@ -597,9 +619,35 @@ export interface GenerarTucDialogData {
         }
 
         .ruta-item {
+          display: flex;
+          align-items: baseline;
+          flex-wrap: nowrap;
+          gap: 3px;
           color: #334155;
-          .ruta-cod { font-weight: 700; color: #0369a1; margin-right: 4px; }
-          .ruta-frec { color: #64748b; font-style: italic; margin-left: 4px; }
+          font-size: 9.5px;
+          line-height: 1.35;
+
+          .ruta-cod {
+            font-weight: 700;
+            color: #000000;
+            white-space: nowrap;
+            margin-right: 4px;
+          }
+          .ruta-origen, .ruta-destino {
+            font-weight: 400;
+            color: #000000;
+          }
+          .ruta-itin {
+            font-weight: 400;
+            color: #616161;
+          }
+          .ruta-frec {
+            font-weight: 400;
+            color: #616161;
+            margin-left: auto;
+            white-space: nowrap;
+            padding-left: 8px;
+          }
         }
 
         .rutas-empty {
@@ -1397,6 +1445,16 @@ export class GenerarTucDialogComponent implements OnInit {
         this.snackBar.open(msg, 'Cerrar', { duration: 4000 });
       }
     });
+  }
+
+  imprimirHtmlInstantaneo(): void {
+    const term = this.data.vehiculo.placa || this.data.vehiculo.id;
+    this.tucService.imprimirHtmlDirecto(term);
+  }
+
+  abrirCalibradorStudio(): void {
+    this.dialogRef.close();
+    window.open('/tucs/calibrador', '_blank');
   }
 
   cerrar(): void {

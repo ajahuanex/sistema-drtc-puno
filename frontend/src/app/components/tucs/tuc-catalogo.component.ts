@@ -60,6 +60,11 @@ import { TucKardexModalComponent } from './tuc-kardex-modal.component';
             <span>Ir al Centro de Trámites</span>
           </a>
 
+          <a mat-flat-button routerLink="/tucs/calibrador" class="btn-action" style="background:#1e3a8a; color:#ffffff;" matTooltip="Diseñar y calibrar posiciones de variables para emisión HTML instantánea">
+            <mat-icon>tune</mat-icon>
+            <span>TUC Studio / Calibrador</span>
+          </a>
+
           <button mat-flat-button class="btn-action btn-kardex" (click)="abrirKardex()">
             <mat-icon>inventory_2</mat-icon>
             <span>Kárdex Stock</span>

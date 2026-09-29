@@ -181,6 +181,17 @@ export const routes: Routes = [
         canActivate: [RoleGuard],
         data: { modulo: 'tucs' }
       },
+      { 
+        path: 'tucs/calibrador', 
+        loadComponent: () => import('./components/tucs/tuc-studio.component').then(m => m.TucStudioComponent),
+        canActivate: [RoleGuard],
+        data: { modulo: 'tucs' }
+      },
+      { 
+        path: 'tuc-studio', 
+        redirectTo: 'tucs/calibrador', 
+        pathMatch: 'full' 
+      },
 
       // INFRAESTRUCTURA COMPLEMENTARIA (Terminales Terrestres, Estaciones de Ruta)
       { 

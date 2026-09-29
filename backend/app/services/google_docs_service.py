@@ -19,11 +19,12 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "plantilla_id": OFFICIAL_TEMPLATE_DOC_ID,
     "carpeta_destino_id": DEFAULT_OUTPUT_FOLDER_ID,
     "auto_detectar_margen": True,
-    "col_margen_izq": 99.2,
-    "col_codigo": 26.0,
-    "col_tramo": 164.0,
-    "col_frecuencia": 54.0,
-    "col_margen_der": 105.0,
+    "offset_expansion_margen": 18.0,
+    "col_margen_izq": 80.0,
+    "col_codigo": 38.0,
+    "col_tramo": 196.0,
+    "col_frecuencia": 50.0,
+    "col_margen_der": 85.0,
     "fuente_tamanio_codigo": 6.5,
     "fuente_tamanio_tramo": 6.0,
     "fuente_tamanio_frecuencia": 5.2,
@@ -154,9 +155,32 @@ class GoogleDocsTucService:
             logger.info(f"Copia creada: {nuevo_doc_id} usando plantilla {plantilla_id_activa}")
 
             rutas_detalle = tuc_info.get("datos_estructurados", {}).get("rutas_detalle", [])
+            es_fila_en_blanco = tuc_info.get("datos_estructurados", {}).get("es_fila_en_blanco", False)
 
             # 2. Reemplazar los marcadores de texto plano (excluyendo {{TABLA_RUTAS}} para manejarlo como tabla)
             requests = []
+
+            # Si es renovación o sin trámite modificatorio, la fila de la resolución del reverso va toda en blanco
+            if es_fila_en_blanco:
+                requests.append({
+                    'replaceAllText': {
+                        'containsText': {
+                            'text': 'R.D.R N° {{NUM_RESOLUCION}}-GRP/GRI/DRTC ({{FECHA_RES}}) ({{TIPO_RES}})',
+                            'matchCase': False
+                        },
+                        'replaceText': ' '
+                    }
+                })
+                requests.append({
+                    'replaceAllText': {
+                        'containsText': {
+                            'text': 'R.D.R. N° {{NUM_RESOLUCION}}-GRP/GRI/DRTC ({{FECHA_RES}}) ({{TIPO_RES}})',
+                            'matchCase': False
+                        },
+                        'replaceText': ' '
+                    }
+                })
+
             for k, v in placeholders.items():
                 if k == "{{TABLA_RUTAS}}":
                     continue
@@ -227,22 +251,35 @@ class GoogleDocsTucService:
                         t_loc = table_elem['startIndex']
                         table_obj = table_elem['table']
 
-                        # Configurar anchos configurables de 5 columnas
-                        col_izq = float(config.get("col_margen_izq", 99.2))
-                        col_cod = float(config.get("col_codigo", 28.0))
-                        col_tra = float(config.get("col_tramo", 172.0))
-                        col_frec = float(config.get("col_frecuencia", 45.0))
-                        col_der = float(config.get("col_margen_der", 105.0))
+                        # Configurar anchos configurables de 5 columnas (abriendo hacia la izquierda y derecha)
+                        col_izq = float(config.get("col_margen_izq", 80.0))
+                        col_cod = float(config.get("col_codigo", 38.0))
+                        col_tra = float(config.get("col_tramo", 196.0))
+                        col_frec = float(config.get("col_frecuencia", 50.0))
+                        col_der = float(config.get("col_margen_der", 85.0))
 
-                        # Auto-detección inteligente: si la plantilla tiene la regla horizontal centrada, alinear exactamente con ella
+                        # Auto-detección inteligente: si la plantilla tiene la regla horizontal centrada, abrir hacia izquierda y derecha
                         if config.get("auto_detectar_margen", True):
+                            offset_exp = float(config.get("offset_expansion_margen", 18.0))
                             if detected_indent_start is not None and detected_indent_start > 10:
-                                col_izq = round(float(detected_indent_start), 1)
+                                # Abre hacia la izquierda reduciendo el margen izquierdo
+                                col_izq = max(round(float(detected_indent_start) - offset_exp, 1), 60.0)
                             if detected_indent_end is not None and detected_indent_end > 10:
-                                col_der = round(float(detected_indent_end), 1)
+                                # Abre hacia la derecha reduciendo el margen derecho
+                                col_der = max(round(float(detected_indent_end) - offset_exp, 1), 65.0)
+
+                        # Garantizar siempre al menos 38pt para código de ruta (garantiza "Ruta 01:" en una sola línea)
+                        if col_cod < 38.0:
+                            col_cod = 38.0
+
+                        # Ajustar el ancho del tramo para cubrir el espacio abierto disponible
+                        ancho_total_pagina = 449.0
+                        espacio_disp = ancho_total_pagina - (col_izq + col_cod + col_frec + col_der)
+                        if espacio_disp > 100:
+                            col_tra = round(espacio_disp, 1)
 
                         widths = [col_izq, col_cod, col_tra, col_frec, col_der]
-                        logger.info(f"Aplicando anchos de tabla TUC: {widths}")
+                        logger.info(f"Aplicando anchos de tabla TUC ampliados: {widths}")
 
                         style_reqs = []
                         for c_idx, w in enumerate(widths):
@@ -320,6 +357,7 @@ class GoogleDocsTucService:
                                 break
 
                         insertions = []
+                        rutas_meta = []
                         if rutas_detalle:
                             for r_idx, r_data in enumerate(rutas_detalle):
                                 if r_idx >= len(table_obj['tableRows']):
@@ -336,20 +374,69 @@ class GoogleDocsTucService:
                                         cod_val = m_ruta.group(1).replace('Ruta', '').replace('RUTA', '').replace(':', '').strip()
                                     tramo_val = m_ruta.group(2).strip()
 
+                                if cod_val.isdigit() and len(cod_val) == 1:
+                                    cod_val = cod_val.zfill(2)
+
                                 # Limpiar paréntesis externos de la frecuencia si engloban todo el texto
                                 if frec_val.startswith('(') and frec_val.endswith(')'):
                                     frec_val = frec_val[1:-1].strip()
 
-                                # Col 1: Código de ruta separado (Ruta XX:)
+                                # Col 1: Código de ruta siempre en una sola línea (Ruta 01:)
                                 c1_idx = row['tableCells'][1]['startIndex'] + 1
                                 c1_text = f"Ruta {cod_val}:" if cod_val else ""
                                 insertions.append({'index': c1_idx, 'text': c1_text})
 
-                                # Col 2: Tramo / Itinerario
-                                c2_idx = row['tableCells'][2]['startIndex'] + 1
-                                insertions.append({'index': c2_idx, 'text': tramo_val})
+                                # Col 2: Tramo con origen y destino normal, itinerario en color negro ligero
+                                origen = str(r_data.get('origen') or '').strip()
+                                itin = str(r_data.get('itinerario') or '').strip()
+                                destino = str(r_data.get('destino') or '').strip()
 
-                                # Col 3: Frecuencia (los días entre paréntesis van debajo de SEMANALES/SEMANAL)
+                                if not origen and not destino and tramo_val:
+                                    parts = [p.strip() for p in tramo_val.split(' - ') if p.strip()]
+                                    if len(parts) >= 3:
+                                        origen = parts[0]
+                                        itin = " - ".join(parts[1:-1])
+                                        destino = parts[-1]
+                                    elif len(parts) == 2:
+                                        origen = parts[0]
+                                        itin = ""
+                                        destino = parts[1]
+                                    elif len(parts) == 1:
+                                        origen = parts[0]
+                                        itin = ""
+                                        destino = ""
+
+                                if origen and itin and destino:
+                                    seg1 = origen
+                                    seg2 = f" - {itin} - "
+                                    seg3 = destino
+                                    c2_text = f"{seg1}{seg2}{seg3}"
+                                    itin_rel_start = len(seg1)
+                                    itin_rel_len = len(seg2)
+                                elif origen and itin and not destino:
+                                    seg1 = origen
+                                    seg2 = f" - {itin}"
+                                    seg3 = ""
+                                    c2_text = f"{seg1}{seg2}"
+                                    itin_rel_start = len(seg1)
+                                    itin_rel_len = len(seg2)
+                                elif origen and destino and not itin:
+                                    c2_text = f"{origen} - {destino}"
+                                    itin_rel_start = 0
+                                    itin_rel_len = 0
+                                elif itin and not origen and not destino:
+                                    c2_text = itin
+                                    itin_rel_start = 0
+                                    itin_rel_len = len(itin)
+                                else:
+                                    c2_text = tramo_val or f"{origen} - {destino}".strip(" -")
+                                    itin_rel_start = 0
+                                    itin_rel_len = 0
+
+                                c2_idx = row['tableCells'][2]['startIndex'] + 1
+                                insertions.append({'index': c2_idx, 'text': c2_text})
+
+                                # Col 3: Frecuencia (mismo color negro ligero que itinerario)
                                 m_day = re.search(r'^(.*?)(\([^\)]+\))$', frec_val.strip())
                                 if m_day:
                                     frec_text = f"{m_day.group(1).strip()}\n{m_day.group(2).strip()}"
@@ -358,6 +445,12 @@ class GoogleDocsTucService:
 
                                 c3_idx = row['tableCells'][3]['startIndex'] + 1
                                 insertions.append({'index': c3_idx, 'text': frec_text})
+
+                                rutas_meta.append({
+                                    'r_idx': r_idx,
+                                    'itin_rel_start': itin_rel_start,
+                                    'itin_rel_len': itin_rel_len
+                                })
                         else:
                             row = table_obj['tableRows'][0]
                             c2_idx = row['tableCells'][2]['startIndex'] + 1
@@ -367,15 +460,21 @@ class GoogleDocsTucService:
                         insert_reqs = [{'insertText': {'location': {'index': ins['index']}, 'text': ins['text']}} for ins in insertions]
                         docs_service.documents().batchUpdate(documentId=nuevo_doc_id, body={'requests': insert_reqs}).execute()
 
-                        # Estilizar tipografía: interlineado mínimo (100%), 0 espaciado arriba/abajo, Col 1 (Ruta) en 6.5pt Negrita, Col 2 (Tramo) en 6.0pt, Col 3 (Frecuencia) en 5.2pt con días debajo en 4.5pt
+                        # Estilizar tipografía: interlineado mínimo (100%), 0 espaciado arriba/abajo
+                        # Col 1 (Ruta 01:) en 6.5pt Negrita color normal, Col 2 (Origen/Destino normal, Itinerario negro ligero 6.0pt)
+                        # Col 3 (Frecuencia) en negro ligero 5.2pt con días debajo en 4.5pt
                         doc_for_styles = docs_service.documents().get(documentId=nuevo_doc_id).execute()
                         for elem in doc_for_styles.get('body', {}).get('content', []):
                             if 'table' in elem and elem.get('startIndex') == t_loc:
                                 table_obj = elem['table']
                                 break
 
+                        COLOR_NEGRO_NORMAL = {'red': 0.0, 'green': 0.0, 'blue': 0.0}
+                        COLOR_NEGRO_LIGERO = {'red': 0.38, 'green': 0.38, 'blue': 0.38} # Color negro ligero para itinerario y frecuencia
+
                         text_style_reqs = []
                         for r_idx, row in enumerate(table_obj['tableRows']):
+                            r_meta = rutas_meta[r_idx] if r_idx < len(rutas_meta) else None
                             for c_idx, cell in enumerate(row['tableCells']):
                                 for c_el in cell.get('content', []):
                                     if 'paragraph' in c_el:
@@ -404,33 +503,50 @@ class GoogleDocsTucService:
                                             f_dias = float(config.get("fuente_tamanio_dias", 4.5))
 
                                             if c_idx == 1:
-                                                # Columna 1: Código de ruta en Negrita
+                                                # Columna 1: Código de ruta en Negrita siempre en una sola línea
                                                 text_style_reqs.append({
                                                     'updateTextStyle': {
                                                         'range': {'startIndex': p_s, 'endIndex': p_e - 1},
                                                         'textStyle': {
                                                             'fontSize': {'magnitude': f_cod, 'unit': 'PT'},
                                                             'weightedFontFamily': {'fontFamily': 'Roboto', 'weight': 700},
-                                                            'bold': True
+                                                            'bold': True,
+                                                            'foregroundColor': {'color': {'rgbColor': COLOR_NEGRO_NORMAL}}
                                                         },
-                                                        'fields': 'fontSize,weightedFontFamily,bold'
+                                                        'fields': 'fontSize,weightedFontFamily,bold,foregroundColor'
                                                     }
                                                 })
                                             elif c_idx == 2:
-                                                # Columna 2: Tramo en Normal
+                                                # Columna 2: Tramo - Origen y Destino normal, Itinerario negro ligero
+                                                # 1. Base para toda la celda: negro normal regular
                                                 text_style_reqs.append({
                                                     'updateTextStyle': {
                                                         'range': {'startIndex': p_s, 'endIndex': p_e - 1},
                                                         'textStyle': {
                                                             'fontSize': {'magnitude': f_tra, 'unit': 'PT'},
                                                             'weightedFontFamily': {'fontFamily': 'Roboto', 'weight': 400},
-                                                            'bold': False
+                                                            'bold': False,
+                                                            'foregroundColor': {'color': {'rgbColor': COLOR_NEGRO_NORMAL}}
                                                         },
-                                                        'fields': 'fontSize,weightedFontFamily,bold'
+                                                        'fields': 'fontSize,weightedFontFamily,bold,foregroundColor'
                                                     }
                                                 })
+                                                # 2. Resaltar itinerario en color negro ligero
+                                                if r_meta and r_meta.get('itin_rel_len', 0) > 0:
+                                                    itin_s = p_s + r_meta['itin_rel_start']
+                                                    itin_e = itin_s + r_meta['itin_rel_len']
+                                                    if itin_e <= p_e - 1 and itin_s < itin_e:
+                                                        text_style_reqs.append({
+                                                            'updateTextStyle': {
+                                                                'range': {'startIndex': itin_s, 'endIndex': itin_e},
+                                                                'textStyle': {
+                                                                    'foregroundColor': {'color': {'rgbColor': COLOR_NEGRO_LIGERO}}
+                                                                },
+                                                                'fields': 'foregroundColor'
+                                                            }
+                                                        })
                                             elif c_idx == 3:
-                                                # Columna 3: Frecuencia. Línea de días entre paréntesis; base configurable
+                                                # Columna 3: Frecuencia en color negro ligero (igual que itinerario)
                                                 is_day_line = p_txt.strip().startswith('(') and p_txt.strip().endswith(')')
                                                 f_sz = f_dias if is_day_line else f_frec
                                                 text_style_reqs.append({
@@ -439,9 +555,10 @@ class GoogleDocsTucService:
                                                         'textStyle': {
                                                             'fontSize': {'magnitude': f_sz, 'unit': 'PT'},
                                                             'weightedFontFamily': {'fontFamily': 'Roboto', 'weight': 400},
-                                                            'bold': False
+                                                            'bold': False,
+                                                            'foregroundColor': {'color': {'rgbColor': COLOR_NEGRO_LIGERO}}
                                                         },
-                                                        'fields': 'fontSize,weightedFontFamily,bold'
+                                                        'fields': 'fontSize,weightedFontFamily,bold,foregroundColor'
                                                     }
                                                 })
 
@@ -456,18 +573,32 @@ class GoogleDocsTucService:
 
                                 if p_s >= t_loc:
                                     if p_t.strip().startswith('R.D.R') or p_t.strip().startswith('R.D.'):
-                                        text_style_reqs.append({
-                                            'updateParagraphStyle': {
-                                                'range': {'startIndex': p_s, 'endIndex': p_e},
-                                                'paragraphStyle': {
-                                                    'alignment': 'CENTER',
-                                                    'lineSpacing': 100.0,
-                                                    'spaceAbove': {'magnitude': 1.0, 'unit': 'PT'},
-                                                    'spaceBelow': {'magnitude': 1.0, 'unit': 'PT'}
-                                                },
-                                                'fields': 'alignment,lineSpacing,spaceAbove,spaceBelow'
-                                            }
-                                        })
+                                        if es_fila_en_blanco:
+                                            # Dejar toda la fila en blanco
+                                            if p_e - 1 > p_s:
+                                                text_style_reqs.append({
+                                                    'updateTextStyle': {
+                                                        'range': {'startIndex': p_s, 'endIndex': p_e - 1},
+                                                        'textStyle': {
+                                                            'fontSize': {'magnitude': 1.0, 'unit': 'PT'},
+                                                            'foregroundColor': {'color': {'rgbColor': {'red': 1, 'green': 1, 'blue': 1}}}
+                                                        },
+                                                        'fields': 'fontSize,foregroundColor'
+                                                    }
+                                                })
+                                        else:
+                                            text_style_reqs.append({
+                                                'updateParagraphStyle': {
+                                                    'range': {'startIndex': p_s, 'endIndex': p_e},
+                                                    'paragraphStyle': {
+                                                        'alignment': 'CENTER',
+                                                        'lineSpacing': 100.0,
+                                                        'spaceAbove': {'magnitude': 1.0, 'unit': 'PT'},
+                                                        'spaceBelow': {'magnitude': 1.0, 'unit': 'PT'}
+                                                    },
+                                                    'fields': 'alignment,lineSpacing,spaceAbove,spaceBelow'
+                                                }
+                                            })
                                     elif has_hr:
                                         # La línea horizontal: pegada a la tabla sin margen arriba ni abajo
                                         text_style_reqs.append({

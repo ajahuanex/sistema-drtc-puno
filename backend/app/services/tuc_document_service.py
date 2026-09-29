@@ -70,19 +70,19 @@ class TucDocumentService:
             '    </w:tblBorders>',
             '  </w:tblPr>',
             '  <w:tblGrid>',
-            '    <w:gridCol w:w="100"/>',
-            '    <w:gridCol w:w="560"/>',
-            '    <w:gridCol w:w="3440"/>',
-            '    <w:gridCol w:w="900"/>',
-            '    <w:gridCol w:w="4000"/>',
+            '    <w:gridCol w:w="80"/>',
+            '    <w:gridCol w:w="760"/>',
+            '    <w:gridCol w:w="3900"/>',
+            '    <w:gridCol w:w="1000"/>',
+            '    <w:gridCol w:w="3260"/>',
             '  </w:tblGrid>',
             '  <w:tr>',
             '    <w:trPr><w:cantSplit w:val="0"/><w:tblHeader w:val="0"/></w:trPr>',
-            '    <w:tc><w:tcPr><w:tcW w:w="100" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p></w:tc>',
-            '    <w:tc><w:tcPr><w:tcW w:w="560" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p></w:tc>',
-            '    <w:tc><w:tcPr><w:tcW w:w="3440" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="12"/></w:rPr></w:pPr></w:p></w:tc>',
-            '    <w:tc><w:tcPr><w:tcW w:w="900" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="10"/></w:rPr></w:pPr></w:p></w:tc>',
-            '    <w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="80" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="760" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="3900" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="12"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="1000" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="10"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="3260" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p></w:tc>',
             '  </w:tr>'
         ]
 
@@ -99,6 +99,9 @@ class TucDocumentService:
                     cod_val = m_ruta.group(1).replace('Ruta', '').replace('RUTA', '').replace(':', '').strip()
                 tramo_str = m_ruta.group(2).strip()
 
+            if cod_val.isdigit() and len(cod_val) == 1:
+                cod_val = cod_val.zfill(2)
+
             cod_str = f"Ruta {cod_val}:" if cod_val else ""
 
             if frec_str.startswith('(') and frec_str.endswith(')'):
@@ -106,8 +109,78 @@ class TucDocumentService:
 
             # Sanitizar para XML
             cod_str = cod_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            tramo_str = tramo_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             frec_str = frec_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+            # Desglose de origen, itinerario y destino
+            origen = str(r.get('origen') or '').strip()
+            itin = str(r.get('itinerario') or '').strip()
+            destino = str(r.get('destino') or '').strip()
+
+            if not origen and not destino and tramo_str:
+                parts = [p.strip() for p in tramo_str.split(' - ') if p.strip()]
+                if len(parts) >= 3:
+                    origen = parts[0]
+                    itin = " - ".join(parts[1:-1])
+                    destino = parts[-1]
+                elif len(parts) == 2:
+                    origen = parts[0]
+                    destino = parts[1]
+                else:
+                    origen = tramo_str
+
+            origen_xml = origen.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            itin_xml = itin.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            destino_xml = destino.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+            tramo_runs_xml = ""
+            if origen_xml and itin_xml and destino_xml:
+                tramo_runs_xml = f'''
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="000000"/><w:sz w:val="12"/></w:rPr>
+                      <w:t xml:space="preserve">{origen_xml}</w:t>
+                    </w:r>
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="616161"/><w:sz w:val="12"/></w:rPr>
+                      <w:t xml:space="preserve"> - {itin_xml} - </w:t>
+                    </w:r>
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="000000"/><w:sz w:val="12"/></w:rPr>
+                      <w:t xml:space="preserve">{destino_xml}</w:t>
+                    </w:r>
+                '''
+            elif origen_xml and itin_xml and not destino_xml:
+                tramo_runs_xml = f'''
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="000000"/><w:sz w:val="12"/></w:rPr>
+                      <w:t xml:space="preserve">{origen_xml}</w:t>
+                    </w:r>
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="616161"/><w:sz w:val="12"/></w:rPr>
+                      <w:t xml:space="preserve"> - {itin_xml}</w:t>
+                    </w:r>
+                '''
+            elif origen_xml and destino_xml and not itin_xml:
+                tramo_runs_xml = f'''
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="000000"/><w:sz w:val="12"/></w:rPr>
+                      <w:t xml:space="preserve">{origen_xml} - {destino_xml}</w:t>
+                    </w:r>
+                '''
+            elif itin_xml and not origen_xml and not destino_xml:
+                tramo_runs_xml = f'''
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="616161"/><w:sz w:val="12"/></w:rPr>
+                      <w:t xml:space="preserve">{itin_xml}</w:t>
+                    </w:r>
+                '''
+            else:
+                safe_tramo = tramo_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                tramo_runs_xml = f'''
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="000000"/><w:sz w:val="12"/></w:rPr>
+                      <w:t xml:space="preserve">{safe_tramo}</w:t>
+                    </w:r>
+                '''
 
             m_day = re.search(r'^(.*?)(\([^\)]+\))$', frec_str)
             if m_day:
@@ -115,19 +188,19 @@ class TucDocumentService:
                 frec_day = m_day.group(2)
                 frec_runs_xml = f'''
                     <w:r>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="10"/></w:rPr>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="616161"/><w:sz w:val="10"/></w:rPr>
                       <w:t xml:space="preserve">{frec_base}</w:t>
                       <w:br/>
                     </w:r>
                     <w:r>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="9"/></w:rPr>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="616161"/><w:sz w:val="9"/></w:rPr>
                       <w:t xml:space="preserve">{frec_day}</w:t>
                     </w:r>
                 '''
             else:
                 frec_runs_xml = f'''
                     <w:r>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="10"/></w:rPr>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:color w:val="616161"/><w:sz w:val="10"/></w:rPr>
                       <w:t xml:space="preserve">{frec_str}</w:t>
                     </w:r>
                 '''
@@ -136,37 +209,33 @@ class TucDocumentService:
               <w:tr>
                 <w:trPr><w:cantSplit w:val="0"/><w:tblHeader w:val="0"/></w:trPr>
                 <w:tc>
-                  <w:tcPr><w:tcW w:w="100" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:tcPr><w:tcW w:w="80" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
                   <w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p>
                 </w:tc>
                 <w:tc>
-                  <w:tcPr><w:tcW w:w="560" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:tcPr><w:tcW w:w="760" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
                   <w:p>
                     <w:pPr>
                       <w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/>
                       <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr>
                     </w:pPr>
                     <w:r>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="1"/><w:sz w:val="13"/></w:rPr>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="1"/><w:color w:val="000000"/><w:sz w:val="13"/></w:rPr>
                       <w:t xml:space="preserve">{cod_str}</w:t>
                     </w:r>
                   </w:p>
                 </w:tc>
                 <w:tc>
-                  <w:tcPr><w:tcW w:w="3440" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:tcPr><w:tcW w:w="3900" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
                   <w:p>
                     <w:pPr>
                       <w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="12"/></w:rPr>
                     </w:pPr>
-                    <w:r>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="12"/></w:rPr>
-                      <w:t xml:space="preserve">{tramo_str}</w:t>
-                    </w:r>
+                    {tramo_runs_xml}
                   </w:p>
                 </w:tc>
                 <w:tc>
-                  <w:tcPr><w:tcW w:w="900" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:tcPr><w:tcW w:w="1000" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
                   <w:p>
                     <w:pPr>
                       <w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/>
@@ -176,7 +245,7 @@ class TucDocumentService:
                   </w:p>
                 </w:tc>
                 <w:tc>
-                  <w:tcPr><w:tcW w:w="4000" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:tcPr><w:tcW w:w="3260" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
                   <w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p>
                 </w:tc>
               </w:tr>
@@ -185,6 +254,81 @@ class TucDocumentService:
 
         tbl_xml.append('</w:tbl>')
         return parse_xml('\n'.join(tbl_xml))
+
+    @staticmethod
+    async def determinar_acto_resolutivo_reverso(db, vehiculo: dict, nro_primigenia_raw: str, fecha_res_p: Any) -> Dict[str, Any]:
+        """
+        Determina la información del acto resolutivo para el reverso de la TUC:
+        - Si es Incremento: sigla (I)
+        - Si es Sustitución: sigla (S)
+        - Si es Renovación (o Autorización regular sin acto modificatorio): toda la fila en blanco
+        - Si es Duplicado: se evalúa según su trámite original (I, S o Renovación en blanco)
+        """
+        placa = (vehiculo.get("placa") or "").strip().upper()
+        nro_hija_raw = (vehiculo.get("nro_resolucion_hija") or "").strip()
+        tipo_hija = (vehiculo.get("tipo_resolucion_hija") or vehiculo.get("tipo_tramite_origen") or vehiculo.get("tramite") or "").strip().upper()
+        fecha_hija = vehiculo.get("fecha_resolucion_hija") or vehiculo.get("fecha_emision_resolucion")
+
+        # 1. Si es Duplicado, buscar el trámite original del vehículo
+        if tipo_hija in ["D", "DUPLICADO"]:
+            orig_veh = None
+            if placa and placa != "-":
+                cursor_orig = db.flota_empresa.find({
+                    "placa": {"$regex": f"^{re.escape(placa)}$", "$options": "i"},
+                    "tipo_resolucion_hija": {"$nin": ["D", "DUPLICADO", None, ""]},
+                    "_id": {"$ne": vehiculo.get("_id")}
+                }).sort("fecha_registro", -1)
+                lista_orig = await cursor_orig.to_list(1)
+                if lista_orig:
+                    orig_veh = lista_orig[0]
+
+            if orig_veh:
+                tipo_hija = (orig_veh.get("tipo_resolucion_hija") or orig_veh.get("tipo_tramite_origen") or orig_veh.get("tramite") or "").strip().upper()
+                nro_hija_raw = (orig_veh.get("nro_resolucion_hija") or nro_hija_raw).strip()
+                fecha_hija = orig_veh.get("fecha_resolucion_hija") or orig_veh.get("fecha_emision_resolucion") or fecha_hija
+            else:
+                # Si no tiene trámite modificatorio previo en la flota, su origen fue autorización o renovación
+                tipo_hija = "R"
+
+        # 2. Normalizar tipo de trámite a sigla oficial DRTC
+        sigla = ""
+        es_en_blanco = False
+
+        if tipo_hija in ["I", "INCREMENTO", "INCREMENTO DE FLOTA"]:
+            sigla = "I"
+        elif tipo_hija in ["S", "SUSTITUCION", "SUSTITUCIÓN", "SUSTITUCION DE VEHICULO"]:
+            sigla = "S"
+        elif tipo_hija in ["M", "MODIFICACION", "MODIFICACIÓN"]:
+            sigla = "M"
+        elif tipo_hija in ["FE", "FE DE ERRATAS", "ERRATA"]:
+            sigla = "FE"
+        elif tipo_hija in ["R", "RENOVACION", "RENOVACIÓN", "AUTORIZACION", "AUTORIZACIÓN", "AUTORIZACION NUEVA"] or not nro_hija_raw:
+            es_en_blanco = True
+        else:
+            es_en_blanco = True
+
+        if es_en_blanco or not nro_hija_raw:
+            return {
+                "es_en_blanco": True,
+                "num_resolucion": "",
+                "fecha_resolucion": "",
+                "tipo_resolucion": "",
+                "sigla": "",
+                "texto_completo": ""
+            }
+
+        num_res_clean = clean_num_resolucion(nro_hija_raw)
+        fecha_res_clean = format_fecha(fecha_hija)
+        texto = f"R.D.R N° {num_res_clean}-GRP/GRI/DRTC ({fecha_res_clean}) ({sigla})"
+
+        return {
+            "es_en_blanco": False,
+            "num_resolucion": num_res_clean,
+            "fecha_resolucion": fecha_res_clean,
+            "tipo_resolucion": sigla,
+            "sigla": sigla,
+            "texto_completo": texto
+        }
 
     @staticmethod
     async def get_tuc_data(placa_o_id: str) -> Dict[str, Any]:
@@ -279,10 +423,7 @@ class TucDocumentService:
             )
             if not razon_social:
                 rs = empresa.get("razonSocial")
-                if isinstance(rs, dict):
-                    razon_social = rs.get("principal") or rs.get("sunat") or ""
-                elif isinstance(rs, str):
-                    razon_social = rs
+                razon_social = (rs.get("principal") if isinstance(rs, dict) else str(rs or ""))
 
         if (not partida or partida == "-") and vehiculo:
             partida = vehiculo.get("partida_registral") or vehiculo.get("partida") or "-"
@@ -329,53 +470,46 @@ class TucDocumentService:
                 else:
                     r_ids.append(str(rid))
             if r_ids:
-                q_rids: Dict[str, Any] = {
+                q_rids = {
                     "$or": [
                         {"_id": {"$in": [i for i in r_ids if isinstance(i, ObjectId)]}},
                         {"id": {"$in": [str(i) for i in r_ids]}}
                     ]
                 }
-                if cods_limpios:
-                    q_rids["codigoRuta"] = {"$in": cods_limpios}
                 rutas_objs = await db.rutas.find(q_rids).to_list(100)
 
-        # Prioridad 2: Buscar rutas por el número de la resolución primigenia
-        if not rutas_objs and nro_primigenia_raw:
-            q_res: Dict[str, Any] = {
+        # Prioridad 2: Buscar en la colección de rutas por número de resolución primigenia
+        if not rutas_objs and clean_res:
+            q_res = {
                 "$or": [
-                    {"resolucion.nroResolucion": {"$regex": f"^{re.escape(nro_primigenia_raw)}$", "$options": "i"}},
-                    {"resolucion.nroResolucion": {"$regex": f"{re.escape(clean_res)}$", "$options": "i"}}
+                    {"resolucion.nroResolucion": {"$regex": f"{re.escape(clean_res)}", "$options": "i"}},
+                    {"resolucion.nroResolucion": {"$regex": f"{re.escape(nro_primigenia_raw)}", "$options": "i"}},
+                    {"resolucion": {"$regex": f"{re.escape(clean_res)}", "$options": "i"}},
+                    {"resolucion": {"$regex": f"{re.escape(nro_primigenia_raw)}", "$options": "i"}}
                 ]
             }
-            if cods_limpios:
-                q_res["codigoRuta"] = {"$in": cods_limpios}
             rutas_objs = await db.rutas.find(q_res).to_list(100)
 
-        # Prioridad 3: Búsqueda por RUC de empresa y códigos específicos del vehículo
-        if not rutas_objs and cods_limpios and ruc:
-            rutas_cursor = db.rutas.find({
-                "empresa.ruc": ruc,
-                "codigoRuta": {"$in": cods_limpios}
-            })
-            rutas_objs = await rutas_cursor.to_list(100)
-
-        # Prioridad 4: Fallback por RUC de empresa
+        # Prioridad 3: Buscar en la colección de rutas por RUC de la empresa
         if not rutas_objs and ruc:
-            rutas_cursor = db.rutas.find({"empresa.ruc": ruc})
-            rutas_objs = await rutas_cursor.to_list(100)
+            q_emp = {
+                "$or": [
+                    {"empresa.ruc": ruc},
+                    {"empresa_id": ruc},
+                    {"ruc": ruc}
+                ]
+            }
+            rutas_objs = await db.rutas.find(q_emp).to_list(100)
 
-        # Construir mapa priorizando la coincidencia con la resolución primigenia
         rutas_map = {}
-        for r in rutas_objs:
-            c = str(r.get("codigoRuta", "")).strip()
-            if not c:
-                continue
-            if c not in rutas_map:
-                rutas_map[c] = r
-            else:
-                r_res = str((r.get("resolucion") or {}).get("nroResolucion", "")).upper()
-                if clean_res and clean_res.upper() in r_res:
-                    rutas_map[c] = r
+        for r_item in rutas_objs:
+            raw_c = r_item.get("codigoRuta") or r_item.get("codigo") or r_item.get("codigo_ruta") or ""
+            codigo_item = str(raw_c).strip()
+            if codigo_item:
+                rutas_map[codigo_item] = r_item
+                if codigo_item.isdigit():
+                    rutas_map[str(int(codigo_item))] = r_item
+                    rutas_map[str(int(codigo_item)).zfill(2)] = r_item
 
         rutas_lineas = []
         rutas_para_frontend = []
@@ -384,14 +518,20 @@ class TucDocumentService:
         if cods_limpios:
             cods_a_procesar = sorted(cods_limpios)
         elif rutas_map:
-            cods_a_procesar = sorted(list(rutas_map.keys()))
+            cods_a_procesar = sorted(list(set(rutas_map.keys())))
         else:
             cods_a_procesar = []
 
         for cod in cods_a_procesar:
             if not cod:
                 continue
-            r_obj = rutas_map.get(cod)
+            r_obj = (
+                rutas_map.get(cod) or
+                rutas_map.get(cod.zfill(2) if cod.isdigit() else cod) or
+                rutas_map.get(str(int(cod)) if cod.isdigit() else cod)
+            )
+            if not r_obj and len(rutas_objs) == 1 and len(cods_a_procesar) == 1:
+                r_obj = rutas_objs[0]
             if r_obj:
                 origen = r_obj.get("origen")
                 origen_nom = origen.get("nombre") if isinstance(origen, dict) else str(origen or "")
@@ -449,12 +589,17 @@ class TucDocumentService:
 
         tabla_rutas_text = "\n".join(rutas_lineas) if rutas_lineas else "SIN RUTAS ASIGNADAS"
 
-        # 6. Acto resolutivo final (Hija o Primigenia)
-        num_resolucion_final = clean_num_resolucion(nro_hija_raw or nro_primigenia_raw)
-        fecha_res_final = format_fecha(fecha_hija or fecha_res_p)
-        tipo_res_final = tipo_hija.upper() if tipo_hija else "AUTORIZACION"
-        if not tipo_hija and res_prim and res_prim.get("tipo_autorizacion"):
-            tipo_res_final = res_prim.get("tipo_autorizacion").upper()
+        # 6. Acto resolutivo final para el reverso de la TUC
+        # Regla: Sigla de trámite si es Incremento (I) o Sustitución (S).
+        # Si es Renovación (o autorización inicial), toda la fila en blanco.
+        # Si es Duplicado, de acuerdo a su trámite original.
+        acto_reverso = await TucDocumentService.determinar_acto_resolutivo_reverso(
+            db, vehiculo, nro_primigenia_raw, fecha_res_p
+        )
+        es_fila_en_blanco = acto_reverso["es_en_blanco"]
+        num_resolucion_final = acto_reverso["num_resolucion"]
+        fecha_res_final = acto_reverso["fecha_resolucion"]
+        tipo_res_final = acto_reverso["sigla"]
 
         # Mapeo completo de las 25 etiquetas oficiales
         placeholders = {
@@ -512,7 +657,9 @@ class TucDocumentService:
             "tabla_rutas_text": tabla_rutas_text,
             "num_resolucion_acto": num_resolucion_final,
             "fecha_resolucion_acto": fecha_res_final,
-            "tipo_resolucion_acto": tipo_res_final
+            "tipo_resolucion_acto": tipo_res_final,
+            "es_fila_en_blanco": es_fila_en_blanco,
+            "texto_acto_reverso": acto_reverso["texto_completo"]
         }
 
         return {
@@ -551,6 +698,7 @@ class TucDocumentService:
         placeholders = tuc_info["placeholders"]
         placa = tuc_info["placa"]
         rutas_detalle = tuc_info["datos_estructurados"].get("rutas_detalle", [])
+        es_fila_blanco = tuc_info["datos_estructurados"].get("es_fila_en_blanco", False)
 
         doc = docx.Document(TEMPLATE_PATH)
 
@@ -564,10 +712,23 @@ class TucDocumentService:
 
         # 2. Reemplazar los demás marcadores en párrafos restantes
         for p in doc.paragraphs:
+            if es_fila_blanco and ("{{NUM_RESOLUCION}}" in p.text or p.text.strip().startswith("R.D.R")):
+                p.text = ""
+                continue
             for k, v in placeholders.items():
                 if k == "{{TABLA_RUTAS}}":
                     continue
                 TucDocumentService._reemplazar_en_parrafo(p, k, v)
+
+        # 3. Reemplazar en tablas (Ficha técnica anverso)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        for k, v in placeholders.items():
+                            if k == "{{TABLA_RUTAS}}":
+                                continue
+                            TucDocumentService._reemplazar_en_parrafo(p, k, v)
 
         # 3. Reemplazar en tablas (Ficha técnica anverso)
         for table in doc.tables:

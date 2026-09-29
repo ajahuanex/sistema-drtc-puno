@@ -18,6 +18,7 @@ from app.services.tuc_service import TucService
 from app.services.tuc_document_service import TucDocumentService
 from app.services.google_docs_service import GoogleDocsTucService
 from app.services.notificacion_document_service import NotificacionDocumentService
+from app.services.tuc_calibrador_service import TucCalibradorService
 
 router = APIRouter(prefix="/tucs", tags=["tucs"])
 
@@ -216,22 +217,51 @@ def _generar_sheet_tuc_html(tuc_info: dict) -> str:
     rutas_detalle = d.get("rutas_detalle", [])
     if rutas_detalle:
         for r in rutas_detalle:
-            cod = r.get("codigo", "")
-            origen = r.get("origen", "")
-            itin = r.get("itinerario", "")
-            destino = r.get("destino", "")
-            frec = r.get("frecuencia", "")
-            tramo_parts = [p for p in [origen, itin, destino] if p]
-            tramo = " - ".join(tramo_parts) if tramo_parts else r.get("tramo", "")
-            frec_val = f" ({frec})" if frec else ""
+            cod = str(r.get("codigo") or "").strip()
+            if cod.isdigit() and len(cod) == 1:
+                cod = cod.zfill(2)
+            origen = str(r.get("origen") or "").strip()
+            itin = str(r.get("itinerario") or "").strip()
+            destino = str(r.get("destino") or "").strip()
+            frec = str(r.get("frecuencia") or "").strip()
+            if frec.startswith("(") and frec.endswith(")"):
+                frec = frec[1:-1].strip()
+
+            if not origen and not destino:
+                tramo = str(r.get("tramo") or "")
+                parts = [p.strip() for p in tramo.split(" - ") if p.strip()]
+                if len(parts) >= 3:
+                    origen = parts[0]
+                    itin = " - ".join(parts[1:-1])
+                    destino = parts[-1]
+                elif len(parts) == 2:
+                    origen = parts[0]
+                    destino = parts[1]
+                else:
+                    origen = tramo
+
+            itin_html = f'<span style="color:#616161;"> - {itin} - </span>' if itin else (' - ' if (origen and destino) else '')
+            frec_html = f'<td style="color:#616161; white-space:nowrap; padding-left:14px; text-align:right; vertical-align:top; font-size:10px;">{frec}</td>' if frec else '<td></td>'
             
             rutas_rows_html += f"""
             <tr>
-                <td style="font-weight:bold; white-space:nowrap; padding-right:8px;">Ruta {cod}:</td>
-                <td>{tramo}{frec_val}</td>
+                <td style="font-weight:bold; color:#000000; white-space:nowrap; padding-right:12px; vertical-align:top; width:62px;">Ruta {cod}:</td>
+                <td style="vertical-align:top;">
+                    <span style="color:#000000; font-weight:normal;">{origen}</span>{itin_html}<span style="color:#000000; font-weight:normal;">{destino}</span>
+                </td>
+                {frec_html}
             </tr>"""
     else:
-        rutas_rows_html = '<tr><td colspan="2" style="font-style:italic; color:#64748b;">SIN RUTAS ASIGNADAS</td></tr>'
+        rutas_rows_html = '<tr><td colspan="3" style="font-style:italic; color:#64748b;">SIN RUTAS ASIGNADAS</td></tr>'
+
+    reverso_acto_html = ""
+    if not d.get("es_fila_en_blanco") and d.get("num_resolucion_acto"):
+        reverso_acto_html = f"""
+            <div class="reverso-acto">
+                R.D.R N° <strong>{clean_val(d.get('num_resolucion_acto'))}</strong>-GRP/GRI/DRTC ({clean_val(d.get('fecha_resolucion_acto'))}) ({clean_val(d.get('tipo_resolucion_acto'))})
+            </div>"""
+    else:
+        reverso_acto_html = '<div class="reverso-acto" style="min-height: 14px;"></div>'
 
     return f"""
     <!-- HOJA A4 PARA PLACA {placa} -->
@@ -310,9 +340,7 @@ def _generar_sheet_tuc_html(tuc_info: dict) -> str:
                 </tbody>
             </table>
 
-            <div class="reverso-acto">
-                R.D.R N° <strong>{clean_val(d.get('num_resolucion_acto'))}</strong>-GRP/GRI/DRTC ({clean_val(d.get('fecha_resolucion_acto'))}) ({clean_val(d.get('tipo_resolucion_acto'))})
-            </div>
+            {reverso_acto_html}
         </div>
     </div>
     """
@@ -671,4 +699,67 @@ async def generar_google_doc_notificacion(placa_o_id: str):
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al procesar copia de Notificación en Google Docs: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al procesar copia de Notificación en Google Docs: {str(e)}")
+
+# =====================================================================
+# CALIBRADOR DINÁMICO DE VARIABLES, POSICIONES Y GENERADOR HTML INSTANTÁNEO
+# =====================================================================
+
+@router.get("/calibrador-config", summary="Obtener plantilla y coordenadas calibradas de las 25 variables oficiales y dinámicas")
+async def obtener_calibrador_config():
+    """
+    Retorna la configuración completa del calibrador con las variables oficiales,
+    sus coordenadas milimétricas X/Y, estilos, anchos, y variables dinámicas personalizadas.
+    """
+    try:
+        return await TucCalibradorService.obtener_configuracion()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener configuración del calibrador: {str(e)}")
+
+@router.put("/calibrador-config", summary="Guardar o actualizar coordenadas y nuevas variables en la plantilla")
+async def guardar_calibrador_config(config: Dict[str, Any]):
+    """
+    Actualiza las posiciones milimétricas de las variables o agrega nuevas variables dinámicas.
+    """
+    try:
+        return await TucCalibradorService.guardar_configuracion(config)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al guardar configuración del calibrador: {str(e)}")
+
+@router.post("/calibrador-config/restablecer", summary="Restablecer plantilla a coordenadas oficiales de fábrica")
+async def restablecer_calibrador_config():
+    """
+    Restaura las coordenadas y variables oficiales por defecto de la DRTC Puno.
+    """
+    try:
+        return await TucCalibradorService.restablecer_configuracion_oficial()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al restablecer calibrador: {str(e)}")
+
+@router.get("/render-html/{placa_o_id}", summary="Generar página HTML ultra rápida (<0.05s) para impresión directa de TUC", response_class=HTMLResponse)
+async def render_html_tuc(placa_o_id: str):
+    """
+    Genera el HTML listo para imprimir o previsualizar con las coordenadas milimétricas calibradas.
+    Permite invocar `window.print()` instantáneamente sin latencia de Word ni PDF.
+    """
+    try:
+        html = await TucCalibradorService.generar_html_impresion(placa_o_id)
+        return HTMLResponse(content=html)
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar HTML de TUC: {str(e)}")
+
+@router.post("/render-html-preview/{placa_o_id}", summary="Generar HTML con configuración en vivo en memoria", response_class=HTMLResponse)
+async def render_html_preview_tuc(placa_o_id: str, config: Dict[str, Any]):
+    """
+    Genera el HTML en tiempo real aplicando un borrador de configuración sin guardarlo previamente.
+    """
+    try:
+        html = await TucCalibradorService.generar_html_impresion(placa_o_id, config_override=config)
+        return HTMLResponse(content=html)
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar vista previa HTML: {str(e)}")
+
