@@ -11,14 +11,70 @@
 
       <div class="brand-block">
         <div class="brand-icon">
-          <mat-icon>verified</mat-icon>
+          <mat-icon>badge</mat-icon>
         </div>
         <div class="brand-text">
           <div class="brand-title-row">
-            <h1 class="brand-title">DRTC Puno - TUC Studio Calibrador</h1>
-            <span class="badge-version">Motor HTML v4.3</span>
+            <h1 class="brand-title">TUC Studio</h1>
+            <span class="badge-version">DRTC Puno</span>
           </div>
-          <span class="brand-sub">DIRECCIÓN REGIONAL DE TRANSPORTES Y COMUNICACIONES // PUNO</span>
+        </div>
+      </div>
+
+      <!-- Template Selector & Catalog Management Toolbar -->
+      <div class="template-selector-box">
+        <mat-icon class="tmpl-icon">auto_awesome_motion</mat-icon>
+        <div class="tmpl-select-wrapper">
+          <label class="tmpl-label">Plantilla:</label>
+          <select class="tmpl-select"
+                  [ngModel]="plantillaActualId()"
+                  (ngModelChange)="cambiarPlantilla($event)">
+            @for (tmpl of plantillas(); track tmpl.id) {
+              <option [value]="tmpl.id">
+                {{ tmpl.activa ? '★ ' : '' }}{{ tmpl.nombre }} ({{ tmpl.formato_papel === 'A4' ? 'A4' : 'PVC' }})
+              </option>
+            }
+          </select>
+        </div>
+
+        <button type="button"
+                class="btn-tmpl-action btn-add-tmpl"
+                (click)="abrirModalGuardarComo()"
+                matTooltip="Guardar configuración actual como una nueva plantilla (BD + JSON)">
+          <mat-icon>bookmark_add</mat-icon>
+          <span>Guardar Como</span>
+        </button>
+
+        @if (!esPredeterminadaActual()) {
+          <button type="button"
+                  class="btn-tmpl-action btn-star"
+                  (click)="activarComoPredeterminada()"
+                  matTooltip="Fijar esta plantilla como la predeterminada del sistema DRTC Puno">
+            <mat-icon>star_border</mat-icon>
+            <span>Fijar Default</span>
+          </button>
+        }
+
+        <button type="button"
+                class="btn-tmpl-action"
+                (click)="exportarJson()"
+                matTooltip="Descargar copia de respaldo en formato JSON">
+          <mat-icon>file_download</mat-icon>
+          <span>JSON</span>
+        </button>
+
+        @if (plantillas().length > 1) {
+          <button type="button"
+                  class="btn-tmpl-action btn-delete-tmpl"
+                  (click)="eliminarPlantillaActual()"
+                  matTooltip="Eliminar esta plantilla">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        }
+
+        <div class="sync-badge" matTooltip="Sincronizado automáticamente en MongoDB y en backend/app/templates/tuc_plantillas_catalogo.json">
+          <span class="sync-dot"></span>
+          <span>BD & JSON OK</span>
         </div>
       </div>
 
@@ -127,6 +183,23 @@
           <span>0.05s</span>
         </span>
       </button>
+
+      <!-- Guardar en PDF directo -->
+      <button mat-raised-button class="btn-pdf-export" (click)="guardarEnPdf()" [disabled]="isGeneratingPdf()" matTooltip="Descargar TUC calibrado en formato PDF de alta fidelidad">
+        @if (isGeneratingPdf()) {
+          <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
+          <span>Generando PDF...</span>
+        } @else {
+          <mat-icon>picture_as_pdf</mat-icon>
+          <span>Guardar en PDF</span>
+        }
+      </button>
+
+      <!-- Impresión en Lote Multi-Hojas -->
+      <button mat-stroked-button class="btn-batch-pdf" (click)="abrirModalLotePdf()" matTooltip="Imprimir o exportar muchas TUCs en un solo documento de múltiples hojas / PDF">
+        <mat-icon>dynamic_feed</mat-icon>
+        <span class="btn-text">Lote Multi-Hojas</span>
+      </button>
     </div>
   </header>
 
@@ -156,22 +229,30 @@
           </button>
           <button type="button" class="btn-add-action btn-add-img" (click)="abrirModalImagen()" matTooltip="Agregar Logo, Escudo, Marca de agua o Imagen">
             <mat-icon>image</mat-icon>
-            <span>+ Logo / Imagen</span>
+            <span>+ Imagen</span>
           </button>
           <button type="button" class="btn-add-action btn-add-qr" (click)="abrirModalQR()" matTooltip="Agregar Código QR interactivo de validación">
             <mat-icon>qr_code_2</mat-icon>
             <span>+ QR</span>
           </button>
+          <button type="button" class="btn-add-action btn-add-line" (click)="agregarLineaRutas()" matTooltip="Agregar línea horizontal o imagen decorativa debajo de Rutas">
+            <mat-icon>horizontal_rule</mat-icon>
+            <span>+ Línea Rutas</span>
+          </button>
         </div>
 
         <!-- Barra de selección múltiple rápida -->
         <div class="selection-actions-bar">
-          <button type="button" class="btn-sel-all" (click)="seleccionarTodasLasVariables()" matTooltip="Seleccionar todos los elementos para moverlos juntos">
+          <button type="button" class="btn-sel-all" (click)="seleccionarTodasLasVariables()" matTooltip="Seleccionar todos los elementos">
             <mat-icon>select_all</mat-icon>
-            <span>Seleccionar Todo</span>
+            <span>Todos</span>
+          </button>
+          <button type="button" class="btn-invert-sel" (click)="invertirSeleccion()" matTooltip="Invertir selección actual">
+            <mat-icon>swap_horiz</mat-icon>
+            <span>Invertir</span>
           </button>
           @if (totalSeleccionados() > 0) {
-            <button type="button" class="btn-desel-all" (click)="deseleccionarTodas()" matTooltip="Deseleccionar todos">
+            <button type="button" class="btn-desel-all" (click)="deseleccionarTodas()" matTooltip="Limpiar selección">
               <mat-icon>deselect</mat-icon>
               <span>Limpiar ({{ totalSeleccionados() }})</span>
             </button>
@@ -196,7 +277,14 @@
         @if (varsGraficos().length > 0) {
           <div class="var-category-block category-graphics">
             <div class="category-header">
-              <span class="category-name">Logotipos & Códigos QR</span>
+              <label class="category-select-label" (click)="$event.stopPropagation()">
+                <input type="checkbox"
+                       class="cat-checkbox"
+                       [checked]="estaCategoriaTotalmenteSeleccionada('graficos')"
+                       [indeterminate]="estaCategoriaParcialmenteSeleccionada('graficos')"
+                       (change)="toggleSeleccionCategoria('graficos')" />
+                <span class="category-name">Logotipos & Códigos QR</span>
+              </label>
               <span class="category-badge badge-graphics">{{ varsGraficos().length }}</span>
             </div>
             <div class="category-items">
@@ -205,9 +293,15 @@
                      [class.selected]="estaSeleccionada(v)"
                      [class.hidden-var]="!v.visible"
                      (click)="seleccionarVariable(v, $event)">
+                  <input type="checkbox"
+                         class="var-select-checkbox"
+                         [checked]="estaSeleccionada(v)"
+                         (click)="$event.stopPropagation()"
+                         (change)="toggleSeleccionDirecta(v, $event)"
+                         matTooltip="Seleccionar elemento" />
                   <div class="var-info">
                     <span class="var-tag">
-                      <mat-icon class="icon-tiny">{{ v.tipo === 'qr' ? 'qr_code_2' : 'image' }}</mat-icon>
+                      <mat-icon class="icon-tiny">{{ v.tipo === 'qr' ? 'qr_code_2' : (v.tipo === 'linea' ? 'horizontal_rule' : 'image') }}</mat-icon>
                       {{ v.tag }}
                     </span>
                     <span class="var-coords">{{ v.label }} ({{ v.width_mm || 15 }}×{{ v.height_mm || 15 }}mm)</span>
@@ -230,7 +324,14 @@
         @if (varsAutorizacion().length > 0) {
           <div class="var-category-block">
             <div class="category-header">
-              <span class="category-name">Datos Autorización & Empresa</span>
+              <label class="category-select-label" (click)="$event.stopPropagation()">
+                <input type="checkbox"
+                       class="cat-checkbox"
+                       [checked]="estaCategoriaTotalmenteSeleccionada('autorizacion')"
+                       [indeterminate]="estaCategoriaParcialmenteSeleccionada('autorizacion')"
+                       (change)="toggleSeleccionCategoria('autorizacion')" />
+                <span class="category-name">Datos Autorización & Empresa</span>
+              </label>
               <span class="category-badge">{{ varsAutorizacion().length }}</span>
             </div>
             <div class="category-items">
@@ -239,6 +340,12 @@
                      [class.selected]="estaSeleccionada(v)"
                      [class.hidden-var]="!v.visible"
                      (click)="seleccionarVariable(v, $event)">
+                  <input type="checkbox"
+                         class="var-select-checkbox"
+                         [checked]="estaSeleccionada(v)"
+                         (click)="$event.stopPropagation()"
+                         (change)="toggleSeleccionDirecta(v, $event)"
+                         matTooltip="Seleccionar elemento" />
                   <div class="var-info">
                     <span class="var-tag">{{ v.tag }}</span>
                     <span class="var-coords">X:{{ v.x_mm }} Y:{{ v.y_mm }}</span>
@@ -261,7 +368,14 @@
         @if (varsVehiculo().length > 0) {
           <div class="var-category-block">
             <div class="category-header">
-              <span class="category-name">Ficha Técnica Vehicular</span>
+              <label class="category-select-label" (click)="$event.stopPropagation()">
+                <input type="checkbox"
+                       class="cat-checkbox"
+                       [checked]="estaCategoriaTotalmenteSeleccionada('vehiculo')"
+                       [indeterminate]="estaCategoriaParcialmenteSeleccionada('vehiculo')"
+                       (change)="toggleSeleccionCategoria('vehiculo')" />
+                <span class="category-name">Ficha Técnica Vehicular</span>
+              </label>
               <span class="category-badge">{{ varsVehiculo().length }}</span>
             </div>
             <div class="category-items">
@@ -270,6 +384,12 @@
                      [class.selected]="estaSeleccionada(v)"
                      [class.hidden-var]="!v.visible"
                      (click)="seleccionarVariable(v, $event)">
+                  <input type="checkbox"
+                         class="var-select-checkbox"
+                         [checked]="estaSeleccionada(v)"
+                         (click)="$event.stopPropagation()"
+                         (change)="toggleSeleccionDirecta(v, $event)"
+                         matTooltip="Seleccionar elemento" />
                   <div class="var-info">
                     <span class="var-tag">{{ v.tag }}</span>
                     <span class="var-coords">X:{{ v.x_mm }} Y:{{ v.y_mm }}</span>
@@ -292,7 +412,14 @@
         @if (varsRutas().length > 0) {
           <div class="var-category-block">
             <div class="category-header">
-              <span class="category-name">Rutas Autorizadas</span>
+              <label class="category-select-label" (click)="$event.stopPropagation()">
+                <input type="checkbox"
+                       class="cat-checkbox"
+                       [checked]="estaCategoriaTotalmenteSeleccionada('rutas')"
+                       [indeterminate]="estaCategoriaParcialmenteSeleccionada('rutas')"
+                       (change)="toggleSeleccionCategoria('rutas')" />
+                <span class="category-name">Rutas Autorizadas</span>
+              </label>
               <span class="category-badge">{{ varsRutas().length }}</span>
             </div>
             <div class="category-items">
@@ -301,9 +428,22 @@
                      [class.selected]="estaSeleccionada(v)"
                      [class.hidden-var]="!v.visible"
                      (click)="seleccionarVariable(v, $event)">
+                  <input type="checkbox"
+                         class="var-select-checkbox"
+                         [checked]="estaSeleccionada(v)"
+                         (click)="$event.stopPropagation()"
+                         (change)="toggleSeleccionDirecta(v, $event)"
+                         matTooltip="Seleccionar elemento" />
                   <div class="var-info">
-                    <span class="var-tag">{{ v.tag }}</span>
-                    <span class="var-coords">Multilínea X:{{ v.x_mm }}</span>
+                    <span class="var-tag">
+                      @if (v.tipo === 'linea') {
+                        <mat-icon class="icon-tiny">horizontal_rule</mat-icon>
+                      }
+                      {{ v.tag }}
+                    </span>
+                    <span class="var-coords">
+                      {{ v.tipo === 'linea' ? ('Línea ' + v.width_mm + '×' + (v.grosor_mm || 1) + 'mm [Y:' + v.y_mm + ']') : ('Multilínea X:' + v.x_mm) }}
+                    </span>
                   </div>
                   <div class="var-actions">
                     <button type="button" class="icon-btn" (click)="toggleVisibilidad(v, $event)">
@@ -323,7 +463,14 @@
         @if (varsActoReverso().length > 0) {
           <div class="var-category-block">
             <div class="category-header">
-              <span class="category-name">Acto Resolutivo Reverso</span>
+              <label class="category-select-label" (click)="$event.stopPropagation()">
+                <input type="checkbox"
+                       class="cat-checkbox"
+                       [checked]="estaCategoriaTotalmenteSeleccionada('acto_reverso')"
+                       [indeterminate]="estaCategoriaParcialmenteSeleccionada('acto_reverso')"
+                       (change)="toggleSeleccionCategoria('acto_reverso')" />
+                <span class="category-name">Acto Resolutivo Reverso</span>
+              </label>
               <span class="category-badge">{{ varsActoReverso().length }}</span>
             </div>
             <div class="category-items">
@@ -332,6 +479,12 @@
                      [class.selected]="estaSeleccionada(v)"
                      [class.hidden-var]="!v.visible"
                      (click)="seleccionarVariable(v, $event)">
+                  <input type="checkbox"
+                         class="var-select-checkbox"
+                         [checked]="estaSeleccionada(v)"
+                         (click)="$event.stopPropagation()"
+                         (change)="toggleSeleccionDirecta(v, $event)"
+                         matTooltip="Seleccionar elemento" />
                   <div class="var-info">
                     <span class="var-tag">{{ v.tag }}</span>
                     <span class="var-coords">X:{{ v.x_mm }} Y:{{ v.y_mm }}</span>
@@ -354,7 +507,14 @@
         @if (varsPersonalizadas().length > 0) {
           <div class="var-category-block">
             <div class="category-header">
-              <span class="category-name">Personalizadas / Dinámicas</span>
+              <label class="category-select-label" (click)="$event.stopPropagation()">
+                <input type="checkbox"
+                       class="cat-checkbox"
+                       [checked]="estaCategoriaTotalmenteSeleccionada('personalizadas')"
+                       [indeterminate]="estaCategoriaParcialmenteSeleccionada('personalizadas')"
+                       (change)="toggleSeleccionCategoria('personalizadas')" />
+                <span class="category-name">Personalizadas / Dinámicas</span>
+              </label>
               <span class="category-badge">{{ varsPersonalizadas().length }}</span>
             </div>
             <div class="category-items">
@@ -363,6 +523,12 @@
                      [class.selected]="estaSeleccionada(v)"
                      [class.hidden-var]="!v.visible"
                      (click)="seleccionarVariable(v, $event)">
+                  <input type="checkbox"
+                         class="var-select-checkbox"
+                         [checked]="estaSeleccionada(v)"
+                         (click)="$event.stopPropagation()"
+                         (change)="toggleSeleccionDirecta(v, $event)"
+                         matTooltip="Seleccionar elemento" />
                   <div class="var-info">
                     <span class="var-tag">{{ v.tag }}</span>
                     <span class="var-coords">{{ v.label }}</span>
@@ -444,6 +610,20 @@
               <span class="mq-val">{{ margenDer() }}mm</span>
               <button type="button" class="mq-btn" (click)="ajustarMargen('margen_der_mm', 1)">+</button>
             </div>
+
+            <span class="mq-lbl ml-2">Margen Sup:</span>
+            <div class="mq-stepper">
+              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_top_mm', -1)">-</button>
+              <span class="mq-val">{{ margenTop() }}mm</span>
+              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_top_mm', 1)">+</button>
+            </div>
+
+            <span class="mq-lbl ml-2">Margen Inf:</span>
+            <div class="mq-stepper">
+              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_bottom_mm', -1)">-</button>
+              <span class="mq-val">{{ margenBottom() }}mm</span>
+              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_bottom_mm', 1)">+</button>
+            </div>
           </div>
 
           <div class="separator-v"></div>
@@ -453,6 +633,10 @@
             <label class="toggle-lbl">
               <input type="checkbox" [ngModel]="guiasMargenes()" (ngModelChange)="guiasMargenes.set($event)" />
               <span>Líneas Márgenes</span>
+            </label>
+            <label class="toggle-lbl" matTooltip="Eje horizontal de referencia y pliegue/corte de la hoja o tarjeta">
+              <input type="checkbox" [ngModel]="guiasReferencialesH()" (ngModelChange)="guiasReferencialesH.set($event)" />
+              <span>Eje H Referencial</span>
             </label>
             <label class="toggle-lbl">
               <input type="checkbox" [ngModel]="guiasSmart()" (ngModelChange)="guiasSmart.set($event)" />
@@ -514,6 +698,23 @@
             <button type="button" class="ms-btn" (click)="ajustarCoordenada('y_mm', -0.5)" matTooltip="Mover 0.5mm arriba">↑ 0.5mm</button>
             <button type="button" class="ms-btn" (click)="ajustarCoordenada('y_mm', 0.5)" matTooltip="Mover 0.5mm abajo">↓ 0.5mm</button>
             <div class="separator-v"></div>
+            <button type="button" class="ms-btn" (click)="cambiarVisibilidadLote(true)" matTooltip="Mostrar todos los seleccionados">
+              <mat-icon>visibility</mat-icon>
+              <span>Mostrar</span>
+            </button>
+            <button type="button" class="ms-btn" (click)="cambiarVisibilidadLote(false)" matTooltip="Ocultar todos los seleccionados">
+              <mat-icon>visibility_off</mat-icon>
+              <span>Ocultar</span>
+            </button>
+            <button type="button" class="ms-btn" (click)="cambiarBloqueoLote(true)" matTooltip="Bloquear todos los seleccionados">
+              <mat-icon>lock</mat-icon>
+              <span>Bloquear</span>
+            </button>
+            <button type="button" class="ms-btn" (click)="eliminarSeleccionados()" matTooltip="Eliminar seleccionados de la plantilla">
+              <mat-icon>delete</mat-icon>
+              <span>Eliminar</span>
+            </button>
+            <div class="separator-v"></div>
             <button type="button" class="ms-btn btn-cancel" (click)="deseleccionarTodas()">
               <mat-icon>close</mat-icon>
               <span>Deseleccionar</span>
@@ -565,7 +766,7 @@
                    [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'"
                    id="tuc-physical-sheet">
 
-                <!-- Líneas Guías de Margen Izquierdo y Derecho -->
+                <!-- Líneas Guías de Margen Horizontales y Verticales -->
                 @if (guiasMargenes()) {
                   <div class="margin-guide margin-guide-left" [style.left.mm]="margenIzq()">
                     <span class="margin-guide-lbl">Margen Izq: {{ margenIzq() }}mm</span>
@@ -573,7 +774,14 @@
                   <div class="margin-guide margin-guide-right" [style.right.mm]="margenDer()">
                     <span class="margin-guide-lbl">Margen Der: {{ margenDer() }}mm</span>
                   </div>
+                  <div class="margin-guide margin-guide-top" [style.top.mm]="margenTop()">
+                    <span class="margin-guide-lbl">Margen Sup: {{ margenTop() }}mm</span>
+                  </div>
+                  <div class="margin-guide margin-guide-bottom" [style.bottom.mm]="margenBottom()">
+                    <span class="margin-guide-lbl">Margen Inf: {{ margenBottom() }}mm</span>
+                  </div>
                 }
+
 
                 <!-- Decoración Tarjeta Dual PVC -->
                 @if (formatoPapel() === 'DUAL_PVC') {
@@ -606,7 +814,7 @@
                   @if (v.visible) {
                     <div class="positioned-var"
                          [class.is-selected]="estaSeleccionada(v)"
-                         [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr'"
+                         [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea'"
                          [class.is-dragging]="isDragging() && estaSeleccionada(v)"
                          [class.has-two-lines]="v.max_lineas === 2"
                          [class.has-multiline]="v.max_lineas === 0"
@@ -625,6 +833,16 @@
                         <img [src]="v.imagen_url" [alt]="v.label" [style.width.mm]="v.width_mm || 18" [style.height.mm]="v.height_mm || 15" [style.opacity]="v.opacidad ?? 1.0" class="canvas-img" />
                       } @else if (v.tipo === 'qr') {
                         <img [src]="obtenerQrPreviewUrl(v)" [alt]="v.label" [style.width.mm]="v.width_mm || 14" [style.height.mm]="v.height_mm || 14" class="canvas-qr" />
+                      } @else if (v.tipo === 'linea') {
+                        <div class="canvas-line-element"
+                             [style.width.mm]="v.width_mm || 50"
+                             [style.borderTopWidth.mm]="v.grosor_mm || v.height_mm || 1"
+                             [style.borderTopStyle]="v.estilo_linea || 'solid'"
+                             [style.borderTopColor]="v.color || '#000000'">
+                          <span class="line-element-label" [style.color]="v.color || '#000000'">
+                            {{ v.label }} ({{ v.width_mm }}mm × {{ v.grosor_mm || 1 }}mm)
+                          </span>
+                        </div>
                       } @else if (v.tag === '{{TABLA_RUTAS}}') {
                         @if (modoVista() === 'tags') {
                           <div class="tags-placeholder-box"><strong>{{ '{{TABLA_RUTAS}}' }}</strong></div>
@@ -685,7 +903,7 @@
                      [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
                      [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'">
 
-                  <!-- Líneas Guías de Margen -->
+                  <!-- Líneas Guías de Margen Horizontales y Verticales -->
                   @if (guiasMargenes()) {
                     <div class="margin-guide margin-guide-left" [style.left.mm]="margenIzq()">
                       <span class="margin-guide-lbl">Margen Izq: {{ margenIzq() }}mm</span>
@@ -693,13 +911,21 @@
                     <div class="margin-guide margin-guide-right" [style.right.mm]="margenDer()">
                       <span class="margin-guide-lbl">Margen Der: {{ margenDer() }}mm</span>
                     </div>
+                    <div class="margin-guide margin-guide-top" [style.top.mm]="margenTop()">
+                      <span class="margin-guide-lbl">Margen Sup: {{ margenTop() }}mm</span>
+                    </div>
+                    <div class="margin-guide margin-guide-bottom" [style.bottom.mm]="margenBottom()">
+                      <span class="margin-guide-lbl">Margen Inf: {{ margenBottom() }}mm</span>
+                    </div>
                   }
+
+
 
                   <!-- Elementos de Anverso -->
                   @for (v of varsAnverso(); track v.id) {
                     <div class="positioned-var"
                          [class.is-selected]="estaSeleccionada(v)"
-                         [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr'"
+                         [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea'"
                          [class.is-dragging]="isDragging() && estaSeleccionada(v)"
                          [class.has-two-lines]="v.max_lineas === 2"
                          [class.has-multiline]="v.max_lineas === 0"
@@ -719,6 +945,16 @@
                         <img [src]="v.imagen_url" [alt]="v.label" [style.width.mm]="v.width_mm || 18" [style.height.mm]="v.height_mm || 15" [style.opacity]="v.opacidad ?? 1.0" class="canvas-img" />
                       } @else if (v.tipo === 'qr') {
                         <img [src]="obtenerQrPreviewUrl(v)" [alt]="v.label" [style.width.mm]="v.width_mm || 14" [style.height.mm]="v.height_mm || 14" class="canvas-qr" />
+                      } @else if (v.tipo === 'linea') {
+                        <div class="canvas-line-element"
+                             [style.width.mm]="v.width_mm || 50"
+                             [style.borderTopWidth.mm]="v.grosor_mm || v.height_mm || 1"
+                             [style.borderTopStyle]="v.estilo_linea || 'solid'"
+                             [style.borderTopColor]="v.color || '#000000'">
+                          <span class="line-element-label" [style.color]="v.color || '#000000'">
+                            {{ v.label }} ({{ v.width_mm }}mm × {{ v.grosor_mm || 1 }}mm)
+                          </span>
+                        </div>
                       } @else {
                         <div class="var-rendered-content"
                              [class.clamp-2-lines]="v.max_lineas === 2"
@@ -751,7 +987,7 @@
                      [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
                      [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'">
 
-                  <!-- Líneas Guías de Margen -->
+                  <!-- Líneas Guías de Margen Horizontales y Verticales -->
                   @if (guiasMargenes()) {
                     <div class="margin-guide margin-guide-left" [style.left.mm]="margenIzq()">
                       <span class="margin-guide-lbl">Margen Izq: {{ margenIzq() }}mm</span>
@@ -759,13 +995,21 @@
                     <div class="margin-guide margin-guide-right" [style.right.mm]="margenDer()">
                       <span class="margin-guide-lbl">Margen Der: {{ margenDer() }}mm</span>
                     </div>
+                    <div class="margin-guide margin-guide-top" [style.top.mm]="margenTop()">
+                      <span class="margin-guide-lbl">Margen Sup: {{ margenTop() }}mm</span>
+                    </div>
+                    <div class="margin-guide margin-guide-bottom" [style.bottom.mm]="margenBottom()">
+                      <span class="margin-guide-lbl">Margen Inf: {{ margenBottom() }}mm</span>
+                    </div>
                   }
+
+
 
                   <!-- Elementos de Reverso -->
                   @for (v of varsReverso(); track v.id) {
                     <div class="positioned-var"
                          [class.is-selected]="estaSeleccionada(v)"
-                         [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr'"
+                         [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea'"
                          [class.is-dragging]="isDragging() && estaSeleccionada(v)"
                          [class.has-two-lines]="v.max_lineas === 2"
                          [class.has-multiline]="v.max_lineas === 0"
@@ -785,6 +1029,16 @@
                         <img [src]="v.imagen_url" [alt]="v.label" [style.width.mm]="v.width_mm || 18" [style.height.mm]="v.height_mm || 15" [style.opacity]="v.opacidad ?? 1.0" class="canvas-img" />
                       } @else if (v.tipo === 'qr') {
                         <img [src]="obtenerQrPreviewUrl(v)" [alt]="v.label" [style.width.mm]="v.width_mm || 14" [style.height.mm]="v.height_mm || 14" class="canvas-qr" />
+                      } @else if (v.tipo === 'linea') {
+                        <div class="canvas-line-element"
+                             [style.width.mm]="v.width_mm || 50"
+                             [style.borderTopWidth.mm]="v.grosor_mm || v.height_mm || 1"
+                             [style.borderTopStyle]="v.estilo_linea || 'solid'"
+                             [style.borderTopColor]="v.color || '#000000'">
+                          <span class="line-element-label" [style.color]="v.color || '#000000'">
+                            {{ v.label }} ({{ v.width_mm }}mm × {{ v.grosor_mm || 1 }}mm)
+                          </span>
+                        </div>
                       } @else if (v.tag === '{{TABLA_RUTAS}}') {
                         <div class="rutas-table-render">
                           @if (rutasVehiculo().length > 0) {
@@ -924,6 +1178,8 @@
             </div>
           </div>
 
+
+
           <!-- DETALLE DEL ELEMENTO SELECCIONADO -->
           @if (selectedVariable(); as sel) {
             <!-- Header Element Info -->
@@ -933,11 +1189,13 @@
                   <mat-icon class="icon-inline">image</mat-icon>
                 } @else if (sel.tipo === 'qr') {
                   <mat-icon class="icon-inline">qr_code_2</mat-icon>
+                } @else if (sel.tipo === 'linea') {
+                  <mat-icon class="icon-inline">horizontal_rule</mat-icon>
                 }
                 {{ sel.tag }}
               </div>
               <div class="sel-meta-row">
-                <span class="sel-category-chip">{{ sel.tipo === 'imagen' ? 'IMAGEN' : (sel.tipo === 'qr' ? 'QR CODE' : sel.categoria) }}</span>
+                <span class="sel-category-chip">{{ sel.tipo === 'imagen' ? 'IMAGEN' : (sel.tipo === 'qr' ? 'QR CODE' : (sel.tipo === 'linea' ? 'LÍNEA H' : sel.categoria)) }}</span>
                 <span class="sel-seccion-chip">{{ sel.seccion | uppercase }}</span>
               </div>
               <div class="sel-label-text">{{ sel.label }}</div>
@@ -972,7 +1230,7 @@
               <!-- Dimensions (Width & Height) -->
               <div class="coord-grid mt-2">
                 <div class="coord-field">
-                  <span class="coord-label">Ancho (mm):</span>
+                  <span class="coord-label">{{ sel.tipo === 'linea' ? 'Largo (mm):' : 'Ancho (mm):' }}</span>
                   <div class="num-control">
                     <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', -1)">-</button>
                     <input type="number" step="1" [(ngModel)]="sel.width_mm" (ngModelChange)="notificarCambio()" placeholder="Auto" class="coord-input" />
@@ -990,8 +1248,99 @@
                     </div>
                   </div>
                 }
+
+                @if (sel.tipo === 'linea') {
+                  <div class="coord-field">
+                    <span class="coord-label">Grosor (mm):</span>
+                    <div class="num-control">
+                      <button type="button" class="step-btn" (click)="sel.grosor_mm = Math.max(0.1, Math.round(((sel.grosor_mm || 1) - 0.2) * 10) / 10); notificarCambio()">-</button>
+                      <input type="number" step="0.1" [(ngModel)]="sel.grosor_mm" (ngModelChange)="notificarCambio()" class="coord-input" />
+                      <button type="button" class="step-btn" (click)="sel.grosor_mm = Math.min(10, Math.round(((sel.grosor_mm || 1) + 0.2) * 10) / 10); notificarCambio()">+</button>
+                    </div>
+                  </div>
+                }
               </div>
             </div>
+
+            <!-- CONFIGURACIÓN ESPECÍFICA PARA TIPO: LÍNEA HORIZONTAL / IMAGEN DECORATIVA -->
+            @if (sel.tipo === 'linea') {
+              <div class="prop-group">
+                <label class="group-title">Propiedades de Línea / Separador</label>
+
+                <!-- Color Picker & Text -->
+                <div class="field-row">
+                  <span class="field-lbl">Color de Línea:</span>
+                  <div class="color-picker-group">
+                    <input type="color" [(ngModel)]="sel.color" (ngModelChange)="notificarCambio()" class="color-picker-input" />
+                    <input type="text" [(ngModel)]="sel.color" (ngModelChange)="notificarCambio()" class="color-text-input" />
+                  </div>
+                </div>
+
+                <!-- Palette Swatches -->
+                <div class="palette-swatches">
+                  <span class="palette-lbl">Predefinidos:</span>
+                  <button type="button" class="swatch" style="background:#000000;" (click)="sel.color = '#000000'; notificarCambio()" matTooltip="Negro"></button>
+                  <button type="button" class="swatch" style="background:#1e3a8a;" (click)="sel.color = '#1e3a8a'; notificarCambio()" matTooltip="Azul Institucional MTC"></button>
+                  <button type="button" class="swatch" style="background:#d97706;" (click)="sel.color = '#d97706'; notificarCambio()" matTooltip="Ámbar"></button>
+                  <button type="button" class="swatch" style="background:#64748b;" (click)="sel.color = '#64748b'; notificarCambio()" matTooltip="Gris"></button>
+                  <button type="button" class="swatch" style="background:#dc2626;" (click)="sel.color = '#dc2626'; notificarCambio()" matTooltip="Rojo"></button>
+                </div>
+
+                <!-- Stroke Style -->
+                <div class="field-row mt-2">
+                  <span class="field-lbl">Estilo de Trazo:</span>
+                  <div class="btn-group-toggle">
+                    <button type="button" class="btn-toggle" [class.active]="(sel.estilo_linea || 'solid') === 'solid'" (click)="sel.estilo_linea = 'solid'; notificarCambio()">
+                      ── Sólida
+                    </button>
+                    <button type="button" class="btn-toggle" [class.active]="sel.estilo_linea === 'dashed'" (click)="sel.estilo_linea = 'dashed'; notificarCambio()">
+                      -- Trazos
+                    </button>
+                    <button type="button" class="btn-toggle" [class.active]="sel.estilo_linea === 'dotted'" (click)="sel.estilo_linea = 'dotted'; notificarCambio()">
+                      ••• Puntos
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Quick Width Actions -->
+                <div class="line-quick-presets mt-2">
+                  <button type="button" class="btn-lh-preset" (click)="alinearLineaConRutas(sel)" matTooltip="Alinear y ajustar al ancho de la tabla de Rutas (68mm)">
+                    <mat-icon>alt_route</mat-icon>
+                    <span>Bajo Rutas (68mm)</span>
+                  </button>
+                  <button type="button" class="btn-lh-preset" (click)="sel.width_mm = anchoHojaMm() - 20; notificarCambio()" matTooltip="Largo según márgenes">
+                    <mat-icon>straighten</mat-icon>
+                    <span>Largo Márgenes</span>
+                  </button>
+                  <button type="button" class="btn-lh-preset" (click)="sel.width_mm = anchoHojaMm(); sel.x_mm = 0; notificarCambio()" matTooltip="Extender al ancho completo">
+                    <mat-icon>width_full</mat-icon>
+                    <span>Ancho Total</span>
+                  </button>
+                </div>
+
+                <!-- Opción de Imagen Decorativa (Subir imagen o usar como gráfico) -->
+                <div class="field-row mt-2 pt-2 border-t">
+                  <span class="field-lbl">Gráfico / Imagen:</span>
+                  <div class="line-img-controls">
+                    @if (sel.imagen_url) {
+                      <div class="line-img-active">
+                        <img [src]="sel.imagen_url" alt="Línea decorativa" class="line-thumb-preview" />
+                        <button type="button" class="btn-clear-img" (click)="quitarImagenDeVariable(sel)" matTooltip="Eliminar imagen y volver a línea vectorial">
+                          <mat-icon>close</mat-icon>
+                          <span>Volver a Trazo</span>
+                        </button>
+                      </div>
+                    } @else {
+                      <input type="file" #lineImgFile style="display:none" accept="image/*" (change)="cargarImagenParaVariable(sel, $event)" />
+                      <button type="button" class="btn-upload-line" (click)="lineImgFile.click()" matTooltip="Cargar imagen decorativa (PNG, SVG) para que se muestre como línea/separador">
+                        <mat-icon>add_photo_alternate</mat-icon>
+                        <span>Cargar Imagen Decorativa</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
 
             <!-- CONFIGURACIÓN ESPECÍFICA PARA TIPO: IMAGEN / LOGO -->
             @if (sel.tipo === 'imagen') {
@@ -1696,6 +2045,136 @@
           <button mat-raised-button color="primary" (click)="guardarNuevaVariable()">
             <mat-icon>add</mat-icon>
             <span>Crear Campo y Ubicar en Lienzo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Guardar como Nueva Plantilla -->
+  @if (mostrarModalGuardarComo()) {
+    <div class="modal-backdrop" (click)="cerrarModalGuardarComo()">
+      <div class="modal-window modal-guardar-como" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-header-title">
+            <mat-icon class="icon-plus">bookmark_add</mat-icon>
+            <h3>Guardar Como Nueva Plantilla TUC</h3>
+          </div>
+          <button mat-icon-button (click)="cerrarModalGuardarComo()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-content">
+          <p class="modal-description">
+            Crea una nueva variante de plantilla a partir del diseño y calibración actual. Se guardará de inmediato en MongoDB y en el archivo <code>tuc_plantillas_catalogo.json</code> para que esté disponible en cualquier despliegue real.
+          </p>
+
+          <div class="form-row">
+            <label class="form-label">Nombre de la Plantilla: <span class="required">*</span></label>
+            <input type="text"
+                   [ngModel]="nombreNuevaPlantilla()"
+                   (ngModelChange)="nombreNuevaPlantilla.set($event)"
+                   placeholder="Ej: A4 Vertical Inspecciones Puno, Tarjeta Dual PVC 2026..."
+                   class="form-input" />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Descripción / Notas:</label>
+            <textarea rows="2"
+                      [ngModel]="descripcionNuevaPlantilla()"
+                      (ngModelChange)="descripcionNuevaPlantilla.set($event)"
+                      placeholder="Breve detalle sobre el uso de esta plantilla..."
+                      class="form-textarea"></textarea>
+          </div>
+
+          <div class="form-row checkbox-row">
+            <label class="checkbox-label">
+              <input type="checkbox"
+                     [ngModel]="hacerPredeterminadaNueva()"
+                     (ngModelChange)="hacerPredeterminadaNueva.set($event)" />
+              <span>Establecer como <strong>Plantilla Predeterminada</strong> del sistema DRTC Puno</span>
+            </label>
+            <small class="helper-text">
+              La plantilla predeterminada es la que se usará automáticamente en todas las impresiones rápidas de TUCs desde los listados y trámites.
+            </small>
+          </div>
+
+          <div class="modal-info-box">
+            <mat-icon>shield</mat-icon>
+            <div>
+              <strong>Garantía de Despliegue Real:</strong>
+              Al guardar, se sincroniza en la base de datos y se serializa en el archivo <code>backend/app/templates/tuc_plantillas_catalogo.json</code>. Si el sistema se instala en un nuevo servidor o contenedor con base de datos en blanco, las plantillas se inicializarán automáticamente desde el JSON sin perder ninguna calibración.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button mat-button (click)="cerrarModalGuardarComo()" [disabled]="guardandoNuevaPlantilla()">Cancelar</button>
+          <button mat-raised-button color="primary" (click)="confirmarGuardarComo()" [disabled]="guardandoNuevaPlantilla()">
+            @if (guardandoNuevaPlantilla()) {
+              <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
+              <span>Guardando...</span>
+            } @else {
+              <mat-icon>save</mat-icon>
+              <span>Crear Plantilla</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Impresión y Generación de Lote en Múltiples Hojas / PDF -->
+  @if (mostrarModalLotePdf()) {
+    <div class="modal-backdrop" (click)="cerrarModalLotePdf()">
+      <div class="modal-window modal-lote-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-header-title">
+            <mat-icon class="icon-plus">dynamic_feed</mat-icon>
+            <h3>Impresión en Lote / Guardar en PDF de Múltiples Hojas</h3>
+          </div>
+          <button mat-icon-button (click)="cerrarModalLotePdf()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-content">
+          <p class="modal-description">
+            Genera un solo documento continuo con <strong>múltiples hojas</strong> (cada TUC en su hoja respectiva), ideal para imprimir tandas completas de la flota o para <strong>Guardar en PDF</strong> todas las TUCs juntas.
+          </p>
+
+          <div class="form-row">
+            <label class="form-label">Placas a incluir (una por línea o separadas por comas):</label>
+            <textarea rows="5"
+                      [ngModel]="placasLoteTexto()"
+                      (ngModelChange)="placasLoteTexto.set($event)"
+                      placeholder="VBE-959&#10;Z4B-960&#10;X1Y-234..."
+                      class="form-textarea font-mono"></textarea>
+            <small class="helper-text">
+              Se procesarán los datos reales de cada vehículo registrado. Si un vehículo no está en el padrón, se imprimirán los datos calibrados de prueba.
+            </small>
+          </div>
+
+          <div class="modal-info-box">
+            <mat-icon>print</mat-icon>
+            <div>
+              <strong>Múltiples Hojas Automáticas:</strong>
+              El documento resultante aplica saltos de página estándar (<code>break-after: page</code>). Al pulsar Imprimir, la impresora sacará cada TUC en su hoja física, o puedes elegir "Guardar como PDF" en el diálogo del navegador para generar el PDF consolidado.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button mat-button (click)="cerrarModalLotePdf()" [disabled]="generandoLotePdf()">Cancelar</button>
+          <button mat-raised-button color="primary" class="btn-print-lote" (click)="generarLotePdf()" [disabled]="generandoLotePdf()">
+            @if (generandoLotePdf()) {
+              <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
+              <span>Generando Lote...</span>
+            } @else {
+              <mat-icon>print</mat-icon>
+              <span>Generar Documento Multi-Hojas</span>
+            }
           </button>
         </div>
       </div>

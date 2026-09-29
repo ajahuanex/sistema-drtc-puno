@@ -2,13 +2,56 @@ import io
 import re
 from html import escape as html_escape
 import base64
+import json
+import copy
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from bson import ObjectId
+from pathlib import Path
+import logging
 import qrcode
 
 from app.dependencies.db import get_database
 from app.services.tuc_document_service import TucDocumentService
+
+logger = logging.getLogger(__name__)
+
+def resolver_imagen_a_base64_o_url(url_o_path: str) -> str:
+    """
+    Si la imagen es una ruta relativa local a assets (ej. /assets/images/... o assets/images/...),
+    la busca en el filesystem del proyecto y la convierte a un Data URI en Base64
+    (data:image/png;base64,...) para garantizar que se renderice instantáneamente en la
+    impresión sin fallas de red ni errores 404 del servidor.
+    """
+    if not url_o_path:
+        return ""
+    if url_o_path.startswith("data:image/"):
+        return url_o_path
+
+    try:
+        # Ubicar la raíz del proyecto SIRRETT
+        # __file__ está en backend/app/services/tuc_calibrador_service.py -> 4 niveles arriba es la raíz
+        repo_root = Path(__file__).resolve().parents[3]
+        limpio = url_o_path.lstrip("/\\")
+
+        candidatos = [
+            repo_root / "frontend" / "src" / limpio,
+            repo_root / "frontend" / "public" / limpio,
+            repo_root / "frontend" / limpio,
+            repo_root / limpio,
+            Path(limpio)
+        ]
+
+        for p in candidatos:
+            if p.exists() and p.is_file():
+                ext = p.suffix.lower().lstrip(".")
+                mime = "svg+xml" if ext == "svg" else ("jpeg" if ext in ("jpg", "jpeg") else "png")
+                b64_str = base64.b64encode(p.read_bytes()).decode("utf-8")
+                return f"data:image/{mime};base64,{b64_str}"
+    except Exception as e:
+        logger.warning(f"No se pudo resolver imagen '{url_o_path}' a Base64: {e}")
+
+    return url_o_path
 
 def formatear_comillas_y_estilos(texto: str, resaltar_comillas: bool = True) -> str:
     """
@@ -435,6 +478,24 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
         "visible": True,
         "valor_ejemplo": "Ruta 01: JULIACA - PUTINA - QUILCAPUNO - ANANEA - C.P. LA RINCONADA - C.P. CERRO LUNAR 20 DIARIAS"
     },
+    {
+        "id": "linea_rutas",
+        "tag": "{{LINEA_RUTAS}}",
+        "label": "Línea / Imagen Decorativa (Bajo Rutas)",
+        "categoria": "rutas",
+        "seccion": "reverso",
+        "tipo": "linea",
+        "x_mm": 12.0,
+        "y_mm": 72.0,
+        "width_mm": 68.0,
+        "height_mm": 1.5,
+        "grosor_mm": 0.8,
+        "color": "#1e3a8a",
+        "estilo_linea": "solid",
+        "imagen_url": "",
+        "visible": True,
+        "imprimible": True
+    },
 
     # --- ACTO RESOLUTIVO MODIFICATORIO (REVERSO) ---
     {
@@ -528,79 +589,485 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
     }
 ]
 
-DEFAULT_CONFIG: Dict[str, Any] = {
-    "nombre": "Plantilla Oficial TUC DRTC Puno",
-    "formato_papel": "DUAL_PVC",  # "DUAL_PVC" (85.6x108mm) o "A4" (210x297mm)
-    "orientacion": "portrait",    # "portrait" o "landscape"
-    "modo_hojas": "UNA_HOJA",     # "UNA_HOJA" o "DOS_HOJAS" (Hoja 1: Anverso, Hoja 2: Reverso)
-    "ancho_mm": 85.6,
-    "alto_mm": 108.0,
-    "anverso_alto_mm": 54.0,
-    "reverso_alto_mm": 54.0,
-    "margen_izq_mm": 10.0,
-    "margen_der_mm": 10.0,
-    "margen_top_mm": 10.0,
-    "margen_bottom_mm": 10.0,
-    "variables": DEFAULT_VARIABLES,
-    "activa": True
-}
+JSON_CATALOGO_PATH = Path(__file__).resolve().parent.parent / "templates" / "tuc_plantillas_catalogo.json"
+
+DEFAULT_TEMPLATES: List[Dict[str, Any]] = [
+    {
+        "id": "oficial_a4_vertical",
+        "nombre": "Plantilla Oficial DRTC Puno (A4 Vertical)",
+        "descripcion": "Formato estándar oficial A4 vertical con márgenes milimétricos para cartón e impresión directa.",
+        "formato_papel": "A4",
+        "orientacion": "portrait",
+        "modo_hojas": "UNA_HOJA",
+        "ancho_mm": 210.0,
+        "alto_mm": 297.0,
+        "anverso_alto_mm": 54.0,
+        "reverso_alto_mm": 54.0,
+        "margen_izq_mm": 10.0,
+        "margen_der_mm": 10.0,
+        "margen_top_mm": 10.0,
+        "margen_bottom_mm": 10.0,
+        "linea_horizontal": {
+            "activa": False,
+            "y_mm": 148.5,
+            "x_mm": 0.0,
+            "ancho_mm": 210.0,
+            "grosor_mm": 1.0,
+            "color": "#d97706",
+            "estilo": "dashed",
+            "imprimible": False,
+            "etiqueta": "Eje Horizontal Referencial"
+        },
+        "variables": copy.deepcopy(DEFAULT_VARIABLES),
+        "activa": True,
+        "es_oficial": True
+    },
+    {
+        "id": "oficial_dual_pvc",
+        "nombre": "Plantilla Tarjeta Dual PVC (85.6 × 108 mm)",
+        "descripcion": "Formato compacto oficial de 85.6 × 108 mm para tarjetas PVC y plásticas con doblez central.",
+        "formato_papel": "DUAL_PVC",
+        "orientacion": "portrait",
+        "modo_hojas": "UNA_HOJA",
+        "ancho_mm": 85.6,
+        "alto_mm": 108.0,
+        "anverso_alto_mm": 54.0,
+        "reverso_alto_mm": 54.0,
+        "margen_izq_mm": 5.0,
+        "margen_der_mm": 5.0,
+        "margen_top_mm": 5.0,
+        "margen_bottom_mm": 5.0,
+        "linea_horizontal": {
+            "activa": False,
+            "y_mm": 54.0,
+            "x_mm": 0.0,
+            "ancho_mm": 85.6,
+            "grosor_mm": 1.0,
+            "color": "#d97706",
+            "estilo": "dashed",
+            "imprimible": False,
+            "etiqueta": "Doblez / Eje Central PVC"
+        },
+        "variables": copy.deepcopy(DEFAULT_VARIABLES),
+        "activa": False,
+        "es_oficial": True
+    },
+    {
+        "id": "oficial_a4_duplex",
+        "nombre": "Plantilla A4 Dúplex (2 Hojas Anverso/Reverso)",
+        "descripcion": "Formato en dos páginas separadas (Hoja 1: Anverso, Hoja 2: Reverso) para impresión a doble cara.",
+        "formato_papel": "A4",
+        "orientacion": "portrait",
+        "modo_hojas": "DOS_HOJAS",
+        "ancho_mm": 210.0,
+        "alto_mm": 297.0,
+        "anverso_alto_mm": 54.0,
+        "reverso_alto_mm": 54.0,
+        "margen_izq_mm": 10.0,
+        "margen_der_mm": 10.0,
+        "margen_top_mm": 10.0,
+        "margen_bottom_mm": 10.0,
+        "linea_horizontal": {
+            "activa": False,
+            "y_mm": 148.5,
+            "x_mm": 0.0,
+            "ancho_mm": 210.0,
+            "grosor_mm": 1.0,
+            "color": "#d97706",
+            "estilo": "dashed",
+            "imprimible": False,
+            "etiqueta": "Eje Horizontal Referencial"
+        },
+        "variables": copy.deepcopy(DEFAULT_VARIABLES),
+        "activa": False,
+        "es_oficial": True
+    }
+]
+
+DEFAULT_CONFIG: Dict[str, Any] = DEFAULT_TEMPLATES[0]
+
+
+def guardar_catalogo_json(plantillas: List[Dict[str, Any]]) -> bool:
+    """Guarda la lista completa de plantillas en el archivo JSON local de respaldo."""
+    try:
+        clean_list = []
+        for p in plantillas:
+            item = dict(p)
+            if "_id" in item:
+                item["_id"] = str(item["_id"])
+            if not item.get("id"):
+                item["id"] = item.get("_id") or f"plantilla_{int(datetime.utcnow().timestamp())}"
+            clean_list.append(item)
+        JSON_CATALOGO_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(JSON_CATALOGO_PATH, "w", encoding="utf-8") as f:
+            json.dump(clean_list, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error al guardar catálogo de plantillas en JSON ({JSON_CATALOGO_PATH}): {e}")
+        return False
+
+
+def cargar_catalogo_json() -> List[Dict[str, Any]]:
+    """Carga las plantillas guardadas en el archivo JSON local si existe."""
+    try:
+        if JSON_CATALOGO_PATH.exists():
+            with open(JSON_CATALOGO_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list) and len(data) > 0:
+                    return data
+    except Exception as e:
+        logger.warning(f"No se pudo cargar catálogo de plantillas desde JSON: {e}")
+    return [copy.deepcopy(t) for t in DEFAULT_TEMPLATES]
 
 
 class TucCalibradorService:
     @staticmethod
-    async def obtener_configuracion() -> Dict[str, Any]:
+    async def asegurar_inicializacion_catalogo() -> List[Dict[str, Any]]:
         """
-        Obtiene la configuración activa del calibrador de variables y posiciones.
-        Si no existe en base de datos, inicializa y devuelve la plantilla por defecto.
+        Verifica que existan plantillas en MongoDB. Si la colección está vacía (despliegue nuevo o cold start):
+        1. Intenta cargar desde el archivo JSON de respaldo.
+        2. Si no existe el archivo JSON, toma las plantillas oficiales predeterminadas.
+        3. Siembra la colección en MongoDB y asegura la sincronización del archivo JSON.
         """
         db = await get_database()
         if db is None:
-            return dict(DEFAULT_CONFIG)
+            return cargar_catalogo_json()
+
+        count = await db.tuc_plantillas_calibrador.count_documents({})
+        if count == 0:
+            logger.info("Colección tuc_plantillas_calibrador vacía. Sembrando desde JSON de respaldo o plantillas oficiales...")
+            from_json = cargar_catalogo_json()
+            if not from_json:
+                from_json = [copy.deepcopy(t) for t in DEFAULT_TEMPLATES]
+
+            tiene_activa = any(p.get("activa", False) for p in from_json)
+            if not tiene_activa and from_json:
+                from_json[0]["activa"] = True
+
+            now = datetime.utcnow().isoformat()
+            for p in from_json:
+                p.pop("_id", None)
+                if "id" not in p or not p["id"]:
+                    p["id"] = re.sub(r'[^a-zA-Z0-9_]', '_', p.get("nombre", "").lower())[:30] or f"plantilla_{int(datetime.utcnow().timestamp())}"
+                p.setdefault("fecha_creacion", now)
+                p.setdefault("fecha_actualizacion", now)
+                res = await db.tuc_plantillas_calibrador.insert_one(p)
+                p["_id"] = str(res.inserted_id)
+
+            guardar_catalogo_json(from_json)
+
+        # Asegurar que existan las plantillas oficiales predeterminadas si no están
+        existentes_ids = set()
+        existentes_nombres = set()
+        plantillas_actuales = await db.tuc_plantillas_calibrador.find({}).to_list(100)
+        for p in plantillas_actuales:
+            if p.get("id"):
+                existentes_ids.add(p["id"])
+            if p.get("nombre"):
+                existentes_nombres.add(p["nombre"].strip().lower())
+
+        hay_activa = any(p.get("activa", False) for p in plantillas_actuales)
+
+        for t in DEFAULT_TEMPLATES:
+            t_id = t["id"]
+            t_nom = t["nombre"].strip().lower()
+            if t_id not in existentes_ids and t_nom not in existentes_nombres:
+                item = copy.deepcopy(t)
+                item["activa"] = False if hay_activa else item.get("activa", False)
+                item["fecha_creacion"] = datetime.utcnow().isoformat()
+                item["fecha_actualizacion"] = datetime.utcnow().isoformat()
+                await db.tuc_plantillas_calibrador.insert_one(item)
+                if item["activa"]:
+                    hay_activa = True
+
+        plantillas = await db.tuc_plantillas_calibrador.find({}).to_list(100)
+        for p in plantillas:
+            p["_id"] = str(p["_id"])
+        # Sincronizar hacia JSON para tener siempre el estado más fresco
+        guardar_catalogo_json(plantillas)
+        return plantillas
+
+    @staticmethod
+    async def listar_plantillas() -> List[Dict[str, Any]]:
+        """Devuelve el resumen de todas las plantillas registradas en base de datos y JSON."""
+        plantillas = await TucCalibradorService.asegurar_inicializacion_catalogo()
+        resumen = []
+        for p in plantillas:
+            resumen.append({
+                "_id": str(p.get("_id", "")),
+                "id": p.get("id") or str(p.get("_id", "")),
+                "nombre": p.get("nombre", "Plantilla sin nombre"),
+                "descripcion": p.get("descripcion", ""),
+                "formato_papel": p.get("formato_papel", "DUAL_PVC"),
+                "orientacion": p.get("orientacion", "portrait"),
+                "modo_hojas": p.get("modo_hojas", "UNA_HOJA"),
+                "ancho_mm": p.get("ancho_mm", 210.0),
+                "alto_mm": p.get("alto_mm", 297.0),
+                "total_variables": len(p.get("variables", [])),
+                "activa": p.get("activa", False),
+                "es_oficial": p.get("es_oficial", False),
+                "fecha_actualizacion": p.get("fecha_actualizacion", "")
+            })
+        return resumen
+
+    @staticmethod
+    async def obtener_plantilla(plantilla_id: str) -> Optional[Dict[str, Any]]:
+        """Obtiene una plantilla específica por _id o por slug id."""
+        db = await get_database()
+        if db is None:
+            catalogo = cargar_catalogo_json()
+            for p in catalogo:
+                if str(p.get("_id")) == plantilla_id or p.get("id") == plantilla_id:
+                    return p
+            return catalogo[0] if catalogo else None
+
+        query = {}
+        if ObjectId.is_valid(plantilla_id):
+            query = {"$or": [{"_id": ObjectId(plantilla_id)}, {"id": plantilla_id}]}
+        else:
+            query = {"id": plantilla_id}
+
+        p = await db.tuc_plantillas_calibrador.find_one(query)
+        if not p:
+            # Buscar en catalogo JSON
+            catalogo = cargar_catalogo_json()
+            for item in catalogo:
+                if str(item.get("_id")) == plantilla_id or item.get("id") == plantilla_id:
+                    return item
+            return None
+        p["_id"] = str(p["_id"])
+        return p
+
+    @staticmethod
+    async def obtener_configuracion(plantilla_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Obtiene la configuración activa o la plantilla indicada.
+        Si la base de datos está vacía, la siembra automáticamente desde JSON o plantillas oficiales.
+        """
+        await TucCalibradorService.asegurar_inicializacion_catalogo()
+        db = await get_database()
+        if db is None:
+            catalogo = cargar_catalogo_json()
+            if plantilla_id:
+                for p in catalogo:
+                    if str(p.get("_id")) == plantilla_id or p.get("id") == plantilla_id:
+                        return p
+            for p in catalogo:
+                if p.get("activa"):
+                    return p
+            return catalogo[0] if catalogo else dict(DEFAULT_CONFIG)
+
+        if plantilla_id:
+            cfg = await TucCalibradorService.obtener_plantilla(plantilla_id)
+            if cfg:
+                return cfg
+
         config = await db.tuc_plantillas_calibrador.find_one({"activa": True})
         if not config:
-            config = dict(DEFAULT_CONFIG)
+            config = await db.tuc_plantillas_calibrador.find_one({})
+            if config:
+                await db.tuc_plantillas_calibrador.update_one({"_id": config["_id"]}, {"$set": {"activa": True}})
+                config["activa"] = True
+
+        if not config:
+            config = copy.deepcopy(DEFAULT_CONFIG)
             config["fecha_creacion"] = datetime.utcnow().isoformat()
             res = await db.tuc_plantillas_calibrador.insert_one(config)
             config["_id"] = str(res.inserted_id)
         else:
             config["_id"] = str(config["_id"])
+
         return config
 
     @staticmethod
     async def guardar_configuracion(config_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Guarda o actualiza las posiciones, estilos y nuevas variables en la base de datos.
+        Guarda o actualiza las posiciones, estilos y nuevas variables en la base de datos y en JSON.
         """
         db = await get_database()
         config_data["fecha_actualizacion"] = datetime.utcnow().isoformat()
-        config_data["activa"] = True
 
-        # Limpiar _id si viene en string
+        # Determinar si debe marcarse activa
+        es_activa = config_data.get("activa", True)
+
         doc_id = config_data.pop("_id", None)
-        if doc_id and ObjectId.is_valid(doc_id):
-            await db.tuc_plantillas_calibrador.update_one(
-                {"_id": ObjectId(doc_id)},
-                {"$set": config_data},
-                upsert=True
-            )
-            config_data["_id"] = doc_id
+        id_slug = config_data.get("id")
+
+        if db is not None:
+            if es_activa:
+                # Si se guarda como activa, desactivar las demás
+                await db.tuc_plantillas_calibrador.update_many({}, {"$set": {"activa": False}})
+
+            config_data["activa"] = es_activa
+
+            if doc_id and ObjectId.is_valid(doc_id):
+                await db.tuc_plantillas_calibrador.update_one(
+                    {"_id": ObjectId(doc_id)},
+                    {"$set": config_data},
+                    upsert=True
+                )
+                config_data["_id"] = doc_id
+            elif id_slug:
+                res = await db.tuc_plantillas_calibrador.update_one(
+                    {"id": id_slug},
+                    {"$set": config_data},
+                    upsert=True
+                )
+                config_data["_id"] = str(res.upserted_id) if res.upserted_id else id_slug
+            else:
+                res = await db.tuc_plantillas_calibrador.update_one(
+                    {"activa": True},
+                    {"$set": config_data},
+                    upsert=True
+                )
+                if res.upserted_id:
+                    config_data["_id"] = str(res.upserted_id)
+
+            # Sincronizar catálogo a archivo JSON físico
+            plantillas = await db.tuc_plantillas_calibrador.find({}).to_list(100)
+            for p in plantillas:
+                p["_id"] = str(p["_id"])
+            guardar_catalogo_json(plantillas)
         else:
-            res = await db.tuc_plantillas_calibrador.update_one(
-                {"activa": True},
-                {"$set": config_data},
-                upsert=True
-            )
-            if res.upserted_id:
-                config_data["_id"] = str(res.upserted_id)
+            catalogo = cargar_catalogo_json()
+            if doc_id:
+                for idx, c in enumerate(catalogo):
+                    if str(c.get("_id")) == str(doc_id) or c.get("id") == doc_id:
+                        catalogo[idx] = config_data
+                        break
+            guardar_catalogo_json(catalogo)
+
         return config_data
+
+    @staticmethod
+    async def crear_nueva_plantilla(plantilla_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Crea una nueva plantilla en el catálogo (BD y JSON).
+        """
+        db = await get_database()
+        now = datetime.utcnow().isoformat()
+        nombre = plantilla_data.get("nombre", "").strip() or f"Nueva Plantilla {int(datetime.utcnow().timestamp())}"
+        slug = re.sub(r'[^a-zA-Z0-9_]', '_', nombre.lower())[:30]
+
+        nueva = copy.deepcopy(plantilla_data)
+        nueva.pop("_id", None)
+        nueva["nombre"] = nombre
+        nueva["id"] = f"{slug}_{int(datetime.utcnow().timestamp())}"
+        nueva["fecha_creacion"] = now
+        nueva["fecha_actualizacion"] = now
+        nueva["es_oficial"] = False
+
+        es_activa = nueva.get("activa", False)
+
+        if db is not None:
+            if es_activa:
+                await db.tuc_plantillas_calibrador.update_many({}, {"$set": {"activa": False}})
+            res = await db.tuc_plantillas_calibrador.insert_one(nueva)
+            nueva["_id"] = str(res.inserted_id)
+
+            plantillas = await db.tuc_plantillas_calibrador.find({}).to_list(100)
+            for p in plantillas:
+                p["_id"] = str(p["_id"])
+            guardar_catalogo_json(plantillas)
+        else:
+            catalogo = cargar_catalogo_json()
+            if es_activa:
+                for c in catalogo: c["activa"] = False
+            nueva["_id"] = nueva["id"]
+            catalogo.append(nueva)
+            guardar_catalogo_json(catalogo)
+
+        return nueva
+
+    @staticmethod
+    async def activar_plantilla(plantilla_id: str) -> Dict[str, Any]:
+        """
+        Establece una plantilla como la predeterminada/activa para todo el sistema.
+        """
+        db = await get_database()
+        query = {"_id": ObjectId(plantilla_id)} if ObjectId.is_valid(plantilla_id) else {"id": plantilla_id}
+
+        if db is not None:
+            await db.tuc_plantillas_calibrador.update_many({}, {"$set": {"activa": False}})
+            await db.tuc_plantillas_calibrador.update_one(query, {"$set": {"activa": True, "fecha_actualizacion": datetime.utcnow().isoformat()}})
+
+            plantillas = await db.tuc_plantillas_calibrador.find({}).to_list(100)
+            for p in plantillas:
+                p["_id"] = str(p["_id"])
+            guardar_catalogo_json(plantillas)
+
+            target = await db.tuc_plantillas_calibrador.find_one(query)
+            if target:
+                target["_id"] = str(target["_id"])
+                return target
+        else:
+            catalogo = cargar_catalogo_json()
+            target = None
+            for p in catalogo:
+                if str(p.get("_id")) == plantilla_id or p.get("id") == plantilla_id:
+                    p["activa"] = True
+                    target = p
+                else:
+                    p["activa"] = False
+            guardar_catalogo_json(catalogo)
+            if target: return target
+
+        return await TucCalibradorService.obtener_configuracion()
+
+    @staticmethod
+    async def eliminar_plantilla(plantilla_id: str) -> bool:
+        """
+        Elimina una plantilla si no es la única existente.
+        Si la plantilla eliminada era la activa, activa automáticamente otra.
+        """
+        db = await get_database()
+        query = {"_id": ObjectId(plantilla_id)} if ObjectId.is_valid(plantilla_id) else {"id": plantilla_id}
+
+        if db is not None:
+            total = await db.tuc_plantillas_calibrador.count_documents({})
+            if total <= 1:
+                raise ValueError("No se puede eliminar la única plantilla registrada en el sistema.")
+
+            target = await db.tuc_plantillas_calibrador.find_one(query)
+            if not target:
+                raise ValueError("La plantilla a eliminar no existe.")
+
+            era_activa = target.get("activa", False)
+            await db.tuc_plantillas_calibrador.delete_one(query)
+
+            if era_activa:
+                otra = await db.tuc_plantillas_calibrador.find_one({})
+                if otra:
+                    await db.tuc_plantillas_calibrador.update_one({"_id": otra["_id"]}, {"$set": {"activa": True}})
+
+            plantillas = await db.tuc_plantillas_calibrador.find({}).to_list(100)
+            for p in plantillas:
+                p["_id"] = str(p["_id"])
+            guardar_catalogo_json(plantillas)
+            return True
+        else:
+            catalogo = cargar_catalogo_json()
+            if len(catalogo) <= 1:
+                raise ValueError("No se puede eliminar la única plantilla registrada.")
+            catalogo = [c for c in catalogo if str(c.get("_id")) != plantilla_id and c.get("id") != plantilla_id]
+            if not any(c.get("activa") for c in catalogo):
+                catalogo[0]["activa"] = True
+            guardar_catalogo_json(catalogo)
+            return True
 
     @staticmethod
     async def restablecer_configuracion_oficial() -> Dict[str, Any]:
         """
-        Restablece la plantilla a las coordenadas y variables oficiales estándar.
+        Restablece el catálogo completo a las plantillas y variables oficiales estándar de DRTC Puno.
         """
         db = await get_database()
-        await db.tuc_plantillas_calibrador.delete_many({"activa": True})
+        if db is not None:
+            await db.tuc_plantillas_calibrador.delete_many({})
+
+        # Escribir plantillas oficiales en JSON
+        guardar_catalogo_json(DEFAULT_TEMPLATES)
+        # Sembrar en BD
+        await TucCalibradorService.asegurar_inicializacion_catalogo()
         return await TucCalibradorService.obtener_configuracion()
 
     @staticmethod
@@ -609,25 +1076,54 @@ class TucCalibradorService:
         Genera el documento HTML completo, autónomo e instantáneo (<0.05s)
         con coordenadas milimétricas exactas listas para impresión física sobre el cartón TUC.
         """
+        config = config_override or await TucCalibradorService.obtener_configuracion()
+        variables: List[Dict[str, Any]] = config.get("variables", DEFAULT_VARIABLES)
+
+        term = (placa_o_id or "").strip()
+        es_muestra_ejemplo = False
+        tuc_data = None
+
         try:
-            tuc_data = await TucDocumentService.get_tuc_data(placa_o_id)
-        except Exception:
+            if term:
+                tuc_data = await TucDocumentService.get_tuc_data(term)
+            if not tuc_data or not tuc_data.get("placeholders"):
+                es_muestra_ejemplo = True
+        except Exception as e:
+            logger.info(f"Vehículo '{term}' no encontrado en flota o BD ({e}). Usando valores de plantilla para calibración.")
+            es_muestra_ejemplo = True
+
+        if not tuc_data or es_muestra_ejemplo:
+            es_muestra_ejemplo = True
+            sample_placeholders = {}
+            for v in variables:
+                tag = v.get("tag")
+                val_ej = v.get("valor_ejemplo")
+                if tag and val_ej is not None:
+                    sample_placeholders[tag] = str(val_ej)
+
+            placa_efectiva = term.upper() if (term and term.upper() != "VBE-959") else sample_placeholders.get("{{PLACA}}", "VBE-959")
+            sample_placeholders["{{PLACA}}"] = placa_efectiva
+
             tuc_data = {
-                "datos_estructurados": {"placa": placa_o_id},
-                "placeholders": {
-                    "{{PLACA}}": placa_o_id,
-                    "{{EMPRESA}}": "EMPRESA DE TRANSPORTE REGIONAL",
-                    "{{RUC}}": "20448192031",
-                    "{{NRO_TUC}}": "TUC-2025-001"
-                }
+                "datos_estructurados": {
+                    "placa": placa_efectiva,
+                    "rutas_detalle": [
+                        {
+                            "codigo": "01",
+                            "origen": "JULIACA",
+                            "itinerario": "PUTINA - ANANEA",
+                            "destino": "LA RINCONADA",
+                            "frecuencia": ""
+                        }
+                    ]
+                },
+                "placeholders": sample_placeholders
             }
+
         datos = tuc_data.get("datos_estructurados", {})
         placeholders = tuc_data.get("placeholders", {})
         rutas_detalle = datos.get("rutas_detalle", [])
         es_fila_en_blanco = datos.get("es_fila_en_blanco", False)
-
-        config = config_override or await TucCalibradorService.obtener_configuracion()
-        variables: List[Dict[str, Any]] = config.get("variables", DEFAULT_VARIABLES)
 
         formato_papel = config.get("formato_papel", "DUAL_PVC")
         orientacion = config.get("orientacion", "portrait")
@@ -645,33 +1141,8 @@ class TucCalibradorService:
 
         anverso_alto_mm = config.get("anverso_alto_mm", 54.0)
 
-        # Mapa de valores reales a inyectar
-        valores_map = {
-            "{{FECHA_DEL}}": placeholders.get("{{FECHA_DEL}}", ""),
-            "{{FECHA_AL}}": placeholders.get("{{FECHA_AL}}", ""),
-            "{{RES}}": placeholders.get("{{RES}}", ""),
-            "{{FECHA_RES_P}}": placeholders.get("{{FECHA_RES_P}}", ""),
-            "{{EMPRESA}}": placeholders.get("{{EMPRESA}}", ""),
-            "{{RUC}}": placeholders.get("{{RUC}}", ""),
-            "{{PARTIDA}}": placeholders.get("{{PARTIDA}}", ""),
-            "{{PLACA}}": placeholders.get("{{PLACA}}", ""),
-            "{{COLOR}}": placeholders.get("{{COLOR}}", ""),
-            "{{MARCA}}": placeholders.get("{{MARCA}}", ""),
-            "{{VIN}}": placeholders.get("{{VIN}}", ""),
-            "{{ANIO}}": placeholders.get("{{ANIO}}", ""),
-            "{{ASIENTOS}}": placeholders.get("{{ASIENTOS}}", ""),
-            "{{ALTO}}": placeholders.get("{{ALTO}}", ""),
-            "{{PESO_NETO}}": placeholders.get("{{PESO_NETO}}", ""),
-            "{{CATEGORIA}}": placeholders.get("{{CATEGORIA}}", ""),
-            "{{EJES}}": placeholders.get("{{EJES}}", ""),
-            "{{ANCHO}}": placeholders.get("{{ANCHO}}", ""),
-            "{{CARGA_UTIL}}": placeholders.get("{{CARGA_UTIL}}", ""),
-            "{{LARGO}}": placeholders.get("{{LARGO}}", ""),
-            "{{PESO_BRUTO}}": placeholders.get("{{PESO_BRUTO}}", ""),
-            "{{NUM_RESOLUCION}}": "" if es_fila_en_blanco else placeholders.get("{{NUM_RESOLUCION}}", ""),
-            "{{FECHA_RES}}": "" if es_fila_en_blanco else placeholders.get("{{FECHA_RES}}", ""),
-            "{{TIPO_RES}}": "" if es_fila_en_blanco else placeholders.get("{{TIPO_RES}}", ""),
-        }
+        # Mapa de valores reales a inyectar (hereda todos los placeholders calculados o de ejemplo)
+        valores_map = dict(placeholders)
 
         modo_hojas = config.get("modo_hojas", "UNA_HOJA")
         margen_izq_mm = config.get("margen_izq_mm", 10.0)
@@ -713,16 +1184,17 @@ class TucCalibradorService:
             w = v.get("width_mm")
             h = v.get("height_mm")
 
-            # --- TIPO IMAGEN / LOGO ---
+            # --- TIPO IMAGEN / LOGO (Embebido autónomo en Base64) ---
             if tipo == "imagen":
                 img_url = v.get("imagen_url", "")
                 if not img_url:
                     continue
+                img_src = resolver_imagen_a_base64_o_url(img_url)
                 opac = v.get("opacidad", 1.0)
                 w_str = f"width: {w}mm;" if w else "width: 18mm;"
                 h_str = f"height: {h}mm;" if h else "height: 15mm;"
                 img_style = f"position: absolute; left: {x}mm; top: {y}mm; {w_str} {h_str} object-fit: contain; opacity: {opac};"
-                tag_html = f'<img src="{img_url}" style="{img_style}" alt="{v.get("label", "Logo")}" />'
+                tag_html = f'<img src="{img_src}" style="{img_style}" alt="{v.get("label", "Logo")}" />'
                 elementos_html.append(tag_html)
                 if seccion == "anverso":
                     elementos_anverso.append(tag_html)
@@ -732,9 +1204,11 @@ class TucCalibradorService:
 
             # --- TIPO QR CODE DINÁMICO ---
             if tipo == "qr":
-                qr_tmpl = v.get("qr_contenido") or f"https://drtc-puno.gob.pe/verificar-tuc/{datos.get('placa', '')}"
+                placa_qr = datos.get('placa', '') or valores_map.get("{{PLACA}}", "") or "VBE-959"
+                qr_tmpl = v.get("qr_contenido") or f"https://drtc-puno.gob.pe/verificar-tuc/{placa_qr}"
                 for k_ph, v_ph in valores_map.items():
-                    qr_tmpl = qr_tmpl.replace(k_ph, str(v_ph))
+                    if k_ph in qr_tmpl:
+                        qr_tmpl = qr_tmpl.replace(k_ph, str(v_ph))
                 qr_base64 = generar_qr_base64(qr_tmpl)
                 w_str = f"width: {w}mm;" if w else "width: 14mm;"
                 h_str = f"height: {h}mm;" if h else "height: 14mm;"
@@ -747,9 +1221,37 @@ class TucCalibradorService:
                     elementos_reverso.append(tag_html)
                 continue
 
+            # --- TIPO LÍNEA HORIZONTAL / IMAGEN DECORATIVA ---
+            if tipo == "linea":
+                img_url = v.get("imagen_url", "")
+                if img_url:
+                    img_src = resolver_imagen_a_base64_o_url(img_url)
+                    line_w = v.get("width_mm") or 68.0
+                    line_h = v.get("height_mm") or v.get("grosor_mm") or 2.0
+                    opac = v.get("opacidad", 1.0)
+                    img_style = f"position: absolute; left: {x}mm; top: {y}mm; width: {line_w}mm; height: {line_h}mm; object-fit: contain; opacity: {opac}; pointer-events: none; z-index: 10;"
+                    tag_html = f'<img src="{img_src}" style="{img_style}" alt="{v.get("label", "Línea Decorativa")}" />'
+                else:
+                    line_w = v.get("width_mm") or ancho_mm
+                    line_grosor = v.get("grosor_mm") or v.get("height_mm") or 1.0
+                    line_color = v.get("color") or "#000000"
+                    line_estilo = v.get("estilo_linea") or "solid"
+                    line_style = f"position: absolute; left: {x}mm; top: {y}mm; width: {line_w}mm; border-top: {line_grosor}mm {line_estilo} {line_color}; height: 0; pointer-events: none; z-index: 10;"
+                    tag_html = f'<div class="tuc-linea-impresa" style="{line_style}"></div>'
+                elementos_html.append(tag_html)
+                if seccion == "anverso":
+                    elementos_anverso.append(tag_html)
+                else:
+                    elementos_reverso.append(tag_html)
+                continue
+
             # --- TIPO TEXTO / TABLA ---
             tag = v.get("tag", "")
-            val = valores_map.get(tag, v.get("valor_ejemplo", ""))
+
+            # Obtener el valor correspondiente
+            val = valores_map.get(tag)
+            if val is None or (str(val).strip() in ("", "-") and es_muestra_ejemplo):
+                val = v.get("valor_ejemplo", "")
 
             # Si es la tabla de rutas, formatear adecuadamente
             if tag == "{{TABLA_RUTAS}}":
@@ -770,12 +1272,15 @@ class TucCalibradorService:
                         fila = f'<div><strong>Ruta {cod}:</strong> <span>{tramo}</span></div>'
                     filas_rutas_html.append(fila)
 
+                if not filas_rutas_html and v.get("valor_ejemplo"):
+                    filas_rutas_html.append(f'<div>{html_escape(str(v.get("valor_ejemplo")))}</div>')
+
                 val_html = "".join(filas_rutas_html) if filas_rutas_html else "<div>SIN RUTAS ASIGNADAS</div>"
                 wrap_style = "white-space: normal; line-height: 1.25;"
             else:
                 if es_fila_en_blanco and v.get("categoria") == "acto_reverso":
                     continue  # Renovación deja la fila en blanco
-                
+
                 # Prefijo y Sufijo con negrita y tamaño independientes
                 prefix = v.get("prefix") if v.get("prefix") is not None else v.get("etiqueta", "")
                 suffix = v.get("suffix", "")
@@ -869,6 +1374,22 @@ class TucCalibradorService:
                 elementos_anverso.append(tag_html)
             else:
                 elementos_reverso.append(tag_html)
+
+        # Línea horizontal personalizada imprimible de la plantilla
+        lh = config.get("linea_horizontal") or {}
+        if lh.get("activa", False) and lh.get("imprimible", False):
+            lh_y = float(lh.get("y_mm", 54.0))
+            lh_x = float(lh.get("x_mm", 0.0))
+            lh_w = float(lh.get("ancho_mm") or ancho_mm)
+            lh_grosor = float(lh.get("grosor_mm", 1.0))
+            lh_color = lh.get("color", "#000000")
+            lh_estilo = lh.get("estilo", "solid")
+            lh_html = f'<div class="tuc-linea-horizontal-impresa" style="position: absolute; left: {lh_x}mm; top: {lh_y}mm; width: {lh_w}mm; border-top: {lh_grosor}mm {lh_estilo} {lh_color}; height: 0; pointer-events: none; z-index: 10;"></div>'
+            elementos_html.append(lh_html)
+            if lh_y <= anverso_alto_mm:
+                elementos_anverso.append(lh_html)
+            else:
+                elementos_reverso.append(lh_html)
 
         # Pliegue para tarjeta dual (solo en formato DUAL_PVC y UNA_HOJA)
         if formato_papel == "A4" or modo_hojas == "DOS_HOJAS":
@@ -976,6 +1497,127 @@ class TucCalibradorService:
   </style>
 </head>
 <body onload="window.print()">{body_content}
+</body>
+</html>"""
+        return html
+
+    @staticmethod
+    async def generar_html_lote_impresion(placas: List[str], config_override: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Genera un único documento HTML con múltiples páginas (una o dos por cada TUC),
+        separadas por saltos de página de impresión (@page / break-after: page),
+        listas para impresión en bloque o para 'Guardar como PDF' de muchas hojas.
+        """
+        config = config_override or await TucCalibradorService.obtener_configuracion()
+        formato_papel = config.get("formato_papel", "DUAL_PVC")
+        orientacion = config.get("orientacion", "portrait")
+
+        if formato_papel == "A4":
+            ancho_mm = 210.0 if orientacion == "portrait" else 297.0
+            alto_mm = 297.0 if orientacion == "portrait" else 210.0
+            css_page = f"size: A4 {orientacion};"
+        else:
+            ancho_mm = config.get("ancho_mm", 85.6)
+            alto_mm = config.get("alto_mm", 108.0)
+            css_page = f"size: {ancho_mm}mm {alto_mm}mm;"
+
+        placas_limpias = [p.strip() for p in placas if p and p.strip()]
+        if not placas_limpias:
+            placas_limpias = ["VBE-959"]
+
+        hojas_bodies = []
+        for p in placas_limpias:
+            single_html = await TucCalibradorService.generar_html_impresion(p, config_override=config)
+            m = re.search(r'<body[^>]*>(.*?)</body>', single_html, re.DOTALL)
+            if m:
+                hojas_bodies.append(m.group(1).strip())
+
+        separador = '\n  <div class="page-break" style="break-after: page; page-break-after: always; height: 0;"></div>\n'
+        contenido_total = separador.join(hojas_bodies)
+
+        html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Lote de TUCs DRTC Puno ({len(placas_limpias)} documentos)</title>
+  <style>
+    @page {{
+      {css_page}
+      margin: 0mm;
+    }}
+    @media print {{
+      html, body {{
+        margin: 0 !important;
+        padding: 0 !important;
+        width: {ancho_mm}mm !important;
+        background: #ffffff !important;
+      }}
+      .tuc-sheet {{
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }}
+      .page-break {{
+        break-after: page !important;
+        page-break-after: always !important;
+        height: 0 !important;
+        margin: 0 !important;
+      }}
+    }}
+    * {{
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }}
+    body {{
+      font-family: 'Roboto', Arial, sans-serif;
+      position: relative;
+      background: #ffffff;
+    }}
+    .tuc-sheet {{
+      width: {ancho_mm}mm;
+      height: {alto_mm}mm;
+      position: relative;
+      background: #ffffff;
+      overflow: hidden;
+    }}
+    .tuc-etiqueta {{
+      font-weight: bold;
+      display: inline;
+    }}
+    .tuc-valor {{
+      display: inline;
+    }}
+    .tuc-suffix {{
+      display: inline;
+    }}
+    .tuc-quoted {{
+      font-weight: bold !important;
+      font-size: 1.15em !important;
+      display: inline !important;
+    }}
+    @media screen {{
+      body {{
+        background: #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        padding: 30px 0;
+      }}
+      .tuc-sheet {{
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        border: 1px solid #cbd5e1;
+      }}
+    }}
+  </style>
+</head>
+<body onload="window.print()">
+{contenido_total}
 </body>
 </html>"""
         return html

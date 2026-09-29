@@ -8,7 +8,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TucService, VariablePlantillaTuc, PlantillaTucCalibradorConfig } from '../../services/tuc.service';
+import { TucService, VariablePlantillaTuc, PlantillaTucCalibradorConfig, PlantillaTucResumen, LineaHorizontalConfig } from '../../services/tuc.service';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 @Component({
   selector: 'app-tuc-studio',
@@ -39,6 +41,20 @@ export class TucStudioComponent implements OnInit {
 
   // Configuración de la plantilla
   config = signal<PlantillaTucCalibradorConfig | null>(null);
+
+  // Gestión de múltiples plantillas y persistencia JSON / BD
+  plantillas = signal<PlantillaTucResumen[]>([]);
+  plantillaActualId = signal<string>('');
+  plantillaActual = computed(() => this.plantillas().find(p => p.id === this.plantillaActualId() || p._id === this.plantillaActualId()) || null);
+  esPredeterminadaActual = computed(() => this.config()?.activa ?? false);
+
+  // Modal Guardar Como nueva plantilla
+  mostrarModalGuardarComo = signal<boolean>(false);
+  nombreNuevaPlantilla = signal<string>('');
+  descripcionNuevaPlantilla = signal<string>('');
+  hacerPredeterminadaNueva = signal<boolean>(false);
+  guardandoNuevaPlantilla = signal<boolean>(false);
+
   selectedVariables = signal<VariablePlantillaTuc[]>([]);
   selectedVariable = computed(() => this.selectedVariables().length > 0 ? this.selectedVariables()[this.selectedVariables().length - 1] : null);
   esMultipleSeleccion = computed(() => this.selectedVariables().length > 1);
@@ -61,10 +77,65 @@ export class TucStudioComponent implements OnInit {
   private startMouseY = 0;
   private initialPositions = new Map<string, { x: number, y: number }>();
 
+  // Dimensiones de hoja completa
+  anchoHojaMm = computed(() => {
+    const f = this.formatoPapel();
+    const orient = this.orientacion();
+    if (f === 'DUAL_PVC') return 85.6;
+    return orient === 'landscape' ? 297.0 : 210.0;
+  });
+
+  altoHojaMm = computed(() => {
+    const f = this.formatoPapel();
+    const orient = this.orientacion();
+    if (f === 'DUAL_PVC') return 108.0;
+    return orient === 'landscape' ? 210.0 : 297.0;
+  });
+
   // Modo de Distribución de Hojas (1 Hoja vs 2 Hojas separadas Anverso/Reverso)
   modoHojas = computed(() => this.config()?.modo_hojas || 'UNA_HOJA');
   margenIzq = computed(() => this.config()?.margen_izq_mm ?? 10.0);
   margenDer = computed(() => this.config()?.margen_der_mm ?? 10.0);
+  margenTop = computed(() => this.config()?.margen_top_mm ?? 10.0);
+  margenBottom = computed(() => this.config()?.margen_bottom_mm ?? 10.0);
+  guiasReferencialesH = signal<boolean>(true);
+
+  // Configuración de la Línea Horizontal Principal Calibrada (editable en tamaño, grosor, color, posición y estilo)
+  lineaHConfig = computed<LineaHorizontalConfig>(() => {
+    const c = this.config();
+    if (c?.linea_horizontal) {
+      return c.linea_horizontal;
+    }
+    const f = this.formatoPapel();
+    const orient = this.orientacion();
+    const yDefault = f === 'DUAL_PVC' ? 54.0 : (orient === 'landscape' ? 105.0 : 148.5);
+    const anchoDefault = this.anchoHojaMm();
+    return {
+      activa: true,
+      y_mm: yDefault,
+      x_mm: 0.0,
+      ancho_mm: anchoDefault,
+      grosor_mm: 1.0,
+      color: '#d97706',
+      estilo: 'dashed',
+      imprimible: false,
+      etiqueta: 'Línea Horizontal / Eje Referencial'
+    };
+  });
+
+  lineaHSeleccionada = signal<boolean>(false);
+  isDraggingLineaH = signal<boolean>(false);
+
+  // Eje de referencia horizontal (mitad de hoja horizontal o pliegue referencial)
+  referenciaHorizontalMm = computed(() => {
+    return this.lineaHConfig().y_mm;
+  });
+
+  // Estado para exportación y generación PDF
+  isGeneratingPdf = signal<boolean>(false);
+  mostrarModalLotePdf = signal<boolean>(false);
+  placasLoteTexto = signal<string>('VBE-959\nZ4B-960\nX1Y-234');
+  generandoLotePdf = signal<boolean>(false);
 
   // Elementos por Sección
   varsAnverso = computed(() => this.config()?.variables?.filter(v => v.visible && v.seccion === 'anverso') || []);
@@ -160,23 +231,51 @@ export class TucStudioComponent implements OnInit {
   });
 
   // Agrupaciones de variables
-  varsGraficos = computed(() => this.variablesFiltradas().filter(v => v.tipo === 'imagen' || v.tipo === 'qr' || v.categoria === 'imagen' || v.categoria === 'qr' || (v as any).categoria === 'graficos'));
-  varsAutorizacion = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'autorizacion' && v.tipo !== 'imagen' && v.tipo !== 'qr'));
-  varsVehiculo = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'vehiculo' && v.tipo !== 'imagen' && v.tipo !== 'qr'));
-  varsRutas = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'rutas' && v.tipo !== 'imagen' && v.tipo !== 'qr'));
-  varsActoReverso = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'acto_reverso' && v.tipo !== 'imagen' && v.tipo !== 'qr'));
-  varsPersonalizadas = computed(() => this.variablesFiltradas().filter(v => (v.categoria === 'personalizado' || v.es_dinamica) && v.tipo !== 'imagen' && v.tipo !== 'qr'));
+  varsGraficos = computed(() => this.variablesFiltradas().filter(v => v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea' || v.categoria === 'imagen' || v.categoria === 'qr' || (v as any).categoria === 'graficos'));
+  varsAutorizacion = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'autorizacion' && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
+  varsVehiculo = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'vehiculo' && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
+  varsRutas = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'rutas' && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
+  varsActoReverso = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'acto_reverso' && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
+  varsPersonalizadas = computed(() => this.variablesFiltradas().filter(v => (v.categoria === 'personalizado' || v.es_dinamica) && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
 
   ngOnInit(): void {
-    this.cargarConfiguracion();
+    this.cargarPlantillas();
     this.cargarDatosVehiculoPrueba(this.searchPlaca());
   }
 
-  cargarConfiguracion(): void {
+  cargarPlantillas(seleccionarId?: string): void {
     this.isLoading.set(true);
-    this.tucService.getCalibradorConfig().subscribe({
+    this.tucService.getPlantillas().subscribe({
+      next: (list) => {
+        this.plantillas.set(list || []);
+        let targetId = seleccionarId;
+        if (!targetId) {
+          const activa = list.find(p => p.activa);
+          targetId = activa ? activa.id : (list.length > 0 ? list[0].id : undefined);
+        }
+        if (targetId) {
+          this.plantillaActualId.set(targetId);
+          this.cargarConfiguracion(targetId);
+        } else {
+          this.cargarConfiguracion();
+        }
+      },
+      error: (err) => {
+        console.error('Error al listar plantillas:', err);
+        this.cargarConfiguracion();
+      }
+    });
+  }
+
+  cargarConfiguracion(plantillaId?: string): void {
+    this.isLoading.set(true);
+    const targetId = plantillaId || this.plantillaActualId() || undefined;
+    this.tucService.getCalibradorConfig(targetId).subscribe({
       next: (cfg) => {
         this.config.set(cfg);
+        if (cfg.id) {
+          this.plantillaActualId.set(cfg.id);
+        }
         if (cfg.variables && cfg.variables.length > 0) {
           const placaVar = cfg.variables.find(v => v.id === 'placa') || cfg.variables[0];
           this.selectedVariables.set([placaVar]);
@@ -189,6 +288,12 @@ export class TucStudioComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
+  }
+
+  cambiarPlantilla(id: string): void {
+    if (!id || id === this.plantillaActualId()) return;
+    this.plantillaActualId.set(id);
+    this.cargarConfiguracion(id);
   }
 
   cargarDatosVehiculoPrueba(placa: string): void {
@@ -210,6 +315,7 @@ export class TucStudioComponent implements OnInit {
   }
 
   seleccionarVariable(v: VariablePlantillaTuc, event?: MouseEvent): void {
+    this.lineaHSeleccionada.set(false);
     if (event && (event.ctrlKey || event.shiftKey)) {
       this.toggleSeleccion(v);
       return;
@@ -306,11 +412,11 @@ export class TucStudioComponent implements OnInit {
   }
 
   // --- MÁRGENES Y ALINEACIÓN RÁPIDA ---
-  ajustarMargen(lado: 'margen_izq_mm' | 'margen_der_mm', delta: number): void {
+  ajustarMargen(lado: 'margen_izq_mm' | 'margen_der_mm' | 'margen_top_mm' | 'margen_bottom_mm', delta: number): void {
     const c = this.config();
     if (!c) return;
     const actual = c[lado] ?? 10.0;
-    const nuevo = Math.max(0, Math.round((actual + delta) * 10) / 10);
+    const nuevo = Math.max(0, Math.min(60, Math.round((actual + delta) * 10) / 10));
     c[lado] = nuevo;
     this.config.set({ ...c });
   }
@@ -404,6 +510,177 @@ export class TucStudioComponent implements OnInit {
     }
   }
 
+  // --- MÉTODOS DE CALIBRACIÓN DE LÍNEA HORIZONTAL ---
+  seleccionarLineaHorizontal(event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+    this.lineaHSeleccionada.set(true);
+    this.selectedVariables.set([]);
+  }
+
+  deseleccionarLineaHorizontal(): void {
+    this.lineaHSeleccionada.set(false);
+  }
+
+  toggleLineaHorizontal(): void {
+    const c = this.config();
+    if (!c) return;
+    if (!c.linea_horizontal) {
+      c.linea_horizontal = { ...this.lineaHConfig() };
+    }
+    c.linea_horizontal.activa = !c.linea_horizontal.activa;
+    this.config.set({ ...c });
+  }
+
+  ajustarLineaH(prop: 'y_mm' | 'x_mm' | 'ancho_mm' | 'grosor_mm', delta: number): void {
+    const c = this.config();
+    if (!c) return;
+    if (!c.linea_horizontal) {
+      c.linea_horizontal = { ...this.lineaHConfig() };
+    }
+    const valActual = c.linea_horizontal[prop] ?? 0;
+    let nuevoVal = Math.round((valActual + delta) * 10) / 10;
+    if (prop === 'grosor_mm') {
+      nuevoVal = Math.max(0.1, Math.min(10.0, nuevoVal));
+    } else if (prop === 'ancho_mm') {
+      nuevoVal = Math.max(5.0, Math.min(this.anchoHojaMm() * 1.5, nuevoVal));
+    } else if (prop === 'y_mm') {
+      nuevoVal = Math.max(0, Math.min(this.altoHojaMm(), nuevoVal));
+    }
+    c.linea_horizontal[prop] = nuevoVal;
+    this.config.set({ ...c });
+  }
+
+  ajustarLineaHDirecto(prop: 'y_mm' | 'x_mm' | 'ancho_mm' | 'grosor_mm', valor: any): void {
+    const c = this.config();
+    if (!c) return;
+    if (!c.linea_horizontal) {
+      c.linea_horizontal = { ...this.lineaHConfig() };
+    }
+    const num = parseFloat(valor);
+    if (!isNaN(num)) {
+      c.linea_horizontal[prop] = num;
+      this.config.set({ ...c });
+    }
+  }
+
+  setLineaHColor(color: string): void {
+    const c = this.config();
+    if (!c) return;
+    if (!c.linea_horizontal) {
+      c.linea_horizontal = { ...this.lineaHConfig() };
+    }
+    c.linea_horizontal.color = color;
+    this.config.set({ ...c });
+  }
+
+  setLineaHEstilo(estilo: 'solid' | 'dashed' | 'dotted'): void {
+    const c = this.config();
+    if (!c) return;
+    if (!c.linea_horizontal) {
+      c.linea_horizontal = { ...this.lineaHConfig() };
+    }
+    c.linea_horizontal.estilo = estilo;
+    this.config.set({ ...c });
+  }
+
+  setLineaHImprimible(val: boolean): void {
+    const c = this.config();
+    if (!c) return;
+    if (!c.linea_horizontal) {
+      c.linea_horizontal = { ...this.lineaHConfig() };
+    }
+    c.linea_horizontal.imprimible = val;
+    this.config.set({ ...c });
+  }
+
+  centrarLineaH(): void {
+    const c = this.config();
+    if (!c) return;
+    if (!c.linea_horizontal) {
+      c.linea_horizontal = { ...this.lineaHConfig() };
+    }
+    const w = c.linea_horizontal.ancho_mm || this.anchoHojaMm();
+    c.linea_horizontal.x_mm = Math.max(0, Math.round(((this.anchoHojaMm() - w) / 2) * 10) / 10);
+    this.config.set({ ...c });
+  }
+
+  ajustarLineaHAnchoCompleto(): void {
+    const c = this.config();
+    if (!c) return;
+    if (!c.linea_horizontal) {
+      c.linea_horizontal = { ...this.lineaHConfig() };
+    }
+    c.linea_horizontal.x_mm = 0.0;
+    c.linea_horizontal.ancho_mm = this.anchoHojaMm();
+    this.config.set({ ...c });
+  }
+
+  iniciarArrastreLineaH(event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.seleccionarLineaHorizontal();
+    this.isDraggingLineaH.set(true);
+
+    const startClientY = event.clientY;
+    const c = this.config();
+    if (!c) return;
+    if (!c.linea_horizontal) {
+      c.linea_horizontal = { ...this.lineaHConfig() };
+    }
+    const startYMm = c.linea_horizontal.y_mm;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const pxPerMm = 3.779527559;
+      const scale = (this.zoom() / 100) * pxPerMm;
+      const deltaY = (moveEvent.clientY - startClientY) / scale;
+      const step = this.rejilla() ? 0.5 : 0.1;
+      const snapDeltaY = Math.round(deltaY / step) * step;
+      const newY = Math.max(0, Math.min(this.altoHojaMm(), Math.round((startYMm + snapDeltaY) * 10) / 10));
+      c.linea_horizontal!.y_mm = newY;
+      this.config.set({ ...c });
+    };
+
+    const onMouseUp = () => {
+      this.isDraggingLineaH.set(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  agregarNuevaLineaHorizontal(): void {
+    const c = this.config();
+    if (!c) return;
+    const yPos = this.formatoPapel() === 'DUAL_PVC' ? 54.0 : 100.0;
+    const nuevaLinea: VariablePlantillaTuc = {
+      id: `linea_h_${Date.now()}`,
+      tag: '{{LINEA_H}}',
+      label: 'Línea Horizontal Separadora',
+      categoria: 'personalizado',
+      seccion: 'anverso',
+      tipo: 'linea',
+      x_mm: c.margen_izq_mm || 10.0,
+      y_mm: yPos,
+      width_mm: (c.ancho_mm - (c.margen_izq_mm || 10) - (c.margen_der_mm || 10)),
+      height_mm: 1.0,
+      grosor_mm: 1.0,
+      estilo_linea: 'solid',
+      color: '#000000',
+      font_size_pt: 0,
+      font_weight: 'normal',
+      align: 'left',
+      visible: true,
+      imprimible: true
+    };
+    c.variables.push(nuevaLinea);
+    this.config.set({ ...c });
+    this.selectedVariables.set([nuevaLinea]);
+    this.lineaHSeleccionada.set(false);
+    this.snackBar.open('Línea horizontal agregada a la plantilla', 'OK', { duration: 2500 });
+  }
+
   // Modificar propiedades numéricas con pasos (afecta a todos los seleccionados)
   ajustarCoordenada(campo: 'x_mm' | 'y_mm' | 'font_size_pt', delta: number): void {
     const list = this.selectedVariables();
@@ -419,16 +696,19 @@ export class TucStudioComponent implements OnInit {
     this.notificarCambio();
   }
 
-  // Guardar en Backend
+  // Guardar en Backend y sincronizar archivo JSON
   guardarConfiguracion(): void {
     const c = this.config();
     if (!c) return;
     this.isSaving.set(true);
-    this.tucService.guardarCalibradorConfig(c).subscribe({
+    const id = c.id || this.plantillaActualId();
+    const obs = id ? this.tucService.actualizarPlantilla(id, c) : this.tucService.guardarCalibradorConfig(c);
+    obs.subscribe({
       next: (res) => {
         this.config.set(res);
         this.isSaving.set(false);
-        this.snackBar.open('¡Calibración guardada exitosamente!', 'OK', { duration: 3000 });
+        this.snackBar.open('¡Plantilla guardada y sincronizada en BD y archivo JSON!', 'OK', { duration: 3000 });
+        this.cargarPlantillas(res.id);
       },
       error: (err) => {
         console.error('Error al guardar calibrador:', err);
@@ -440,7 +720,7 @@ export class TucStudioComponent implements OnInit {
 
   // Restablecer valores de fábrica
   restablecerOficial(): void {
-    if (!confirm('¿Restablecer todas las variables y coordenadas a los valores oficiales de DRTC Puno? Se perderán ajustes no guardados.')) {
+    if (!confirm('¿Restablecer todas las variables y coordenadas a los valores oficiales de DRTC Puno? Se sincronizará en BD y JSON.')) {
       return;
     }
     this.isLoading.set(true);
@@ -451,7 +731,8 @@ export class TucStudioComponent implements OnInit {
           this.selectedVariables.set([res.variables[0]]);
         }
         this.isLoading.set(false);
-        this.snackBar.open('Plantilla restablecida a coordenadas oficiales', 'OK', { duration: 3000 });
+        this.snackBar.open('Plantilla restablecida a coordenadas oficiales (BD y JSON actualizados)', 'OK', { duration: 3000 });
+        this.cargarPlantillas(res.id);
       },
       error: (err) => {
         console.error('Error al restablecer:', err);
@@ -461,13 +742,211 @@ export class TucStudioComponent implements OnInit {
     });
   }
 
+  // --- MÉTODOS DE GESTIÓN MULTI-PLANTILLA ---
+  abrirModalGuardarComo(): void {
+    const baseNombre = this.config()?.nombre || 'Plantilla TUC';
+    this.nombreNuevaPlantilla.set(`${baseNombre} (Copia)`);
+    this.descripcionNuevaPlantilla.set(this.config()?.descripcion || 'Plantilla calibrada');
+    this.hacerPredeterminadaNueva.set(false);
+    this.mostrarModalGuardarComo.set(true);
+  }
+
+  cerrarModalGuardarComo(): void {
+    this.mostrarModalGuardarComo.set(false);
+  }
+
+  confirmarGuardarComo(): void {
+    const nombre = this.nombreNuevaPlantilla().trim();
+    if (!nombre) {
+      this.snackBar.open('Por favor ingresa un nombre para la nueva plantilla', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    const current = this.config();
+    if (!current) return;
+
+    this.guardandoNuevaPlantilla.set(true);
+    const payload: Partial<PlantillaTucCalibradorConfig> = {
+      ...current,
+      nombre: nombre,
+      descripcion: this.descripcionNuevaPlantilla().trim(),
+      activa: this.hacerPredeterminadaNueva()
+    };
+    delete payload._id;
+    delete payload.id;
+
+    this.tucService.crearPlantilla(payload).subscribe({
+      next: (nueva) => {
+        this.guardandoNuevaPlantilla.set(false);
+        this.mostrarModalGuardarComo.set(false);
+        this.snackBar.open(`¡Plantilla "${nueva.nombre}" guardada en BD y en tuc_plantillas_catalogo.json!`, 'OK', { duration: 3500 });
+        this.cargarPlantillas(nueva.id);
+      },
+      error: (err) => {
+        console.error('Error al crear plantilla:', err);
+        this.guardandoNuevaPlantilla.set(false);
+        this.snackBar.open('Error al crear la nueva plantilla', 'Cerrar', { duration: 4000 });
+      }
+    });
+  }
+
+  activarComoPredeterminada(): void {
+    const id = this.plantillaActualId();
+    if (!id) return;
+    this.tucService.activarPlantilla(id).subscribe({
+      next: (res) => {
+        this.snackBar.open(`"${res.nombre}" fijada como plantilla predeterminada del sistema (BD y JSON sincronizados)`, 'OK', { duration: 3000 });
+        this.cargarPlantillas(id);
+      },
+      error: (err) => {
+        console.error('Error al activar plantilla:', err);
+        this.snackBar.open('Error al establecer plantilla como predeterminada', 'Cerrar', { duration: 3500 });
+      }
+    });
+  }
+
+  eliminarPlantillaActual(): void {
+    const id = this.plantillaActualId();
+    if (!id) return;
+    if (this.plantillas().length <= 1) {
+      this.snackBar.open('No es posible eliminar la única plantilla del sistema', 'OK', { duration: 3000 });
+      return;
+    }
+    const nombre = this.config()?.nombre || 'esta plantilla';
+    if (!confirm(`¿Estás seguro de eliminar la plantilla "${nombre}"? Esta acción se sincronizará en la base de datos y en el archivo JSON.`)) {
+      return;
+    }
+    this.tucService.eliminarPlantilla(id).subscribe({
+      next: () => {
+        this.snackBar.open(`Plantilla "${nombre}" eliminada exitosamente (BD y JSON sincronizados)`, 'OK', { duration: 3000 });
+        this.cargarPlantillas();
+      },
+      error: (err) => {
+        console.error('Error al eliminar plantilla:', err);
+        this.snackBar.open('Error al eliminar plantilla', 'Cerrar', { duration: 3500 });
+      }
+    });
+  }
+
+  exportarJson(): void {
+    const cfg = this.config();
+    if (!cfg) return;
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(cfg, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `tuc_plantilla_${cfg.id || 'config'}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    this.snackBar.open('Archivo JSON descargado al equipo local', 'OK', { duration: 2500 });
+  }
+
   // Impresión Instantánea HTML
   imprimirHtmlInstantaneo(): void {
     const placa = this.searchPlaca().trim() || 'VBE-959';
     this.isPrinting.set(true);
-    this.tucService.imprimirHtmlDirecto(placa);
+    const cfg = this.config();
+    if (cfg) {
+      this.tucService.imprimirHtmlConConfig(placa, cfg);
+    } else {
+      this.tucService.imprimirHtmlDirecto(placa);
+    }
     setTimeout(() => {
       this.isPrinting.set(false);
+    }, 1200);
+  }
+
+  // Exportar TUC a PDF directamente en el navegador
+  async guardarEnPdf(): Promise<void> {
+    const sheet = document.getElementById('tuc-physical-sheet');
+    if (!sheet) {
+      this.snackBar.open('No se encontró el lienzo para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.isGeneratingPdf.set(true);
+    try {
+      const formato = this.formatoPapel();
+      const orient = this.orientacion();
+      const isLandscape = orient === 'landscape';
+
+      // Dimensiones exactas en mm
+      const anchoMm = this.config()?.ancho_mm || (formato === 'A4' ? (isLandscape ? 297.0 : 210.0) : 85.6);
+      const altoMm = this.config()?.alto_mm || (formato === 'A4' ? (isLandscape ? 210.0 : 297.0) : 108.0);
+
+      // Desactivar temporalmente selección y guías para que no salgan en el PDF oficial
+      const sel = [...this.selectedVariables()];
+      this.selectedVariables.set([]);
+      const guiasMargenPrev = this.guiasMargenes();
+      const guiasRefPrev = this.guiasReferencialesH();
+      this.guiasMargenes.set(false);
+      this.guiasReferencialesH.set(false);
+
+      // Esperar brevemente actualización del DOM
+      await new Promise(r => setTimeout(r, 60));
+
+      const canvas = await html2canvas(sheet, {
+        scale: 3, // Calidad de impresión ultra nítida (300+ DPI equivalente)
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      // Restaurar selección y guías
+      this.selectedVariables.set(sel);
+      this.guiasMargenes.set(guiasMargenPrev);
+      this.guiasReferencialesH.set(guiasRefPrev);
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: isLandscape ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: [anchoMm, altoMm]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, anchoMm, altoMm);
+      const placa = this.searchPlaca().trim() || 'TUC_DRTC';
+      pdf.save(`TUC_${placa}_${formato}.pdf`);
+
+      this.snackBar.open(`¡Documento PDF guardado exitosamente: TUC_${placa}_${formato}.pdf!`, 'OK', { duration: 3500 });
+    } catch (err) {
+      console.error('Error al exportar PDF:', err);
+      this.snackBar.open('Error al generar el documento PDF', 'Cerrar', { duration: 3500 });
+    } finally {
+      this.isGeneratingPdf.set(false);
+    }
+  }
+
+  // Modales de Impresión de Lote (Múltiples Hojas / PDF)
+  abrirModalLotePdf(): void {
+    const actual = this.searchPlaca()?.trim();
+    if (actual && !this.placasLoteTexto().includes(actual)) {
+      this.placasLoteTexto.set(`${actual}\n${this.placasLoteTexto()}`);
+    }
+    this.mostrarModalLotePdf.set(true);
+  }
+
+  cerrarModalLotePdf(): void {
+    this.mostrarModalLotePdf.set(false);
+  }
+
+  generarLotePdf(): void {
+    const lineas = this.placasLoteTexto()
+      .split(/[\n,;]+/)
+      .map(s => s.trim().toUpperCase())
+      .filter(s => s.length > 0);
+
+    if (lineas.length === 0) {
+      this.snackBar.open('Ingresa al menos una placa para generar el lote', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.generandoLotePdf.set(true);
+    const cfg = this.config();
+    this.tucService.imprimirLoteDirecto(lineas, cfg || undefined);
+    setTimeout(() => {
+      this.generandoLotePdf.set(false);
+      this.mostrarModalLotePdf.set(false);
+      this.snackBar.open(`¡Documento de lote con ${lineas.length} TUCs generado en múltiples hojas! Listo para imprimir o Guardar como PDF`, 'OK', { duration: 4000 });
     }, 1000);
   }
 
@@ -1035,6 +1514,171 @@ export class TucStudioComponent implements OnInit {
     else if (grados === 270) sel.orientacion_texto = 'vertical_270';
     else if (grados === 0) sel.orientacion_texto = 'horizontal';
     this.notificarCambio();
+  }
+
+  // --- SELECCIÓN MÚLTIPLE DIRECTA Y POR CATEGORÍAS ---
+  toggleSeleccionDirecta(v: VariablePlantillaTuc, event: Event): void {
+    event.stopPropagation();
+    this.toggleSeleccion(v);
+  }
+
+  toggleSeleccionCategoria(catKey: string): void {
+    const varsCat = this.obtenerVariablesPorCategoria(catKey);
+    if (varsCat.length === 0) return;
+    const todosSeleccionados = varsCat.every(v => this.estaSeleccionada(v));
+    const current = this.selectedVariables();
+    if (todosSeleccionados) {
+      const idsCat = new Set(varsCat.map(v => v.id));
+      this.selectedVariables.set(current.filter(v => !idsCat.has(v.id)));
+    } else {
+      const idsActuales = new Set(current.map(v => v.id));
+      const aAgregar = varsCat.filter(v => !idsActuales.has(v.id));
+      this.selectedVariables.set([...current, ...aAgregar]);
+    }
+  }
+
+  estaCategoriaTotalmenteSeleccionada(catKey: string): boolean {
+    const varsCat = this.obtenerVariablesPorCategoria(catKey);
+    return varsCat.length > 0 && varsCat.every(v => this.estaSeleccionada(v));
+  }
+
+  estaCategoriaParcialmenteSeleccionada(catKey: string): boolean {
+    const varsCat = this.obtenerVariablesPorCategoria(catKey);
+    const count = varsCat.filter(v => this.estaSeleccionada(v)).length;
+    return count > 0 && count < varsCat.length;
+  }
+
+  obtenerVariablesPorCategoria(catKey: string): VariablePlantillaTuc[] {
+    switch (catKey) {
+      case 'graficos': return this.varsGraficos();
+      case 'autorizacion': return this.varsAutorizacion();
+      case 'vehiculo': return this.varsVehiculo();
+      case 'rutas': return this.varsRutas();
+      case 'acto_reverso': return this.varsActoReverso();
+      case 'personalizadas': return this.varsPersonalizadas();
+      default: return [];
+    }
+  }
+
+  invertirSeleccion(): void {
+    const c = this.config();
+    if (!c) return;
+    const currentIds = new Set(this.selectedVariables().map(v => v.id));
+    const invertidas = c.variables.filter(v => v.visible && !currentIds.has(v.id));
+    this.selectedVariables.set(invertidas);
+    this.snackBar.open(`${invertidas.length} elementos seleccionados (invertido)`, 'OK', { duration: 2000 });
+  }
+
+  cambiarVisibilidadLote(visible: boolean): void {
+    const selIds = new Set(this.selectedVariables().map(v => v.id));
+    const c = this.config();
+    if (!c || selIds.size === 0) return;
+    c.variables.forEach(v => {
+      if (selIds.has(v.id)) v.visible = visible;
+    });
+    this.config.set({ ...c });
+    this.snackBar.open(`${selIds.size} elementos ${visible ? 'visibles' : 'ocultados'}`, 'OK', { duration: 2000 });
+  }
+
+  cambiarBloqueoLote(bloqueado: boolean): void {
+    const selIds = new Set(this.selectedVariables().map(v => v.id));
+    const c = this.config();
+    if (!c || selIds.size === 0) return;
+    c.variables.forEach(v => {
+      if (selIds.has(v.id)) v.bloqueado = bloqueado;
+    });
+    this.config.set({ ...c });
+    this.snackBar.open(`${selIds.size} elementos ${bloqueado ? 'bloqueados' : 'desbloqueados'}`, 'OK', { duration: 2000 });
+  }
+
+  eliminarSeleccionados(): void {
+    const sel = this.selectedVariables();
+    if (sel.length === 0) return;
+    if (!confirm(`¿Eliminar ${sel.length} elemento(s) seleccionado(s) de la plantilla?`)) return;
+    const selIds = new Set(sel.map(v => v.id));
+    const c = this.config();
+    if (!c) return;
+    c.variables = c.variables.filter(v => !selIds.has(v.id));
+    this.config.set({ ...c });
+    this.selectedVariables.set([]);
+    this.snackBar.open(`${sel.length} elemento(s) eliminado(s)`, 'OK', { duration: 2500 });
+  }
+
+  // --- LÍNEA DECORATIVA / SEPARADOR BAJO RUTAS ---
+  agregarLineaRutas(): void {
+    const c = this.config();
+    if (!c) return;
+    const existente = c.variables.find(v => v.id === 'linea_rutas' || v.tag === '{{LINEA_RUTAS}}');
+    if (existente) {
+      existente.visible = true;
+      this.selectedVariables.set([existente]);
+      this.snackBar.open('Línea bajo rutas seleccionada', 'OK', { duration: 2000 });
+      return;
+    }
+    const tr = c.variables.find(v => v.id === 'tabla_rutas');
+    const x = tr ? tr.x_mm : (this.formatoPapel() === 'DUAL_PVC' ? 12.0 : 59.0);
+    const y = tr ? tr.y_mm + 11.5 : (this.formatoPapel() === 'DUAL_PVC' ? 72.0 : 92.0);
+    const w = tr ? (tr.width_mm || 68.0) : 68.0;
+
+    const newLinea: VariablePlantillaTuc = {
+      id: 'linea_rutas',
+      tag: '{{LINEA_RUTAS}}',
+      label: 'Línea / Imagen Decorativa Rutas',
+      categoria: 'rutas',
+      seccion: 'reverso',
+      tipo: 'linea',
+      x_mm: x,
+      y_mm: y,
+      width_mm: w,
+      height_mm: 1.5,
+      grosor_mm: 0.8,
+      color: '#1e3a8a',
+      estilo_linea: 'solid',
+      imagen_url: '',
+      font_size_pt: 0,
+      font_weight: 'normal',
+      align: 'left',
+      visible: true,
+      imprimible: true
+    };
+
+    c.variables.push(newLinea);
+    this.config.set({ ...c });
+    this.selectedVariables.set([newLinea]);
+    this.snackBar.open('Línea decorativa bajo rutas añadida', 'OK', { duration: 3000 });
+  }
+
+  cargarImagenParaVariable(v: VariablePlantillaTuc, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      v.imagen_url = e.target.result;
+      v.tipo = 'linea';
+      if (!v.height_mm || v.height_mm <= 1) v.height_mm = 2.5;
+      this.config.set({ ...this.config()! });
+      this.snackBar.open('Imagen cargada correctamente para ' + v.label, 'OK', { duration: 2500 });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  quitarImagenDeVariable(v: VariablePlantillaTuc): void {
+    v.imagen_url = '';
+    this.config.set({ ...this.config()! });
+    this.snackBar.open('Imagen removida. Ahora es línea vectorial.', 'OK', { duration: 2000 });
+  }
+
+  alinearLineaConRutas(v: VariablePlantillaTuc): void {
+    const c = this.config();
+    if (!c) return;
+    const tr = c.variables.find(item => item.id === 'tabla_rutas');
+    if (tr) {
+      v.x_mm = tr.x_mm;
+      v.width_mm = tr.width_mm || 68.0;
+      this.config.set({ ...c });
+      this.snackBar.open('Línea alineada exactamente con el ancho de Rutas (68mm)', 'OK', { duration: 2500 });
+    }
   }
 
   volver(): void {

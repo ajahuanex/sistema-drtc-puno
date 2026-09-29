@@ -705,16 +705,69 @@ async def generar_google_doc_notificacion(placa_o_id: str):
 # CALIBRADOR DINÁMICO DE VARIABLES, POSICIONES Y GENERADOR HTML INSTANTÁNEO
 # =====================================================================
 
-@router.get("/calibrador-config", summary="Obtener plantilla y coordenadas calibradas de las 25 variables oficiales y dinámicas")
-async def obtener_calibrador_config():
+@router.get("/calibrador-config", summary="Obtener configuración oficial activa del calibrador de variables")
+async def obtener_calibrador_config(plantilla_id: Optional[str] = None):
     """
-    Retorna la configuración completa del calibrador con las variables oficiales,
-    sus coordenadas milimétricas X/Y, estilos, anchos, y variables dinámicas personalizadas.
+    Retorna la configuración del calibrador (o una plantilla específica si se pasa plantilla_id).
     """
     try:
-        return await TucCalibradorService.obtener_configuracion()
+        return await TucCalibradorService.obtener_configuracion(plantilla_id=plantilla_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener configuración del calibrador: {str(e)}")
+
+@router.get("/calibrador-plantillas", summary="Listar catálogo de todas las plantillas registradas (BD y JSON)")
+async def listar_calibrador_plantillas():
+    """
+    Retorna la lista de todas las plantillas de impresión disponibles en el sistema con su resumen.
+    """
+    try:
+        return await TucCalibradorService.listar_plantillas()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar plantillas: {str(e)}")
+
+@router.get("/calibrador-plantillas/{plantilla_id}", summary="Obtener detalle completo de una plantilla por ID")
+async def obtener_detalle_plantilla(plantilla_id: str):
+    try:
+        plantilla = await TucCalibradorService.obtener_plantilla(plantilla_id)
+        if not plantilla:
+            raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+        return plantilla
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener plantilla: {str(e)}")
+
+@router.post("/calibrador-plantillas", summary="Crear una nueva plantilla en el catálogo (BD y JSON)")
+async def crear_calibrador_plantilla(plantilla: Dict[str, Any]):
+    try:
+        return await TucCalibradorService.crear_nueva_plantilla(plantilla)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al crear plantilla: {str(e)}")
+
+@router.put("/calibrador-plantillas/{plantilla_id}", summary="Actualizar una plantilla existente por ID")
+async def actualizar_calibrador_plantilla(plantilla_id: str, plantilla: Dict[str, Any]):
+    try:
+        plantilla["_id"] = plantilla_id
+        return await TucCalibradorService.guardar_configuracion(plantilla)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar plantilla: {str(e)}")
+
+@router.post("/calibrador-plantillas/{plantilla_id}/activar", summary="Establecer plantilla como la predeterminada/activa")
+async def activar_calibrador_plantilla(plantilla_id: str):
+    try:
+        return await TucCalibradorService.activar_plantilla(plantilla_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al activar plantilla: {str(e)}")
+
+@router.delete("/calibrador-plantillas/{plantilla_id}", summary="Eliminar una plantilla del catálogo")
+async def eliminar_calibrador_plantilla(plantilla_id: str):
+    try:
+        await TucCalibradorService.eliminar_plantilla(plantilla_id)
+        return {"success": True, "message": "Plantilla eliminada correctamente"}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al eliminar plantilla: {str(e)}")
 
 @router.put("/calibrador-config", summary="Guardar o actualizar coordenadas y nuevas variables en la plantilla")
 async def guardar_calibrador_config(config: Dict[str, Any]):
@@ -737,13 +790,14 @@ async def restablecer_calibrador_config():
         raise HTTPException(status_code=500, detail=f"Error al restablecer calibrador: {str(e)}")
 
 @router.get("/render-html/{placa_o_id}", summary="Generar página HTML ultra rápida (<0.05s) para impresión directa de TUC", response_class=HTMLResponse)
-async def render_html_tuc(placa_o_id: str):
+async def render_html_tuc(placa_o_id: str, plantilla_id: Optional[str] = None):
     """
     Genera el HTML listo para imprimir o previsualizar con las coordenadas milimétricas calibradas.
     Permite invocar `window.print()` instantáneamente sin latencia de Word ni PDF.
     """
     try:
-        html = await TucCalibradorService.generar_html_impresion(placa_o_id)
+        cfg = await TucCalibradorService.obtener_configuracion(plantilla_id=plantilla_id) if plantilla_id else None
+        html = await TucCalibradorService.generar_html_impresion(placa_o_id, config_override=cfg)
         return HTMLResponse(content=html)
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
@@ -762,4 +816,25 @@ async def render_html_preview_tuc(placa_o_id: str, config: Dict[str, Any]):
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar vista previa HTML: {str(e)}")
+
+class TucLoteImpresionRequest(BaseModel):
+    placas: List[str]
+    config: Optional[Dict[str, Any]] = None
+    plantilla_id: Optional[str] = None
+
+@router.post("/render-html-lote", summary="Generar documento HTML multi-página para imprimir o guardar en PDF un lote de múltiples TUCs", response_class=HTMLResponse)
+async def render_html_lote(req: TucLoteImpresionRequest):
+    """
+    Genera un único documento HTML con múltiples páginas (una o dos por cada TUC),
+    separadas por saltos de página de impresión (@page / break-after: page),
+    listas para impresión en bloque o para 'Guardar como PDF' de muchas hojas.
+    """
+    try:
+        cfg = req.config
+        if not cfg and req.plantilla_id:
+            cfg = await TucCalibradorService.obtener_configuracion(plantilla_id=req.plantilla_id)
+        html = await TucCalibradorService.generar_html_lote_impresion(req.placas, config_override=cfg)
+        return HTMLResponse(content=html)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar lote de TUCs: {str(e)}")
 

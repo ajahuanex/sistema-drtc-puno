@@ -148,6 +148,14 @@ app.include_router(bajas_router, prefix=api_prefix)
 from app.routers.tramites_administrativos_router import router as tramites_admin_router
 app.include_router(tramites_admin_router, prefix=api_prefix)
 
+# Montar archivos estáticos de frontend (assets, logotipos e imágenes)
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+assets_dir = Path(__file__).resolve().parents[2] / "frontend" / "src" / "assets"
+if assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
 # Endpoint de salud
 @app.get("/api/v1/health", tags=["Health"])
 async def health_check():
