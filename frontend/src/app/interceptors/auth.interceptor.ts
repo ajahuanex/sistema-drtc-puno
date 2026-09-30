@@ -10,14 +10,15 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
   const autoLoginService = inject(AutoLoginService);
   const router = inject(Router);
 
-  const isExternalUrl = req.url.startsWith('http://') || req.url.startsWith('https://');
   const isGoogleSheets = req.url.includes('docs.google.com') || req.url.includes('google.com');
+  const isCasillaNodeRed = req.url.includes('transportespuno.gob.pe');
+  const isExternalService = isGoogleSheets || isCasillaNodeRed || (req.url.startsWith('http') && !req.url.includes('localhost') && !req.url.includes('127.0.0.1'));
 
-  // Agregar token de autorización solo a solicitudes internas a la API
+  // Agregar token de autorización solo a solicitudes internas a la API de SIRRETT
   let modifiedRequest = req;
   const token = authService.getToken();
 
-  if (!isGoogleSheets && (!isExternalUrl || req.url.includes('/api/')) && token && token !== 'undefined' && token !== 'null') {
+  if (!isExternalService && token && token !== 'undefined' && token !== 'null') {
     modifiedRequest = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
@@ -27,9 +28,9 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
 
   return next(modifiedRequest).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Si el error es de un servicio externo como Google Sheets, no cerrar sesión
-      if (isGoogleSheets || (isExternalUrl && !req.url.includes('/api/'))) {
-        console.warn('⚠️ Error HTTP en servicio externo (ignorado para auth):', req.url, error.status);
+      // Si el error es de un servicio externo (Google, Casillas Node-RED, MTC), no cerrar sesión
+      if (isExternalService) {
+        console.warn('⚠️ Error HTTP en servicio externo (ignorado para auth de SIRRETT):', req.url, error.status);
         return throwError(() => error);
       }
 

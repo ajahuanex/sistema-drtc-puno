@@ -345,7 +345,24 @@ import { AuthService } from '../../services/auth.service';
                 </a>
               }
 
+              <!-- Casilla Electrónica MTC -->
+              <a
+                routerLink="/casilla-electronica"
+                routerLinkActive="active"
+                class="nav-link-item group"
+                [matTooltip]="!isExpanded() ? 'Casilla Electrónica MTC' : ''"
+                matTooltipPosition="right"
+              >
+                <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+                @if (isExpanded()) {
+                  <span class="item-title">Casilla Electrónica</span>
+                }
+              </a>
+
               <!-- Bajas Externas y MTC -->
+
               @if (canAccess('vehiculos')) {
                 <a
                   routerLink="/bajas-externas"

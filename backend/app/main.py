@@ -147,6 +147,9 @@ from app.routers.bajas_router import router as bajas_router
 app.include_router(bajas_router, prefix=api_prefix)
 from app.routers.tramites_administrativos_router import router as tramites_admin_router
 app.include_router(tramites_admin_router, prefix=api_prefix)
+from app.routers.casilla_router import router as casilla_router
+app.include_router(casilla_router, prefix=api_prefix)
+
 
 # Montar archivos estáticos de frontend (assets, logotipos e imágenes)
 from pathlib import Path

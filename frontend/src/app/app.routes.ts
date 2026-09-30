@@ -212,6 +212,15 @@ export const routes: Routes = [
       { path: 'terminales/:id', redirectTo: 'infraestructura/:id', pathMatch: 'full' },
 
 
+      // CASILLA ELECTRÓNICA (VERIFICACIÓN MTC / DRTC PUNO)
+      { 
+        path: 'casilla-electronica', 
+        loadComponent: () => import('./components/casilla-electronica/casilla-electronica.component').then(m => m.CasillaElectronicaComponent),
+        canActivate: [RoleGuard],
+        data: { modulo: 'dashboard' }
+      },
+      { path: 'verificar-casilla', redirectTo: 'casilla-electronica', pathMatch: 'full' },
+
       // AUDITORÍA Y TRAZABILIDAD DEL SISTEMA (Control Interno & Fiscalización)
       { 
         path: 'auditoria', 
