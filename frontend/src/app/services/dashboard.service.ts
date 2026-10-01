@@ -61,6 +61,58 @@ export interface EmpresaTramiteItem {
   totalTramites: number;
 }
 
+export interface CategoriaVehicularItem {
+  categoria: string;
+  total: number;
+  porcentaje: number;
+}
+
+export interface EstadisticasCategoria {
+  total: number;
+  m2: number;
+  m3: number;
+  otras: number;
+  porcentajeM2: number;
+  porcentajeM3: number;
+  porcentajeOtras: number;
+  detalle: CategoriaVehicularItem[];
+}
+
+export interface EstadisticasPermanencia {
+  total: number;
+  optimo: number;
+  proximoRetiro: number;
+  regimenExtraordinarioPuno: number;
+  vencidoExcedido: number;
+  noDeterminado: number;
+  edadPromedio: number;
+  salidaPunoDetalle: Record<string, number>;
+  limiteOrdinarioAnios: number;
+  limiteExtraordinarioAnios: number;
+  porcentajeOptimo: number;
+  porcentajeProximo: number;
+  porcentajeExtraordinario: number;
+  porcentajeVencido: number;
+}
+
+export interface EstadisticasVigenciaTuc {
+  total: number;
+  vigentes: number;
+  anuladasBajas: number;
+  electronicas: number;
+  fisicas: number;
+  porcentajeDigital: number;
+}
+
+export interface NormativaMtc {
+  normaOrdinaria: string;
+  normaPuno: string;
+  normaClasificacion: string;
+  unidadesCriticasSalida2026: number;
+  condicionCitv: string;
+  tramitePredominante: string;
+}
+
 export interface DashboardEstadisticas {
   rutasHabilitadasTotal: number;
   rutasConMasEmpresas: RutaEmpresas[];
@@ -76,6 +128,10 @@ export interface DashboardEstadisticas {
   flotasPorCorredor: FlotaCorredor[];
   empresasPorResoluciones: EmpresasPorResolucionesResumen;
   detalleEmpresasMultiResolucion: EmpresaMultiResolucionItem[];
+  estadisticasCategoria?: EstadisticasCategoria;
+  estadisticasPermanencia?: EstadisticasPermanencia;
+  estadisticasVigenciaTuc?: EstadisticasVigenciaTuc;
+  normativaMtc?: NormativaMtc;
 }
 
 export interface ReporteResponse {

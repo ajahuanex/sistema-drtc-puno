@@ -69,8 +69,8 @@
         "label": "Fecha Emisión Res. Primigenia",
         "categoria": "autorizacion",
         "seccion": "anverso",
-        "x_mm": 153.5,
-        "y_mm": 16,
+        "x_mm": 115,
+        "y_mm": 23.5,
         "font_size_pt": 7.5,
         "font_weight": "bold",
         "color": "#000000",
@@ -501,7 +501,7 @@
     ],
     "activa": true,
     "fecha_creacion": "2026-09-29T11:33:17.116058",
-    "fecha_actualizacion": "2026-09-29T12:36:18.004850",
+    "fecha_actualizacion": "2026-10-01T11:51:27.587658",
     "id": "6abba1fd1c99393f5125fac4"
   },
   {

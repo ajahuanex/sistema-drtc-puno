@@ -2691,4 +2691,525 @@
   }
 }
 
+/* ========================================================================= */
+/* SECCIÓN NORMATIVA MTC: CATEGORÍAS & RÉGIMEN DE PERMANENCIA               */
+/* ========================================================================= */
+.mtc-section-container {
+  margin: 2rem 0;
+  padding: 1.75rem;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+.mtc-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mtc-section-title-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.mtc-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
+  flex-shrink: 0;
+
+  i {
+    font-size: 1.75rem;
+  }
+}
+
+.mtc-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.mtc-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.tag-official {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.tag-law {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.mtc-main-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.015em;
+}
+
+.mtc-main-subtitle {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.btn-mtc-download {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 1px solid #059669;
+  border-radius: 0.5rem;
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(5, 150, 105, 0.25);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 4px 10px rgba(5, 150, 105, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+/* 4 KPI Cards MTC */
+.kpi-grid-mtc {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.kpi-card-mtc {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.card-mtc-cyan { border-top: 4px solid #0ea5e9; }
+.card-mtc-indigo { border-top: 4px solid #6366f1; }
+.card-mtc-emerald { border-top: 4px solid #10b981; }
+.card-mtc-rose { border-top: 4px solid #f43f5e; }
+
+.kpi-mtc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.kpi-mtc-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i { font-size: 1.25rem; }
+}
+
+.icon-cyan { background: #e0f2fe; color: #0284c7; }
+.icon-indigo { background: #e0e7ff; color: #4f46e5; }
+.icon-emerald { background: #d1fae5; color: #059669; }
+.icon-rose { background: #ffe4e6; color: #e11d48; }
+
+.kpi-mtc-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+}
+
+.badge-cyan { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+.badge-indigo { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+.badge-emerald { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.badge-rose { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+
+.kpi-mtc-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-mtc-number-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.kpi-mtc-number {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.kpi-mtc-unit {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.kpi-mtc-desc {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* Gráficos MTC */
+.mtc-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.mtc-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-wrapper-mtc {
+  height: 250px;
+  position: relative;
+  margin: 0.5rem 0 1rem 0;
+}
+
+.mtc-mini-table-box {
+  margin-top: auto;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.75rem;
+}
+
+.table-mini-mtc {
+  font-size: 0.82rem;
+
+  th {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  td {
+    padding: 0.45rem 0.75rem;
+  }
+}
+
+.pill-percentage {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  background: #f1f5f9;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #334155;
+}
+
+/* Cronograma Puno */
+.puno-cronograma-box {
+  margin-top: 1rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.cronograma-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cronograma-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.cronograma-citv-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  background: #fef3c7;
+  color: #b45309;
+  border-radius: 4px;
+  border: 1px solid #fde68a;
+}
+
+.cronograma-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+}
+
+.cronograma-card {
+  background: white;
+  padding: 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+
+  &.card-urgente {
+    border-color: #fda4af;
+    background: #fff1f2;
+  }
+}
+
+.c-year {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.c-models {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin: 0.15rem 0;
+}
+
+.c-count {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #0284c7;
+}
+
+.c-status {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+}
+
+/* Banner Marco Legal MTC */
+.mtc-legal-banner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  background: #f1f5f9;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+}
+
+.legal-banner-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+
+  .legal-icon {
+    font-size: 1.5rem;
+    color: #0284c7;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+  }
+
+  strong {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+  }
+
+  p {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.35;
+  }
+}
+
+/* Responsive MTC Section */
+@media (max-width: 1200px) {
+  .kpi-grid-mtc {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mtc-charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .cronograma-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mtc-legal-banner {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .kpi-grid-mtc {
+    grid-template-columns: 1fr;
+  }
+  .cronograma-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Modo Oscuro MTC */
+:host-context(.dark) {
+  .mtc-section-container {
+    background: #111827;
+    border-color: #1f2937;
+  }
+
+  .mtc-section-header {
+    border-bottom-color: #1f2937;
+  }
+
+  .mtc-main-title {
+    color: #f8fafc;
+  }
+
+  .mtc-main-subtitle {
+    color: #94a3b8;
+  }
+
+  .tag-law {
+    background: #1e293b;
+    color: #38bdf8;
+    border-color: #0369a1;
+  }
+
+  .kpi-card-mtc {
+    background: #1e2433;
+    border-color: #283046;
+  }
+
+  .kpi-mtc-number {
+    color: #f8fafc;
+  }
+
+  .kpi-mtc-label,
+  .kpi-mtc-unit {
+    color: #94a3b8;
+  }
+
+  .kpi-mtc-desc {
+    color: #64748b;
+  }
+
+  .icon-cyan { background: #0c4a6e; color: #38bdf8; }
+  .icon-indigo { background: #312e81; color: #818cf8; }
+  .icon-emerald { background: #064e3b; color: #34d399; }
+  .icon-rose { background: #4c0519; color: #fb7185; }
+
+  .badge-cyan { background: #082f49; color: #38bdf8; border-color: #0369a1; }
+  .badge-indigo { background: #1e1b4b; color: #818cf8; border-color: #4338ca; }
+  .badge-emerald { background: #022c22; color: #34d399; border-color: #047857; }
+  .badge-rose { background: #4c0519; color: #fb7185; border-color: #be123c; }
+
+  .mtc-mini-table-box {
+    border-top-color: #1f2937;
+  }
+
+  .pill-percentage {
+    background: #1e293b;
+    color: #cbd5e1;
+  }
+
+  .puno-cronograma-box {
+    background: #0f141c;
+    border-color: #1f2937;
+  }
+
+  .cronograma-title {
+    color: #f8fafc;
+  }
+
+  .cronograma-citv-tag {
+    background: #78350f;
+    color: #fde68a;
+    border-color: #92400e;
+  }
+
+  .cronograma-card {
+    background: #171b26;
+    border-color: #283046;
+
+    &.card-urgente {
+      background: #4c0519;
+      border-color: #be123c;
+    }
+  }
+
+  .c-year {
+    color: #f8fafc;
+  }
+
+  .c-models {
+    color: #94a3b8;
+  }
+
+  .mtc-legal-banner {
+    background: #171b26;
+    border-color: #283046;
+
+    strong {
+      color: #f8fafc;
+    }
+
+    p {
+      color: #94a3b8;
+    }
+
+    .legal-icon {
+      color: #38bdf8;
+    }
+  }
+}
+
+
 

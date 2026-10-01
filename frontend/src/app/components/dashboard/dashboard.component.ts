@@ -47,6 +47,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   descargandoFlota = signal<boolean>(false);
   descargandoTramites = signal<boolean>(false);
   descargandoPorVencer = signal<boolean>(false);
+  descargandoPermanenciaMTC = signal<boolean>(false);
   mostrarDetallePorVencer = signal<boolean>(false);
 
   // Lista filtrada reactiva de empresas multi-resolución
@@ -306,8 +307,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   
   @ViewChild('resolucionesChart') resolucionesChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('rutasChart') rutasChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('categoriaChart') categoriaChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('permanenciaChart') permanenciaChartRef!: ElementRef<HTMLCanvasElement>;
   resolucionesChartInstance: Chart | null = null;
   rutasChartInstance: Chart | null = null;
+  categoriaChartInstance: Chart | null = null;
+  permanenciaChartInstance: Chart | null = null;
 
   constructor() {
     effect(() => {
@@ -318,6 +323,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         setTimeout(() => {
           this.inicializarGraficoResoluciones(stats);
           this.inicializarGraficoRutas(stats);
+          this.inicializarGraficoCategorias(stats);
+          this.inicializarGraficoPermanencia(stats);
         }, 60);
       }
     });
@@ -338,6 +345,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.rutasChartInstance) {
       this.rutasChartInstance.destroy();
     }
+    if (this.categoriaChartInstance) {
+      this.categoriaChartInstance.destroy();
+    }
+    if (this.permanenciaChartInstance) {
+      this.permanenciaChartInstance.destroy();
+    }
   }
 
   cargarEstadisticas(): void {
@@ -351,6 +364,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         setTimeout(() => {
           this.inicializarGraficoResoluciones(data);
           this.inicializarGraficoRutas(data);
+          this.inicializarGraficoCategorias(data);
+          this.inicializarGraficoPermanencia(data);
         }, 100);
       },
       error: (err) => {
@@ -865,6 +880,174 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private inicializarGraficoCategorias(data: DashboardEstadisticas): void {
+    if (!this.categoriaChartRef || !this.categoriaChartRef.nativeElement) return;
+    const ctx = this.categoriaChartRef.nativeElement.getContext('2d');
+    if (!ctx) return;
+
+    if (this.categoriaChartInstance) {
+      this.categoriaChartInstance.destroy();
+    }
+
+    const cat = data.estadisticasCategoria;
+    if (!cat) return;
+
+    const labels = [
+      `Categoría M2 (Minibús / Microbús): ${cat.m2.toLocaleString()} (${cat.porcentajeM2}%)`,
+      `Categoría M3 (Ómnibus / Bus): ${cat.m3.toLocaleString()} (${cat.porcentajeM3}%)`,
+      `Otras / No esp.: ${cat.otras.toLocaleString()} (${cat.porcentajeOtras}%)`
+    ];
+    const valores = [cat.m2, cat.m3, cat.otras];
+
+    const backgroundColors = [
+      'rgba(14, 165, 233, 0.85)', // M2: Sky/Cyan
+      'rgba(99, 102, 241, 0.85)', // M3: Indigo
+      'rgba(148, 163, 184, 0.85)'  // Otras: Slate
+    ];
+    const borderColors = backgroundColors.map(c => c.replace('0.85', '1'));
+
+    const isDark = this.themeService.isDarkMode();
+    const legendColor = isDark ? '#cbd5e1' : '#334155';
+
+    this.categoriaChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: valores,
+          backgroundColor: backgroundColors,
+          borderColor: borderColors,
+          borderWidth: 2,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: legendColor,
+              font: { family: "'Inter', sans-serif", size: 11, weight: 500 },
+              padding: 12
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 10,
+            cornerRadius: 8
+          }
+        },
+        cutout: '62%'
+      }
+    });
+  }
+
+  private inicializarGraficoPermanencia(data: DashboardEstadisticas): void {
+    if (!this.permanenciaChartRef || !this.permanenciaChartRef.nativeElement) return;
+    const ctx = this.permanenciaChartRef.nativeElement.getContext('2d');
+    if (!ctx) return;
+
+    if (this.permanenciaChartInstance) {
+      this.permanenciaChartInstance.destroy();
+    }
+
+    const perm = data.estadisticasPermanencia;
+    if (!perm) return;
+
+    const labels = [
+      'Óptimo (≤ 10 años)',
+      'Próximo Límite (11-15 años)',
+      'Régimen Extraordinario Puno',
+      'Plazo Vencido / Excedido'
+    ];
+    const valores = [perm.optimo, perm.proximoRetiro, perm.regimenExtraordinarioPuno, perm.vencidoExcedido];
+
+    const backgroundColors = [
+      'rgba(16, 185, 129, 0.85)', // Óptimo: Emerald
+      'rgba(245, 158, 11, 0.85)',  // Próximo: Amber
+      'rgba(139, 92, 246, 0.85)',  // Extraordinario Puno: Violet
+      'rgba(239, 68, 68, 0.85)'    // Vencido: Red
+    ];
+    const borderColors = backgroundColors.map(c => c.replace('0.85', '1'));
+
+    const isDark = this.themeService.isDarkMode();
+    const tickColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+    this.permanenciaChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Total Vehículos Habilitados',
+          data: valores,
+          backgroundColor: backgroundColors,
+          borderColor: borderColors,
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 10,
+            cornerRadius: 8
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: tickColor, font: { family: "'Inter', sans-serif", size: 10 } },
+            grid: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: tickColor, precision: 0 },
+            grid: { color: gridColor }
+          }
+        }
+      }
+    });
+  }
+
+  descargarReportePermanenciaMTC(): void {
+    const stats = this.estadisticas();
+    if (!stats) return;
+    this.descargandoPermanenciaMTC.set(true);
+
+    const cat = stats.estadisticasCategoria;
+    const perm = stats.estadisticasPermanencia;
+    const norm = stats.normativaMtc;
+    const tuc = stats.estadisticasVigenciaTuc;
+
+    const resumenData = [
+      { 'Indicador': 'Total Padrón Vehicular Evaluado', 'Valor': cat?.total || 0, 'Norma / Base Legal': 'MTC / DRTC Puno' },
+      { 'Indicador': 'Categoría M2 (Minibús / Microbús ≤ 5t)', 'Valor': `${cat?.m2 || 0} (${cat?.porcentajeM2 || 0}%)`, 'Norma / Base Legal': 'D.S. N.° 058-2003-MTC' },
+      { 'Indicador': 'Categoría M3 (Ómnibus / Bus > 5t)', 'Valor': `${cat?.m3 || 0} (${cat?.porcentajeM3 || 0}%)`, 'Norma / Base Legal': 'D.S. N.° 058-2003-MTC' },
+      { 'Indicador': 'Otras Categorías o Sin Clasificar', 'Valor': `${cat?.otras || 0} (${cat?.porcentajeOtras || 0}%)`, 'Norma / Base Legal': '-' },
+      { 'Indicador': 'Edad Promedio de la Flota Regional', 'Valor': `${perm?.edadPromedio || 0} años`, 'Norma / Base Legal': 'Cómputo por Año de Fabricación (TIV)' },
+      { 'Indicador': 'Permanencia Óptima (≤ 10 años, 2016-2026)', 'Valor': `${perm?.optimo || 0} (${perm?.porcentajeOptimo || 0}%)`, 'Norma / Base Legal': 'Art. 25 D.S. 017-2009-MTC (RNAT)' },
+      { 'Indicador': 'Próximo a Límite de Permanencia (11-15 años)', 'Valor': `${perm?.proximoRetiro || 0} (${perm?.porcentajeProximo || 0}%)`, 'Norma / Base Legal': 'Art. 25 D.S. 017-2009-MTC (RNAT)' },
+      { 'Indicador': 'Régimen Extraordinario Puno (Modelos 2000-2009)', 'Valor': `${perm?.regimenExtraordinarioPuno || 0} (${perm?.porcentajeExtraordinario || 0}%)`, 'Norma / Base Legal': 'R.M. N.° 585-2021-MTC/01 (Cronograma Puno)' },
+      { 'Indicador': '  ↳ Retiro Improrrogable al 31/12/2026 (Modelos 2000-2001)', 'Valor': perm?.salidaPunoDetalle?.[2026] || 0, 'Norma / Base Legal': 'ALERTA CRÍTICA: Sustitución inmediata' },
+      { 'Indicador': '  ↳ Retiro Improrrogable al 31/12/2027 (Modelos 2002-2004)', 'Valor': perm?.salidaPunoDetalle?.[2027] || 0, 'Norma / Base Legal': 'R.M. 585-2021-MTC/01' },
+      { 'Indicador': '  ↳ Retiro Improrrogable al 31/12/2028 (Modelos 2005-2007)', 'Valor': perm?.salidaPunoDetalle?.[2028] || 0, 'Norma / Base Legal': 'R.M. 585-2021-MTC/01' },
+      { 'Indicador': '  ↳ Retiro Improrrogable al 31/12/2029 (Modelos 2008-2009)', 'Valor': perm?.salidaPunoDetalle?.[2029] || 0, 'Norma / Base Legal': 'R.M. 585-2021-MTC/01' },
+      { 'Indicador': 'Permanencia Vencida / Excedida (> 15 años sin prórroga)', 'Valor': `${perm?.vencidoExcedido || 0} (${perm?.porcentajeVencido || 0}%)`, 'Norma / Base Legal': 'Baja y sustitución obligatoria MTC' },
+      { 'Indicador': 'TUCs en Estado VIGENTE', 'Valor': tuc?.vigentes || 0, 'Norma / Base Legal': 'Habilitación vehicular activa' },
+      { 'Indicador': 'TUCs Físicas (Cartulina / Kárdex)', 'Valor': tuc?.fisicas || 0, 'Norma / Base Legal': 'Padrón físico tradicional' },
+      { 'Indicador': 'E-TUC Digitales con Código QR y SHA-256', 'Valor': tuc?.electronicas || 0, 'Norma / Base Legal': 'Transformación Digital MTC' }
+    ];
+
+    this.exportarExcel(resumenData, 'DRTC_PUNO_Reporte_Normativa_MTC_Categorias_Permanencia', 'Normativa MTC');
+    this.descargandoPermanenciaMTC.set(false);
+  }
+
   // =========================================================================
   // CONTROL DE PANTALLA COMPLETA Y VISTAS AMPLIADAS
   // =========================================================================
@@ -890,6 +1073,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     setTimeout(() => {
       this.resolucionesChartInstance?.resize();
       this.rutasChartInstance?.resize();
+      this.categoriaChartInstance?.resize();
+      this.permanenciaChartInstance?.resize();
     }, 150);
   }
 
@@ -1082,6 +1267,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       setTimeout(() => {
         this.resolucionesChartInstance?.resize();
         this.rutasChartInstance?.resize();
+        this.categoriaChartInstance?.resize();
+        this.permanenciaChartInstance?.resize();
       }, 100);
     }
   }

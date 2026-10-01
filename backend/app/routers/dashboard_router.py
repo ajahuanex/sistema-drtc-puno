@@ -296,6 +296,142 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
             "esta_activo": True
         })
 
+        # 7. Estadísticas Vehiculares por Categoría MTC (D.S. 058-2003-MTC)
+        cat_cursor = db["tucs"].aggregate([
+            {"$group": {
+                "_id": {"$ifNull": ["$datosVehiculo.categoria", "SIN_CATEGORIA"]},
+                "total": {"$sum": 1}
+            }},
+            {"$sort": {"total": -1}}
+        ])
+        cats = await cat_cursor.to_list(100)
+        
+        m2_total = 0
+        m3_total = 0
+        otras_total = 0
+        detalle_categorias = []
+        total_vehiculos_eval = sum(c["total"] for c in cats) or 1
+        
+        for c in cats:
+            cat_raw = str(c["_id"]).upper().strip()
+            cnt = c["total"]
+            porc = round((cnt / total_vehiculos_eval) * 100, 2)
+            detalle_categorias.append({
+                "categoria": cat_raw,
+                "total": cnt,
+                "porcentaje": porc
+            })
+            if "M2" in cat_raw:
+                m2_total += cnt
+            elif "M3" in cat_raw:
+                m3_total += cnt
+            else:
+                otras_total += cnt
+
+        estadisticas_categoria = {
+            "total": total_vehiculos_eval,
+            "m2": m2_total,
+            "m3": m3_total,
+            "otras": otras_total,
+            "porcentajeM2": round((m2_total / total_vehiculos_eval) * 100, 1),
+            "porcentajeM3": round((m3_total / total_vehiculos_eval) * 100, 1),
+            "porcentajeOtras": round((otras_total / total_vehiculos_eval) * 100, 1),
+            "detalle": detalle_categorias[:10]
+        }
+
+        # 8. Régimen de Permanencia Vehicular MTC (Art. 25 D.S. 017-2009-MTC y R.M. 585-2021-MTC/01 Puno)
+        now_year = datetime.now().year
+        anios_cursor = db["tucs"].aggregate([
+            {"$group": {
+                "_id": "$datosVehiculo.anioFabricacion",
+                "total": {"$sum": 1}
+            }},
+            {"$sort": {"_id": 1}}
+        ])
+        anios_list = await anios_cursor.to_list(200)
+
+        optimo = 0              # <= 10 años (fabricados >= 2016)
+        proximo_retiro = 0      # 11-15 años (fabricados 2011-2015)
+        regimen_puno = 0        # 2000-2009 (R.M. 585-2021-MTC/01)
+        vencido_excedido = 0    # <= 1999 o superado sin prórroga
+        no_determinado = 0
+        sum_anios = 0
+        count_con_anio = 0
+        salida_puno_detalle = {2026: 0, 2027: 0, 2028: 0, 2029: 0}
+
+        for a in anios_list:
+            anio_val = a["_id"]
+            cnt = a["total"]
+            if not anio_val or not isinstance(anio_val, (int, float)) or anio_val < 1950:
+                no_determinado += cnt
+                continue
+
+            anio = int(anio_val)
+            edad = now_year - anio
+            sum_anios += edad * cnt
+            count_con_anio += cnt
+
+            if edad <= 10:
+                optimo += cnt
+            elif 11 <= edad <= 15:
+                proximo_retiro += cnt
+            elif 2000 <= anio <= 2009:
+                regimen_puno += cnt
+                if 2000 <= anio <= 2001:
+                    salida_puno_detalle[2026] += cnt
+                elif 2002 <= anio <= 2004:
+                    salida_puno_detalle[2027] += cnt
+                elif 2005 <= anio <= 2007:
+                    salida_puno_detalle[2028] += cnt
+                elif 2008 <= anio <= 2009:
+                    salida_puno_detalle[2029] += cnt
+            else:
+                vencido_excedido += cnt
+
+        edad_promedio = round(sum_anios / count_con_anio, 1) if count_con_anio else 0
+
+        estadisticas_permanencia = {
+            "total": total_vehiculos_eval,
+            "optimo": optimo,
+            "proximoRetiro": proximo_retiro,
+            "regimenExtraordinarioPuno": regimen_puno,
+            "vencidoExcedido": vencido_excedido,
+            "noDeterminado": no_determinado,
+            "edadPromedio": edad_promedio,
+            "salidaPunoDetalle": salida_puno_detalle,
+            "limiteOrdinarioAnios": 15,
+            "limiteExtraordinarioAnios": 20,
+            "porcentajeOptimo": round((optimo / total_vehiculos_eval) * 100, 1),
+            "porcentajeProximo": round((proximo_retiro / total_vehiculos_eval) * 100, 1),
+            "porcentajeExtraordinario": round((regimen_puno / total_vehiculos_eval) * 100, 1),
+            "porcentajeVencido": round((vencido_excedido / total_vehiculos_eval) * 100, 1)
+        }
+
+        # 9. Vigencia de TUCs y Digitalización
+        vigentes_tuc = await db["tucs"].count_documents({"estado": "VIGENTE"})
+        anuladas_tuc = await db["tucs"].count_documents({"estado": {"$in": ["ANULADA", "ANULADA_POR_DUPLICADO", "REEMPLAZADA"]}})
+        electronicas_tuc = await db["tucs"].count_documents({"tipoEmision": "ELECTRONICA"})
+        fisicas_tuc = await db["tucs"].count_documents({"tipoEmision": "FISICA"})
+
+        estadisticas_vigencia_tuc = {
+            "total": total_vehiculos_eval,
+            "vigentes": vigentes_tuc,
+            "anuladasBajas": anuladas_tuc,
+            "electronicas": electronicas_tuc,
+            "fisicas": fisicas_tuc,
+            "porcentajeDigital": round((electronicas_tuc / total_vehiculos_eval) * 100, 2) if total_vehiculos_eval else 0
+        }
+
+        # 10. Datos y Normativa MTC Relevantes
+        normativa_mtc = {
+            "normaOrdinaria": "D.S. N.° 017-2009-MTC (RNAT - Art. 25: Límite ordinario de 15 años de permanencia)",
+            "normaPuno": "R.M. N.° 585-2021-MTC/01 (Régimen extraordinario de permanencia región Puno)",
+            "normaClasificacion": "D.S. N.° 058-2003-MTC (Reglamento Nacional de Vehículos - Cat. M2/M3)",
+            "unidadesCriticasSalida2026": salida_puno_detalle.get(2026, 0),
+            "condicionCitv": "Obligatoriedad de Certificado de Inspección Técnica Vehicular (CITV) semestral para unidades acogidas a régimen extraordinario",
+            "tramitePredominante": "SUSTITUCIONES / INCREMENTOS"
+        }
+
         return {
             "flotasPorCorredor": flotas_por_corredor,
             "empresasPorResoluciones": empresas_por_resoluciones,
@@ -317,7 +453,11 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
             "totalTramitesFlota": total_renovaciones + total_sustituciones + total_incrementos,
             "topEmpresasTramites": top_empresas_tramites,
             "totalFlotaHabilitada": total_flota_habilitada,
-            "topFlotasPorEmpresa": flotas_por_empresa
+            "topFlotasPorEmpresa": flotas_por_empresa,
+            "estadisticasCategoria": estadisticas_categoria,
+            "estadisticasPermanencia": estadisticas_permanencia,
+            "estadisticasVigenciaTuc": estadisticas_vigencia_tuc,
+            "normativaMtc": normativa_mtc
         }
     except Exception as e:
         import traceback

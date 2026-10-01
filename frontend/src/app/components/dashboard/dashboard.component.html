@@ -438,6 +438,232 @@
 
     </div>
 
+    <!-- ========================================================================= -->
+    <!-- SECCIÓN MTC: FISCALIZACIÓN, CATEGORÍAS VEHICULARES & RÉGIMEN DE PERMANENCIA -->
+    <!-- (D.S. N.° 017-2009-MTC, R.M. N.° 585-2021-MTC/01, D.S. N.° 058-2003-MTC) -->
+    <!-- ========================================================================= -->
+    <div class="mtc-section-container">
+      <div class="mtc-section-header">
+        <div class="mtc-section-title-box">
+          <div class="mtc-icon-badge">
+            <i class="material-icons-outlined">verified_user</i>
+          </div>
+          <div>
+            <div class="mtc-tag-row">
+              <span class="mtc-tag tag-official">Normativa MTC Oficial</span>
+              <span class="mtc-tag tag-law">D.S. 017-2009-MTC</span>
+              <span class="mtc-tag tag-law">R.M. 585-2021-MTC/01 (Puno)</span>
+              <span class="mtc-tag tag-law">D.S. 058-2003-MTC</span>
+            </div>
+            <h2 class="mtc-main-title">Fiscalización Normativa MTC: Categorías Vehiculares & Régimen de Permanencia</h2>
+            <p class="mtc-main-subtitle">
+              Auditoría del padrón vehicular regional de {{ stats.estadisticasCategoria?.total | number }} unidades: clasificación por categoría (M2/M3), antigüedad operativa y cronograma legal de retiro.
+            </p>
+          </div>
+        </div>
+        <div class="mtc-header-actions">
+          <button class="btn-mtc-download" (click)="descargarReportePermanenciaMTC()" [disabled]="descargandoPermanenciaMTC()" title="Descargar auditoría completa en Excel (.xlsx)">
+            <i class="material-icons-outlined">{{ descargandoPermanenciaMTC() ? 'hourglass_top' : 'download' }}</i>
+            <span>{{ descargandoPermanenciaMTC() ? 'Generando Excel...' : 'Reporte Normativa MTC (Excel)' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Cards KPIs Normativos -->
+      <div class="kpi-grid-mtc">
+        <!-- Card 1: Categoría M2 -->
+        <div class="kpi-card-mtc card-mtc-cyan">
+          <div class="kpi-mtc-header">
+            <div class="kpi-mtc-icon-wrapper icon-cyan">
+              <i class="material-icons-outlined">airport_shuttle</i>
+            </div>
+            <span class="kpi-mtc-badge badge-cyan">{{ stats.estadisticasCategoria?.porcentajeM2 }}% de flota</span>
+          </div>
+          <div class="kpi-mtc-body">
+            <span class="kpi-mtc-label">Categoría M2 (Minibús / Microbús)</span>
+            <div class="kpi-mtc-number-row">
+              <span class="kpi-mtc-number">{{ stats.estadisticasCategoria?.m2 | number }}</span>
+              <span class="kpi-mtc-unit">vehículos</span>
+            </div>
+            <p class="kpi-mtc-desc">Hasta 5t de peso bruto vehicular autorizadas para servicio interprovincial regional.</p>
+          </div>
+        </div>
+
+        <!-- Card 2: Categoría M3 -->
+        <div class="kpi-card-mtc card-mtc-indigo">
+          <div class="kpi-mtc-header">
+            <div class="kpi-mtc-icon-wrapper icon-indigo">
+              <i class="material-icons-outlined">directions_bus</i>
+            </div>
+            <span class="kpi-mtc-badge badge-indigo">{{ stats.estadisticasCategoria?.porcentajeM3 }}% de flota</span>
+          </div>
+          <div class="kpi-mtc-body">
+            <span class="kpi-mtc-label">Categoría M3 (Ómnibus / Bus)</span>
+            <div class="kpi-mtc-number-row">
+              <span class="kpi-mtc-number">{{ stats.estadisticasCategoria?.m3 | number }}</span>
+              <span class="kpi-mtc-unit">vehículos</span>
+            </div>
+            <p class="kpi-mtc-desc">Mayor a 5t de peso bruto con capacidad masiva de pasajeros en rutas troncales.</p>
+          </div>
+        </div>
+
+        <!-- Card 3: Permanencia Óptima -->
+        <div class="kpi-card-mtc card-mtc-emerald">
+          <div class="kpi-mtc-header">
+            <div class="kpi-mtc-icon-wrapper icon-emerald">
+              <i class="material-icons-outlined">check_circle</i>
+            </div>
+            <span class="kpi-mtc-badge badge-emerald">{{ stats.estadisticasPermanencia?.porcentajeOptimo }}% conforme</span>
+          </div>
+          <div class="kpi-mtc-body">
+            <span class="kpi-mtc-label">Permanencia Óptima (≤ 10 años)</span>
+            <div class="kpi-mtc-number-row">
+              <span class="kpi-mtc-number text-emerald">{{ stats.estadisticasPermanencia?.optimo | number }}</span>
+              <span class="kpi-mtc-unit">unidades</span>
+            </div>
+            <p class="kpi-mtc-desc">Modelos 2016-2026 en plena vigencia operativa. Edad promedio regional: <strong>{{ stats.estadisticasPermanencia?.edadPromedio }} años</strong>.</p>
+          </div>
+        </div>
+
+        <!-- Card 4: Alerta Retiro 2026 & Cronograma Puno -->
+        <div class="kpi-card-mtc card-mtc-rose">
+          <div class="kpi-mtc-header">
+            <div class="kpi-mtc-icon-wrapper icon-rose">
+              <i class="material-icons-outlined">notification_important</i>
+            </div>
+            <span class="kpi-mtc-badge badge-rose">Salida 31/12/2026</span>
+          </div>
+          <div class="kpi-mtc-body">
+            <span class="kpi-mtc-label">Alerta Retiro Inmediato 2026</span>
+            <div class="kpi-mtc-number-row">
+              <span class="kpi-mtc-number text-rose">{{ stats.normativaMtc?.unidadesCriticasSalida2026 | number }}</span>
+              <span class="kpi-mtc-unit">por sustituir</span>
+            </div>
+            <p class="kpi-mtc-desc">Modelos 2000-2001 que cumplen el límite improrrogable del cronograma Puno este año.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos y Tablas de Detalle MTC -->
+      <div class="mtc-charts-grid">
+        <!-- Gráfico Categorías MTC -->
+        <div class="glass-panel mtc-panel">
+          <div class="panel-header">
+            <div class="panel-header-title">
+              <div class="panel-icon-circle icon-cyan">
+                <i class="material-icons-outlined">donut_large</i>
+              </div>
+              <div>
+                <h3 class="panel-title">Distribución por Categoría Vehicular MTC</h3>
+                <p class="panel-subtitle">Clasificación D.S. N.° 058-2003-MTC (Reglamento Nacional de Vehículos)</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-wrapper-mtc">
+            <canvas #categoriaChart></canvas>
+          </div>
+          <div class="mtc-mini-table-box">
+            <table class="modern-table table-mini-mtc">
+              <thead>
+                <tr>
+                  <th>Subcategoría Técnica</th>
+                  <th style="text-align: right;">Vehículos</th>
+                  <th style="text-align: right;">% Padrón</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of stats.estadisticasCategoria?.detalle || []; track c.categoria) {
+                  <tr>
+                    <td><strong>{{ c.categoria }}</strong></td>
+                    <td style="text-align: right;" class="font-mono">{{ c.total | number }}</td>
+                    <td style="text-align: right;">
+                      <span class="pill-percentage">{{ c.porcentaje }}%</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Gráfico Régimen de Permanencia MTC -->
+        <div class="glass-panel mtc-panel">
+          <div class="panel-header">
+            <div class="panel-header-title">
+              <div class="panel-icon-circle icon-indigo">
+                <i class="material-icons-outlined">query_builder</i>
+              </div>
+              <div>
+                <h3 class="panel-title">Régimen de Permanencia y Antigüedad de Flota</h3>
+                <p class="panel-subtitle">Art. 25 RNAT (15 años) y Cronograma Extraordinario Puno (R.M. 585-2021-MTC)</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-wrapper-mtc">
+            <canvas #permanenciaChart></canvas>
+          </div>
+          <!-- Cronograma Escalonado de Retiro Región Puno -->
+          <div class="puno-cronograma-box">
+            <div class="cronograma-title-row">
+              <span class="cronograma-title">Cronograma de Retiro Región Puno (R.M. 585-2021-MTC/01):</span>
+              <span class="cronograma-citv-tag">Exigencia CITV Semestral</span>
+            </div>
+            <div class="cronograma-grid">
+              <div class="cronograma-card card-urgente">
+                <span class="c-year">31/12/2026</span>
+                <span class="c-models">Modelos 2000-2001</span>
+                <span class="c-count text-rose">{{ stats.estadisticasPermanencia?.salidaPunoDetalle?.['2026'] || 0 }} unidades</span>
+                <span class="c-status">Vencen este año</span>
+              </div>
+              <div class="cronograma-card">
+                <span class="c-year">31/12/2027</span>
+                <span class="c-models">Modelos 2002-2004</span>
+                <span class="c-count">{{ stats.estadisticasPermanencia?.salidaPunoDetalle?.['2027'] || 0 }} unidades</span>
+                <span class="c-status">Plazo: 1 año restante</span>
+              </div>
+              <div class="cronograma-card">
+                <span class="c-year">31/12/2028</span>
+                <span class="c-models">Modelos 2005-2007</span>
+                <span class="c-count">{{ stats.estadisticasPermanencia?.salidaPunoDetalle?.['2028'] || 0 }} unidades</span>
+                <span class="c-status">Plazo: 2 años restantes</span>
+              </div>
+              <div class="cronograma-card">
+                <span class="c-year">31/12/2029</span>
+                <span class="c-models">Modelos 2008-2009</span>
+                <span class="c-count">{{ stats.estadisticasPermanencia?.salidaPunoDetalle?.['2029'] || 0 }} unidades</span>
+                <span class="c-status">Plazo: 3 años restantes</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner de Marco Legal y Fiscalización -->
+      <div class="mtc-legal-banner">
+        <div class="legal-banner-item">
+          <i class="material-icons-outlined legal-icon">gavel</i>
+          <div>
+            <strong>Límite Ordinario RNAT (Art. 25 D.S. 017-2009-MTC)</strong>
+            <p>15 años máximos de permanencia para unidades en servicio regular computados desde el 1 de enero del año siguiente a su fabricación.</p>
+          </div>
+        </div>
+        <div class="legal-banner-item">
+          <i class="material-icons-outlined legal-icon">health_and_safety</i>
+          <div>
+            <strong>Inspección Técnica Vehicular (CITV Semestral)</strong>
+            <p>Las unidades acogidas a la R.M. 585-2021-MTC/01 deben acreditar aprobación semestral de CITV para mantener habilitación en ruta.</p>
+          </div>
+        </div>
+        <div class="legal-banner-item">
+          <i class="material-icons-outlined legal-icon">qr_code_2</i>
+          <div>
+            <strong>Transformación Digital TUC & Fiscalización en Campo</strong>
+            <p>{{ stats.estadisticasVigenciaTuc?.vigentes | number }} TUCs vigentes sincronizadas con hash criptográfico SHA-256 e inspección móvil inmediata.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- SECCIÓN FILA 2: GRÁFICOS Y TABLAS COMPLEMENTARIOS -->
     <div class="charts-grid">
       
