@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 from app.dependencies.db import get_database
 from app.services.reporte_google_docs import GoogleDocsReportService
@@ -297,7 +297,18 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
         })
 
         # 7. Estadísticas Vehiculares por Categoría MTC (D.S. 058-2003-MTC)
+        # Exclusivamente para vehículos habilitados (excluyendo inhabilitados, dados de baja o con TUC anulada)
+        placas_habilitadas = await db["flota_empresa"].distinct(
+            "placa", 
+            {"estado": "HABILITADO", "esta_activo": True, "placa": {"$nin": [None, "", "-"]}}
+        )
+        filtro_habilitados = {
+            "estado": "VIGENTE",
+            "placa": {"$in": placas_habilitadas}
+        }
+
         cat_cursor = db["tucs"].aggregate([
+            {"$match": filtro_habilitados},
             {"$group": {
                 "_id": {"$ifNull": ["$datosVehiculo.categoria", "SIN_CATEGORIA"]},
                 "total": {"$sum": 1}
@@ -340,8 +351,10 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
         }
 
         # 8. Régimen de Permanencia Vehicular MTC (Art. 25 D.S. 017-2009-MTC y R.M. 585-2021-MTC/01 Puno)
+        # Evaluando únicamente flota vehicular con habilitación vigente
         now_year = datetime.now().year
         anios_cursor = db["tucs"].aggregate([
+            {"$match": filtro_habilitados},
             {"$group": {
                 "_id": "$datosVehiculo.anioFabricacion",
                 "total": {"$sum": 1}
@@ -412,14 +425,16 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
         anuladas_tuc = await db["tucs"].count_documents({"estado": {"$in": ["ANULADA", "ANULADA_POR_DUPLICADO", "REEMPLAZADA"]}})
         electronicas_tuc = await db["tucs"].count_documents({"tipoEmision": "ELECTRONICA"})
         fisicas_tuc = await db["tucs"].count_documents({"tipoEmision": "FISICA"})
+        total_tucs_historico = vigentes_tuc + anuladas_tuc
 
         estadisticas_vigencia_tuc = {
-            "total": total_vehiculos_eval,
+            "total": total_tucs_historico,
+            "totalHabilitados": total_vehiculos_eval,
             "vigentes": vigentes_tuc,
             "anuladasBajas": anuladas_tuc,
             "electronicas": electronicas_tuc,
             "fisicas": fisicas_tuc,
-            "porcentajeDigital": round((electronicas_tuc / total_vehiculos_eval) * 100, 2) if total_vehiculos_eval else 0
+            "porcentajeDigital": round((electronicas_tuc / vigentes_tuc) * 100, 2) if vigentes_tuc else 0
         }
 
         # 10. Datos y Normativa MTC Relevantes
@@ -755,6 +770,173 @@ async def get_reporte_detalle_por_vencer(db = Depends(get_database)):
         return lista
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener resoluciones por vencer: {str(e)}")
+
+@router.get("/reporte-detalle/permanencia")
+async def get_reporte_detalle_permanencia(
+    db = Depends(get_database),
+    estado_permanencia: Optional[str] = None,
+    categoria: Optional[str] = None,
+    ruc: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """
+    Retorna el padrón detallado de vehículos habilitados con su situación técnica de permanencia,
+    categoría MTC, empresa autorizada y dictamen legal de retiro (R.M. 585-2021 / D.S. 017-2009).
+    """
+    try:
+        now_year = datetime.now().year
+
+        placas_habilitadas = await db["flota_empresa"].distinct(
+            "placa",
+            {"estado": "HABILITADO", "esta_activo": True, "placa": {"$nin": [None, "", "-"]}}
+        )
+
+        filtro_hab = {
+            "estado": "VIGENTE",
+            "placa": {"$in": placas_habilitadas}
+        }
+
+        cursor = db["tucs"].find(
+            filtro_hab,
+            {
+                "placa": 1,
+                "ruc": 1,
+                "razonSocial": 1,
+                "nroTuc": 1,
+                "nroResolucion": 1,
+                "datosVehiculo": 1,
+                "datosEmpresa": 1
+            }
+        ).sort("placa", 1)
+
+        tucs = await cursor.to_list(10000)
+        items = []
+        idx = 1
+
+        for t in tucs:
+            dv = t.get("datosVehiculo") or {}
+            de = t.get("datosEmpresa") or {}
+            anio_fab = dv.get("anioFabricacion")
+            cat = dv.get("categoria") or "M2"
+            p_ruc = t.get("ruc") or de.get("ruc") or ""
+            p_rs = t.get("razonSocial") or de.get("razonSocial") or "Empresa Autorizada"
+
+            edad = (now_year - anio_fab) if (anio_fab and isinstance(anio_fab, (int, float)) and anio_fab > 1950) else None
+
+            if edad is None:
+                estado_perm = "NO_DETERMINADO"
+                situacion = "Sin Año de Fabricación"
+                norma = "TIV Pendiente"
+                anio_retiro = None
+                accion = "Regularizar Ficha Técnica (TIV)"
+                color = "gray"
+            elif edad <= 10:
+                estado_perm = "OPTIMO"
+                situacion = f"Óptimo ({edad} años)"
+                norma = "RNAT (D.S. 017-2009-MTC)"
+                anio_retiro = anio_fab + 15
+                accion = "Conforme para Operación Regular"
+                color = "emerald"
+            elif 11 <= edad <= 15:
+                estado_perm = "PROXIMO"
+                situacion = f"Próximo al Límite ({edad} años)"
+                norma = "RNAT (Art. 25 D.S. 017-2009)"
+                anio_retiro = anio_fab + 15
+                accion = "Planificar Renovación de Flota"
+                color = "amber"
+            elif 2000 <= anio_fab <= 2009:
+                norma = "R.M. N.° 585-2021-MTC/01 (Puno)"
+                if 2000 <= anio_fab <= 2001:
+                    estado_perm = "SALIDA_2026"
+                    situacion = "Retiro Inmediato 31/12/2026"
+                    anio_retiro = 2026
+                    accion = "ALERTA CRÍTICA: Sustitución inmediata obligatoria"
+                    color = "rose"
+                elif 2002 <= anio_fab <= 2004:
+                    estado_perm = "SALIDA_2027"
+                    situacion = "Retiro 31/12/2027 (Puno)"
+                    anio_retiro = 2027
+                    accion = "Planificar sustitución vehicular (Plazo: 2027)"
+                    color = "purple"
+                elif 2005 <= anio_fab <= 2007:
+                    estado_perm = "SALIDA_2028"
+                    situacion = "Retiro 31/12/2028 (Puno)"
+                    anio_retiro = 2028
+                    accion = "Programación preventiva (Plazo: 2028)"
+                    color = "indigo"
+                else:
+                    estado_perm = "SALIDA_2029"
+                    situacion = "Retiro 31/12/2029 (Puno)"
+                    anio_retiro = 2029
+                    accion = "Programación preventiva (Plazo: 2029)"
+                    color = "blue"
+            else:
+                estado_perm = "VENCIDO"
+                situacion = f"Vencido / Excedido ({edad} años)"
+                norma = "RNAT (Límite 15 años superado)"
+                anio_retiro = anio_fab + 15
+                accion = "Baja y sustitución vehicular obligatoria MTC"
+                color = "red"
+
+            # Filtros opcionales en servidor
+            if estado_permanencia and estado_permanencia != "TODOS":
+                if estado_permanencia == "FUERA_O_CRITICO":
+                    if estado_perm not in ["VENCIDO", "SALIDA_2026"]:
+                        continue
+                elif estado_permanencia == "PUNO_CRONOGRAMA":
+                    if estado_perm not in ["SALIDA_2026", "SALIDA_2027", "SALIDA_2028", "SALIDA_2029"]:
+                        continue
+                elif estado_perm != estado_permanencia:
+                    continue
+
+            if categoria and categoria != "TODAS":
+                if categoria.upper() not in str(cat).upper():
+                    continue
+
+            if ruc and ruc != "TODOS":
+                if p_ruc != ruc:
+                    continue
+
+            if search:
+                s_lower = search.strip().lower()
+                matches = (
+                    s_lower in (t.get("placa") or "").lower() or
+                    s_lower in p_rs.lower() or
+                    s_lower in p_ruc.lower() or
+                    s_lower in (dv.get("marca") or "").lower() or
+                    s_lower in (dv.get("modelo") or "").lower() or
+                    s_lower in (t.get("nroTuc") or "").lower() or
+                    s_lower in (t.get("nroResolucion") or "").lower()
+                )
+                if not matches:
+                    continue
+
+            items.append({
+                "numero": idx,
+                "placa": t.get("placa"),
+                "ruc": p_ruc,
+                "razonSocial": p_rs,
+                "categoria": cat,
+                "marca": dv.get("marca") or "Sin Marca",
+                "modelo": dv.get("modelo") or "Sin Modelo",
+                "anioFabricacion": anio_fab,
+                "edadAnios": edad,
+                "estadoPermanencia": estado_perm,
+                "situacion": situacion,
+                "norma": norma,
+                "anioRetiro": anio_retiro,
+                "accion": accion,
+                "badgeColor": color,
+                "nroTuc": t.get("nroTuc") or "",
+                "nroResolucion": t.get("nroResolucion") or ""
+            })
+            idx += 1
+
+        return items
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al obtener detalle de permanencia: {str(e)}")
 
 @router.post("/generar-reporte")
 async def generar_reporte_google_docs(db = Depends(get_database)):

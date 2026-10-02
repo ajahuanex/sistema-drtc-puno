@@ -104,11 +104,12 @@ export class VehiculosComponent implements OnInit, OnDestroy {
   columnasTucs: string[] = ['numero_tuc', 'resolucion', 'estado', 'fecha_emision', 'fecha_vencimiento', 'acciones'];
 
   ngOnInit(): void {
-    // Escuchar query params para búsqueda directa (ej: /vehiculos?placa=F6S-964)
+    // Escuchar query params para búsqueda directa (ej: /vehiculos?placa=F6S-964 o ?busqueda=F6S-964)
     this.route.queryParams.subscribe(params => {
-      if (params['placa']) {
-        this.placaControl.setValue(params['placa']);
-        this.buscarVehiculo(params['placa']);
+      const placaBuscada = params['placa'] || params['busqueda'];
+      if (placaBuscada) {
+        this.placaControl.setValue(placaBuscada);
+        this.buscarVehiculo(placaBuscada);
       } else {
         // Cargar directorio inicial
         this.cargarDirectorio();

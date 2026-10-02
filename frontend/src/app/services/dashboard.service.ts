@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -97,6 +97,7 @@ export interface EstadisticasPermanencia {
 
 export interface EstadisticasVigenciaTuc {
   total: number;
+  totalHabilitados?: number;
   vigentes: number;
   anuladasBajas: number;
   electronicas: number;
@@ -134,6 +135,26 @@ export interface DashboardEstadisticas {
   normativaMtc?: NormativaMtc;
 }
 
+export interface DetallePermanenciaVehiculo {
+  numero: number;
+  placa: string;
+  ruc: string;
+  razonSocial: string;
+  categoria: string;
+  marca: string;
+  modelo: string;
+  anioFabricacion: number | null;
+  edadAnios: number | null;
+  estadoPermanencia: string;
+  situacion: string;
+  norma: string;
+  anioRetiro: number | null;
+  accion: string;
+  badgeColor: string;
+  nroTuc: string;
+  nroResolucion: string;
+}
+
 export interface ReporteResponse {
   success: boolean;
   message: string;
@@ -169,6 +190,20 @@ export class DashboardService {
 
   getReporteDetallePorVencer(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/reporte-detalle/por-vencer`);
+  }
+
+  getReporteDetallePermanencia(params?: {
+    estado_permanencia?: string;
+    categoria?: string;
+    ruc?: string;
+    search?: string;
+  }): Observable<DetallePermanenciaVehiculo[]> {
+    let httpParams = new HttpParams();
+    if (params?.estado_permanencia) httpParams = httpParams.set('estado_permanencia', params.estado_permanencia);
+    if (params?.categoria) httpParams = httpParams.set('categoria', params.categoria);
+    if (params?.ruc) httpParams = httpParams.set('ruc', params.ruc);
+    if (params?.search) httpParams = httpParams.set('search', params.search);
+    return this.http.get<DetallePermanenciaVehiculo[]>(`${this.apiUrl}/reporte-detalle/permanencia`, { params: httpParams });
   }
 
   generarReporte(): Observable<ReporteResponse> {

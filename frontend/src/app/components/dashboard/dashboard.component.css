@@ -3098,6 +3098,464 @@
   }
 }
 
+/* ========================================================================= */
+/* MODAL PERMANENCIA VEHICULAR & CATEGORÍAS MTC                              */
+/* ========================================================================= */
+.kpi-strip-permanencia {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.kpi-strip-permanencia .modal-kpi-item {
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.kpi-strip-permanencia .modal-kpi-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-strip-permanencia .modal-kpi-item.kpi-active {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
+}
+
+.filter-group-empresa {
+  flex: 1 1 240px;
+  min-width: 220px;
+  max-width: 360px;
+}
+
+.select-empresa-dropdown {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.filter-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.btn-quick-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid #fca5a5;
+  background: #fff1f2;
+  color: #e11d48;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-quick-filter:hover {
+  background: #ffe4e6;
+  border-color: #f43f5e;
+}
+
+.btn-quick-filter.btn-quick-danger-active {
+  background: #e11d48;
+  color: white;
+  border-color: #be123c;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.35);
+}
+
+.btn-quick-filter i {
+  font-size: 16px;
+}
+
+/* Placa Vehicular Estilo Chip Oficial */
+.plate-chip {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #334155;
+  border-radius: 5px;
+  padding: 2px 7px 2px 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  gap: 6px;
+}
+
+.plate-flag {
+  width: 10px;
+  height: 12px;
+  background: linear-gradient(to right, #dc2626 33%, #ffffff 33%, #ffffff 66%, #dc2626 66%);
+  border-radius: 1px;
+  border: 0.5px solid #cbd5e1;
+}
+
+.plate-text {
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.75px;
+  color: #0f172a;
+}
+
+/* Columnas de la tabla de permanencia */
+.emp-col-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emp-name-text {
+  font-size: 0.82rem;
+  color: #1e293b;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.emp-ruc-code {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.pill-categoria {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.pill-categoria.cat-m1 {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.pill-categoria.cat-m2 {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+.pill-categoria.cat-m3 {
+  background: #e0e7ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.veh-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.veh-brand {
+  font-size: 0.82rem;
+  color: #1e293b;
+}
+
+.veh-model {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.veh-age-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.veh-year {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.veh-age-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.age-vencido {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.age-alerta {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.age-optimo {
+  background: #d1fae5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+/* Estado de Permanencia Badges */
+.perm-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.status-icon {
+  font-size: 15px;
+}
+
+.status-vencido {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #f87171;
+}
+
+.status-salida-2026 {
+  background: #ffe4e6;
+  color: #be123c;
+  border: 1px solid #fda4af;
+}
+
+.status-salida-puno {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.status-proximo {
+  background: #e0f2fe;
+  color: #075985;
+  border: 1px solid #7dd3fc;
+}
+
+.status-optimo {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.norma-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.norma-date {
+  font-size: 0.8rem;
+  color: #1e293b;
+}
+
+.norma-tag {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.action-legal-desc {
+  font-size: 0.76rem;
+  color: #475569;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.doc-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.doc-tuc {
+  font-size: 0.78rem;
+  color: #0369a1;
+}
+
+.doc-res {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.btn-action-veh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-action-veh:hover {
+  background: #e0f2fe;
+  color: #0284c7;
+  border-color: #38bdf8;
+  transform: scale(1.08);
+}
+
+.btn-action-veh i {
+  font-size: 16px;
+}
+
+/* Paginación Toolbar */
+.modal-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 0.75rem 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.pagination-info {
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.page-size-select {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 0.8rem;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.page-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-page-nav:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+
+.btn-page-nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-current-indicator {
+  font-size: 0.82rem;
+  color: #334155;
+  padding: 0 0.4rem;
+}
+
+/* Spinner Moderno y Loading */
+.modal-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.spinner-modern {
+  width: 44px;
+  height: 44px;
+  border: 3.5px solid #e2e8f0;
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.35rem;
+}
+
+.loading-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  max-width: 500px;
+}
+
+@media (max-width: 1400px) {
+  .kpi-strip-permanencia {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-strip-permanencia {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .modal-pagination-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pagination-controls {
+    justify-content: space-between;
+  }
+}
+
 /* Modo Oscuro MTC */
 :host-context(.dark) {
   .mtc-section-container {
@@ -3208,6 +3666,111 @@
     .legal-icon {
       color: #38bdf8;
     }
+  }
+
+  .kpi-strip-permanencia .modal-kpi-item.kpi-active {
+    border-color: #38bdf8;
+    background: #082f49;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+  }
+
+  .btn-quick-filter {
+    background: #4c0519;
+    border-color: #be123c;
+    color: #fb7185;
+  }
+
+  .btn-quick-filter:hover {
+    background: #881337;
+    border-color: #f43f5e;
+  }
+
+  .plate-chip {
+    background: #0f172a;
+    border-color: #475569;
+  }
+
+  .plate-text {
+    color: #f8fafc;
+  }
+
+  .emp-name-text,
+  .veh-brand,
+  .veh-year,
+  .norma-date,
+  .loading-title {
+    color: #f8fafc;
+  }
+
+  .status-vencido {
+    background: #450a0a;
+    color: #fca5a5;
+    border-color: #991b1b;
+  }
+
+  .status-salida-2026 {
+    background: #4c0519;
+    color: #fda4af;
+    border-color: #be123c;
+  }
+
+  .status-salida-puno {
+    background: #451a03;
+    color: #fcd34d;
+    border-color: #92400e;
+  }
+
+  .status-proximo {
+    background: #082f49;
+    color: #7dd3fc;
+    border-color: #0369a1;
+  }
+
+  .status-optimo {
+    background: #022c22;
+    color: #6ee7b7;
+    border-color: #047857;
+  }
+
+  .modal-pagination-bar {
+    background: #111827;
+    border-top-color: #1f2937;
+  }
+
+  .pagination-info,
+  .page-size-selector,
+  .page-current-indicator {
+    color: #94a3b8;
+  }
+
+  .page-size-select,
+  .btn-page-nav {
+    background: #1f2937;
+    border-color: #374151;
+    color: #f8fafc;
+  }
+
+  .btn-page-nav:hover:not(:disabled) {
+    background: #374151;
+    border-color: #60a5fa;
+    color: #60a5fa;
+  }
+
+  .btn-action-veh {
+    background: #1f2937;
+    border-color: #374151;
+    color: #94a3b8;
+  }
+
+  .btn-action-veh:hover {
+    background: #082f49;
+    color: #38bdf8;
+    border-color: #0284c7;
+  }
+
+  .spinner-modern {
+    border-color: #1f2937;
+    border-top-color: #38bdf8;
   }
 }
 

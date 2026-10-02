@@ -5,7 +5,8 @@ import {
   DashboardService, 
   DashboardEstadisticas, 
   FlotaCorredor, 
-  EmpresaMultiResolucionItem 
+  EmpresaMultiResolucionItem,
+  DetallePermanenciaVehiculo
 } from '../../services/dashboard.service';
 import { ThemeService } from '../../services/theme.service';
 import Chart from 'chart.js/auto';
@@ -34,7 +35,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   pantallaCompleta = signal<boolean>(false);
 
   // Modal Fullscreen para estadísticas individuales
-  modalFullscreenActivo = signal<'corredores' | 'empresas-res' | 'grafico-res' | 'grafico-rutas' | 'top-flotas' | 'top-tramites' | 'vencimientos' | null>(null);
+  modalFullscreenActivo = signal<'corredores' | 'empresas-res' | 'grafico-res' | 'grafico-rutas' | 'top-flotas' | 'top-tramites' | 'vencimientos' | 'permanencia' | null>(null);
   busquedaModal = signal<string>('');
   seleccionModal = signal<Set<string>>(new Set());
 
@@ -79,6 +80,17 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   // Resoluciones por Vencer
   filtroUrgenciaVencimiento = signal<string>('TODOS');
   ordenVencimientos = signal<string>('dias-asc');
+
+  // --- Vista Ampliada de Permanencia Vehicular & Categorías MTC ---
+  cargandoPermanenciaDetalle = signal<boolean>(false);
+  permanenciaDetalleLista = signal<DetallePermanenciaVehiculo[]>([]);
+  filtroEstadoPermanencia = signal<string>('TODOS');
+  filtroCategoriaPermanencia = signal<string>('TODAS');
+  filtroEmpresaPermanencia = signal<string>('TODAS');
+  ordenPermanencia = signal<string>('antiguedad-desc');
+  readonly Math = Math;
+  paginaPermanencia = signal<number>(1);
+  itemsPorPaginaPermanencia = signal<number>(25);
 
   // Lista de ciudades disponibles para filtrar corredores
   ciudadesCorredoresDisponibles = computed(() => {
@@ -303,6 +315,143 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const preventivas = list.filter(i => i.diasRestantes > 30).length;
     const minDias = list.length > 0 ? Math.min(...list.map(i => i.diasRestantes)) : 0;
     return { total, criticas, preventivas, minDias };
+  });
+
+  // --- Computed signals para Vista Ampliada de Permanencia & Categorías ---
+  empresasPermanenciaDisponibles = computed(() => {
+    const lista = this.permanenciaDetalleLista();
+    if (!lista || lista.length === 0) return [];
+    const mapa = new Map<string, { ruc: string; razonSocial: string; total: number }>();
+    for (const item of lista) {
+      if (!item.ruc) continue;
+      if (!mapa.has(item.ruc)) {
+        mapa.set(item.ruc, { ruc: item.ruc, razonSocial: item.razonSocial, total: 1 });
+      } else {
+        mapa.get(item.ruc)!.total++;
+      }
+    }
+    return Array.from(mapa.values()).sort((a, b) => b.total - a.total);
+  });
+
+  permanenciaFiltradaModal = computed(() => {
+    let list = [...this.permanenciaDetalleLista()];
+    if (list.length === 0) return [];
+
+    const q = this.busquedaModal().toLowerCase().trim();
+    if (q) {
+      list = list.filter(v =>
+        v.placa?.toLowerCase().includes(q) ||
+        v.razonSocial?.toLowerCase().includes(q) ||
+        v.ruc?.toLowerCase().includes(q) ||
+        v.marca?.toLowerCase().includes(q) ||
+        v.modelo?.toLowerCase().includes(q) ||
+        v.nroTuc?.toLowerCase().includes(q) ||
+        v.nroResolucion?.toLowerCase().includes(q)
+      );
+    }
+
+    const estado = this.filtroEstadoPermanencia();
+    if (estado !== 'TODOS') {
+      if (estado === 'CRITICOS' || estado === 'FUERA_O_CRITICO') {
+        list = list.filter(v => v.estadoPermanencia === 'VENCIDO' || v.estadoPermanencia?.startsWith('SALIDA_'));
+      } else if (estado === 'PUNO_CRONOGRAMA') {
+        list = list.filter(v => v.estadoPermanencia?.startsWith('SALIDA_'));
+      } else {
+        list = list.filter(v => v.estadoPermanencia === estado);
+      }
+    }
+
+    const cat = this.filtroCategoriaPermanencia();
+    if (cat !== 'TODAS') {
+      if (cat === 'M1') {
+        list = list.filter(v => v.categoria?.toUpperCase().includes('M1'));
+      } else if (cat === 'M2') {
+        list = list.filter(v => v.categoria?.toUpperCase().includes('M2'));
+      } else if (cat === 'M3') {
+        list = list.filter(v => v.categoria?.toUpperCase().includes('M3'));
+      } else if (cat === 'OTRAS') {
+        list = list.filter(v => 
+          !v.categoria?.toUpperCase().includes('M1') && 
+          !v.categoria?.toUpperCase().includes('M2') && 
+          !v.categoria?.toUpperCase().includes('M3')
+        );
+      }
+    }
+
+    const emp = this.filtroEmpresaPermanencia();
+    if (emp !== 'TODAS') {
+      list = list.filter(v => v.ruc === emp);
+    }
+
+    const orden = this.ordenPermanencia();
+    list.sort((a, b) => {
+      switch (orden) {
+        case 'antiguedad-desc':
+          return (b.edadAnios || 0) - (a.edadAnios || 0);
+        case 'antiguedad-asc':
+          return (a.edadAnios || 0) - (b.edadAnios || 0);
+        case 'placa-asc':
+          return a.placa.localeCompare(b.placa);
+        case 'empresa-asc':
+          return a.razonSocial.localeCompare(b.razonSocial);
+        case 'retiro-asc':
+          return (a.anioRetiro || 9999) - (b.anioRetiro || 9999);
+        default:
+          return 0;
+      }
+    });
+
+    return list;
+  });
+
+  kpiPermanenciaModal = computed(() => {
+    const list = this.permanenciaDetalleLista();
+    let vencidos = 0;
+    let salida2026 = 0;
+    let salidaPunoTotal = 0;
+    let proximos = 0;
+    let optimos = 0;
+    let m1 = 0;
+    let m2 = 0;
+    let m3 = 0;
+
+    for (const v of list) {
+      if (v.estadoPermanencia === 'VENCIDO') vencidos++;
+      if (v.estadoPermanencia === 'SALIDA_2026') salida2026++;
+      if (v.estadoPermanencia?.startsWith('SALIDA_')) salidaPunoTotal++;
+      if (v.estadoPermanencia === 'PROXIMO') proximos++;
+      if (v.estadoPermanencia === 'OPTIMO') optimos++;
+      const c = (v.categoria || '').toUpperCase();
+      if (c.includes('M1')) m1++;
+      else if (c.includes('M2')) m2++;
+      else if (c.includes('M3')) m3++;
+    }
+
+    return {
+      total: list.length,
+      vencidos,
+      salida2026,
+      salidaPunoTotal,
+      proximos,
+      optimos,
+      totalM1: m1,
+      totalM2: m2,
+      totalM3: m3
+    };
+  });
+
+  permanenciaPaginadaModal = computed(() => {
+    const list = this.permanenciaFiltradaModal();
+    const pag = this.paginaPermanencia();
+    const size = this.itemsPorPaginaPermanencia();
+    const start = (pag - 1) * size;
+    return list.slice(start, start + size);
+  });
+
+  totalPaginasPermanencia = computed(() => {
+    const total = this.permanenciaFiltradaModal().length;
+    const size = this.itemsPorPaginaPermanencia();
+    return Math.ceil(total / size) || 1;
   });
   
   @ViewChild('resolucionesChart') resolucionesChartRef!: ElementRef<HTMLCanvasElement>;
@@ -1026,11 +1175,11 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const tuc = stats.estadisticasVigenciaTuc;
 
     const resumenData = [
-      { 'Indicador': 'Total Padrón Vehicular Evaluado', 'Valor': cat?.total || 0, 'Norma / Base Legal': 'MTC / DRTC Puno' },
+      { 'Indicador': 'Total Padrón Vehicular Habilitado Evaluado', 'Valor': cat?.total || 0, 'Norma / Base Legal': 'MTC / DRTC Puno (Unidades con habilitación vigente)' },
       { 'Indicador': 'Categoría M2 (Minibús / Microbús ≤ 5t)', 'Valor': `${cat?.m2 || 0} (${cat?.porcentajeM2 || 0}%)`, 'Norma / Base Legal': 'D.S. N.° 058-2003-MTC' },
       { 'Indicador': 'Categoría M3 (Ómnibus / Bus > 5t)', 'Valor': `${cat?.m3 || 0} (${cat?.porcentajeM3 || 0}%)`, 'Norma / Base Legal': 'D.S. N.° 058-2003-MTC' },
       { 'Indicador': 'Otras Categorías o Sin Clasificar', 'Valor': `${cat?.otras || 0} (${cat?.porcentajeOtras || 0}%)`, 'Norma / Base Legal': '-' },
-      { 'Indicador': 'Edad Promedio de la Flota Regional', 'Valor': `${perm?.edadPromedio || 0} años`, 'Norma / Base Legal': 'Cómputo por Año de Fabricación (TIV)' },
+      { 'Indicador': 'Edad Promedio de la Flota Regional Habilitada', 'Valor': `${perm?.edadPromedio || 0} años`, 'Norma / Base Legal': 'Cómputo por Año de Fabricación (TIV)' },
       { 'Indicador': 'Permanencia Óptima (≤ 10 años, 2016-2026)', 'Valor': `${perm?.optimo || 0} (${perm?.porcentajeOptimo || 0}%)`, 'Norma / Base Legal': 'Art. 25 D.S. 017-2009-MTC (RNAT)' },
       { 'Indicador': 'Próximo a Límite de Permanencia (11-15 años)', 'Valor': `${perm?.proximoRetiro || 0} (${perm?.porcentajeProximo || 0}%)`, 'Norma / Base Legal': 'Art. 25 D.S. 017-2009-MTC (RNAT)' },
       { 'Indicador': 'Régimen Extraordinario Puno (Modelos 2000-2009)', 'Valor': `${perm?.regimenExtraordinarioPuno || 0} (${perm?.porcentajeExtraordinario || 0}%)`, 'Norma / Base Legal': 'R.M. N.° 585-2021-MTC/01 (Cronograma Puno)' },
@@ -1039,7 +1188,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       { 'Indicador': '  ↳ Retiro Improrrogable al 31/12/2028 (Modelos 2005-2007)', 'Valor': perm?.salidaPunoDetalle?.[2028] || 0, 'Norma / Base Legal': 'R.M. 585-2021-MTC/01' },
       { 'Indicador': '  ↳ Retiro Improrrogable al 31/12/2029 (Modelos 2008-2009)', 'Valor': perm?.salidaPunoDetalle?.[2029] || 0, 'Norma / Base Legal': 'R.M. 585-2021-MTC/01' },
       { 'Indicador': 'Permanencia Vencida / Excedida (> 15 años sin prórroga)', 'Valor': `${perm?.vencidoExcedido || 0} (${perm?.porcentajeVencido || 0}%)`, 'Norma / Base Legal': 'Baja y sustitución obligatoria MTC' },
-      { 'Indicador': 'TUCs en Estado VIGENTE', 'Valor': tuc?.vigentes || 0, 'Norma / Base Legal': 'Habilitación vehicular activa' },
+      { 'Indicador': 'TUCs en Estado VIGENTE (Habilitación Activa)', 'Valor': tuc?.vigentes || 0, 'Norma / Base Legal': 'Habilitación vehicular activa' },
+      { 'Indicador': 'TUCs ANULADAS / BAJA (Vehículos Inhabilitados)', 'Valor': tuc?.anuladasBajas || 0, 'Norma / Base Legal': 'Unidades sustituidas / retiradas del padrón' },
       { 'Indicador': 'TUCs Físicas (Cartulina / Kárdex)', 'Valor': tuc?.fisicas || 0, 'Norma / Base Legal': 'Padrón físico tradicional' },
       { 'Indicador': 'E-TUC Digitales con Código QR y SHA-256', 'Valor': tuc?.electronicas || 0, 'Norma / Base Legal': 'Transformación Digital MTC' }
     ];
@@ -1078,9 +1228,19 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }, 150);
   }
 
-  abrirModalFullscreen(tipo: 'corredores' | 'empresas-res' | 'grafico-res' | 'grafico-rutas' | 'top-flotas' | 'top-tramites' | 'vencimientos'): void {
+  abrirModalFullscreen(
+    tipo: 'corredores' | 'empresas-res' | 'grafico-res' | 'grafico-rutas' | 'top-flotas' | 'top-tramites' | 'vencimientos' | 'permanencia',
+    filtroInicial?: { estado?: string; categoria?: string; empresa?: string }
+  ): void {
     this.busquedaModal.set('');
     this.seleccionModal.set(new Set());
+    if (tipo === 'permanencia') {
+      this.filtroEstadoPermanencia.set(filtroInicial?.estado || 'TODOS');
+      this.filtroCategoriaPermanencia.set(filtroInicial?.categoria || 'TODAS');
+      this.filtroEmpresaPermanencia.set(filtroInicial?.empresa || 'TODAS');
+      this.paginaPermanencia.set(1);
+      this.cargarPermanenciaDetalle();
+    }
     this.modalFullscreenActivo.set(tipo);
   }
 
@@ -1088,6 +1248,68 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.modalFullscreenActivo.set(null);
     this.busquedaModal.set('');
     this.seleccionModal.set(new Set());
+  }
+
+  cargarPermanenciaDetalle(forzar = false): void {
+    if (this.permanenciaDetalleLista().length > 0 && !forzar) return;
+    this.cargandoPermanenciaDetalle.set(true);
+    this.dashboardService.getReporteDetallePermanencia().subscribe({
+      next: (items) => {
+        this.permanenciaDetalleLista.set(items);
+        this.cargandoPermanenciaDetalle.set(false);
+      },
+      error: (err) => {
+        console.error('Error cargando padrón de permanencia', err);
+        this.cargandoPermanenciaDetalle.set(false);
+      }
+    });
+  }
+
+  limpiarFiltrosPermanencia(): void {
+    this.busquedaModal.set('');
+    this.filtroEstadoPermanencia.set('TODOS');
+    this.filtroCategoriaPermanencia.set('TODAS');
+    this.filtroEmpresaPermanencia.set('TODAS');
+    this.ordenPermanencia.set('antiguedad-desc');
+    this.paginaPermanencia.set(1);
+    this.seleccionModal.set(new Set());
+  }
+
+  cambiarPaginaPermanencia(nuevaPagina: number): void {
+    if (nuevaPagina >= 1 && nuevaPagina <= this.totalPaginasPermanencia()) {
+      this.paginaPermanencia.set(nuevaPagina);
+    }
+  }
+
+  descargarReportePermanenciaDetalle(modo: 'filtrado' | 'general' = 'filtrado'): void {
+    let lista = (modo === 'general') ? this.permanenciaDetalleLista() : this.permanenciaFiltradaModal();
+    const seleccionados = this.seleccionModal();
+    if (modo === 'filtrado' && seleccionados.size > 0) {
+      lista = lista.filter(v => seleccionados.has(v.placa));
+    }
+
+    if (!lista || lista.length === 0) return;
+
+    const exportData = lista.map((v, idx) => ({
+      '#': idx + 1,
+      'Placa Vehicular': v.placa,
+      'RUC Empresa': v.ruc,
+      'Empresa Autorizada': v.razonSocial,
+      'Categoría MTC': v.categoria,
+      'Marca': v.marca,
+      'Modelo': v.modelo,
+      'Año Fabricación': v.anioFabricacion || 'S/D',
+      'Antigüedad (Años)': v.edadAnios !== null ? v.edadAnios : 'S/D',
+      'Situación de Permanencia': v.situacion,
+      'Año Límite de Retiro': v.anioRetiro || 'S/D',
+      'Norma Aplicable': v.norma,
+      'Acción / Dictamen Requerido': v.accion,
+      'N° TUC': v.nroTuc,
+      'N° Resolución Primigenia': v.nroResolucion
+    }));
+
+    const sufijo = (modo === 'general') ? 'General_Completo' : (seleccionados.size > 0 ? 'Seleccionados' : 'Filtrado');
+    this.exportarExcel(exportData, `DRTC_PUNO_Padron_Permanencia_Vehicular_${sufijo}`, 'Permanencia Vehicular');
   }
 
   descargarDesdeModal(modalId: string, modo: 'filtrado' | 'general' = 'filtrado'): void {
@@ -1111,6 +1333,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       case 'vencimientos':
         this.descargarReportePorVencer(modo);
         break;
+      case 'permanencia':
+        this.descargarReportePermanenciaDetalle(modo);
+        break;
     }
   }
 
@@ -1131,6 +1356,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         return stats.topEmpresasTramites?.length || 0;
       case 'vencimientos':
         return stats.resolucionesPorVencer60?.items?.length || 0;
+      case 'permanencia':
+        return this.permanenciaDetalleLista().length || this.estadisticas()?.estadisticasPermanencia?.total || 0;
       default:
         return 0;
     }
@@ -1187,6 +1414,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         return this.topTramitesFiltradasModal().map(e => e.ruc);
       case 'vencimientos':
         return this.vencimientosFiltradosModal().map(v => v.nroResolucion);
+      case 'permanencia':
+        return this.permanenciaFiltradaModal().map(p => p.placa);
       default:
         return [];
     }

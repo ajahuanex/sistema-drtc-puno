@@ -457,7 +457,7 @@
             </div>
             <h2 class="mtc-main-title">Fiscalización Normativa MTC: Categorías Vehiculares & Régimen de Permanencia</h2>
             <p class="mtc-main-subtitle">
-              Auditoría del padrón vehicular regional de {{ stats.estadisticasCategoria?.total | number }} unidades: clasificación por categoría (M2/M3), antigüedad operativa y cronograma legal de retiro.
+              Auditoría del padrón vehicular regional habilitado de {{ stats.estadisticasCategoria?.total | number }} unidades operativas: clasificación por categoría (M2/M3), antigüedad y régimen de permanencia legal.
             </p>
           </div>
         </div>
@@ -472,7 +472,9 @@
       <!-- 4 Cards KPIs Normativos -->
       <div class="kpi-grid-mtc">
         <!-- Card 1: Categoría M2 -->
-        <div class="kpi-card-mtc card-mtc-cyan">
+        <div class="kpi-card-mtc card-mtc-cyan cursor-pointer" 
+             (click)="abrirModalFullscreen('permanencia', { categoria: 'M2' })"
+             title="Clic para ver detalle de vehículos y empresas con flota Categoría M2">
           <div class="kpi-mtc-header">
             <div class="kpi-mtc-icon-wrapper icon-cyan">
               <i class="material-icons-outlined">airport_shuttle</i>
@@ -485,12 +487,14 @@
               <span class="kpi-mtc-number">{{ stats.estadisticasCategoria?.m2 | number }}</span>
               <span class="kpi-mtc-unit">vehículos</span>
             </div>
-            <p class="kpi-mtc-desc">Hasta 5t de peso bruto vehicular autorizadas para servicio interprovincial regional.</p>
+            <p class="kpi-mtc-desc">Hasta 5t de peso bruto vehicular autorizadas para servicio interprovincial regional. <em>Clic para ver padrón ➜</em></p>
           </div>
         </div>
 
         <!-- Card 2: Categoría M3 -->
-        <div class="kpi-card-mtc card-mtc-indigo">
+        <div class="kpi-card-mtc card-mtc-indigo cursor-pointer" 
+             (click)="abrirModalFullscreen('permanencia', { categoria: 'M3' })"
+             title="Clic para ver detalle de vehículos y empresas con flota Categoría M3">
           <div class="kpi-mtc-header">
             <div class="kpi-mtc-icon-wrapper icon-indigo">
               <i class="material-icons-outlined">directions_bus</i>
@@ -503,12 +507,14 @@
               <span class="kpi-mtc-number">{{ stats.estadisticasCategoria?.m3 | number }}</span>
               <span class="kpi-mtc-unit">vehículos</span>
             </div>
-            <p class="kpi-mtc-desc">Mayor a 5t de peso bruto con capacidad masiva de pasajeros en rutas troncales.</p>
+            <p class="kpi-mtc-desc">Mayor a 5t de peso bruto con capacidad masiva de pasajeros en rutas troncales. <em>Clic para ver padrón ➜</em></p>
           </div>
         </div>
 
         <!-- Card 3: Permanencia Óptima -->
-        <div class="kpi-card-mtc card-mtc-emerald">
+        <div class="kpi-card-mtc card-mtc-emerald cursor-pointer" 
+             (click)="abrirModalFullscreen('permanencia', { estado: 'OPTIMO' })"
+             title="Clic para ver detalle de vehículos con permanencia óptima (≤ 10 años)">
           <div class="kpi-mtc-header">
             <div class="kpi-mtc-icon-wrapper icon-emerald">
               <i class="material-icons-outlined">check_circle</i>
@@ -521,12 +527,14 @@
               <span class="kpi-mtc-number text-emerald">{{ stats.estadisticasPermanencia?.optimo | number }}</span>
               <span class="kpi-mtc-unit">unidades</span>
             </div>
-            <p class="kpi-mtc-desc">Modelos 2016-2026 en plena vigencia operativa. Edad promedio regional: <strong>{{ stats.estadisticasPermanencia?.edadPromedio }} años</strong>.</p>
+            <p class="kpi-mtc-desc">Modelos 2016-2026 en plena vigencia operativa. Edad promedio regional: <strong>{{ stats.estadisticasPermanencia?.edadPromedio }} años</strong>. <em>Clic para ver padrón ➜</em></p>
           </div>
         </div>
 
         <!-- Card 4: Alerta Retiro 2026 & Cronograma Puno -->
-        <div class="kpi-card-mtc card-mtc-rose">
+        <div class="kpi-card-mtc card-mtc-rose cursor-pointer" 
+             (click)="abrirModalFullscreen('permanencia', { estado: 'SALIDA_2026' })"
+             title="Clic para auditar vehículos con retiro obligatorio al 31/12/2026">
           <div class="kpi-mtc-header">
             <div class="kpi-mtc-icon-wrapper icon-rose">
               <i class="material-icons-outlined">notification_important</i>
@@ -539,7 +547,7 @@
               <span class="kpi-mtc-number text-rose">{{ stats.normativaMtc?.unidadesCriticasSalida2026 | number }}</span>
               <span class="kpi-mtc-unit">por sustituir</span>
             </div>
-            <p class="kpi-mtc-desc">Modelos 2000-2001 que cumplen el límite improrrogable del cronograma Puno este año.</p>
+            <p class="kpi-mtc-desc">Modelos 2000-2001 que cumplen el límite improrrogable del cronograma Puno este año. <em>Clic para auditar ➜</em></p>
           </div>
         </div>
       </div>
@@ -557,6 +565,12 @@
                 <h3 class="panel-title">Distribución por Categoría Vehicular MTC</h3>
                 <p class="panel-subtitle">Clasificación D.S. N.° 058-2003-MTC (Reglamento Nacional de Vehículos)</p>
               </div>
+            </div>
+            <div class="panel-header-actions">
+              <button class="btn-card-expand" (click)="abrirModalFullscreen('permanencia')" title="Ver detalle completo de categorías, placas y empresas">
+                <i class="material-icons-outlined">fullscreen</i>
+                <span>Ampliar Detalle</span>
+              </button>
             </div>
           </div>
           <div class="chart-wrapper-mtc">
@@ -598,6 +612,12 @@
                 <p class="panel-subtitle">Art. 25 RNAT (15 años) y Cronograma Extraordinario Puno (R.M. 585-2021-MTC)</p>
               </div>
             </div>
+            <div class="panel-header-actions">
+              <button class="btn-card-expand" (click)="abrirModalFullscreen('permanencia')" title="Ver auditoría completa de permanencia, placas y empresas">
+                <i class="material-icons-outlined">fullscreen</i>
+                <span>Auditar Padrón</span>
+              </button>
+            </div>
           </div>
           <div class="chart-wrapper-mtc">
             <canvas #permanenciaChart></canvas>
@@ -609,29 +629,37 @@
               <span class="cronograma-citv-tag">Exigencia CITV Semestral</span>
             </div>
             <div class="cronograma-grid">
-              <div class="cronograma-card card-urgente">
+              <div class="cronograma-card card-urgente cursor-pointer" 
+                   (click)="abrirModalFullscreen('permanencia', { estado: 'SALIDA_2026' })"
+                   title="Clic para ver las unidades con salida al 31/12/2026">
                 <span class="c-year">31/12/2026</span>
                 <span class="c-models">Modelos 2000-2001</span>
                 <span class="c-count text-rose">{{ stats.estadisticasPermanencia?.salidaPunoDetalle?.['2026'] || 0 }} unidades</span>
-                <span class="c-status">Vencen este año</span>
+                <span class="c-status">Vencen este año ➜</span>
               </div>
-              <div class="cronograma-card">
+              <div class="cronograma-card cursor-pointer" 
+                   (click)="abrirModalFullscreen('permanencia', { estado: 'SALIDA_2027' })"
+                   title="Clic para ver las unidades con salida al 31/12/2027">
                 <span class="c-year">31/12/2027</span>
                 <span class="c-models">Modelos 2002-2004</span>
                 <span class="c-count">{{ stats.estadisticasPermanencia?.salidaPunoDetalle?.['2027'] || 0 }} unidades</span>
-                <span class="c-status">Plazo: 1 año restante</span>
+                <span class="c-status">Plazo: 1 año restante ➜</span>
               </div>
-              <div class="cronograma-card">
+              <div class="cronograma-card cursor-pointer" 
+                   (click)="abrirModalFullscreen('permanencia', { estado: 'SALIDA_2028' })"
+                   title="Clic para ver las unidades con salida al 31/12/2028">
                 <span class="c-year">31/12/2028</span>
                 <span class="c-models">Modelos 2005-2007</span>
                 <span class="c-count">{{ stats.estadisticasPermanencia?.salidaPunoDetalle?.['2028'] || 0 }} unidades</span>
-                <span class="c-status">Plazo: 2 años restantes</span>
+                <span class="c-status">Plazo: 2 años restantes ➜</span>
               </div>
-              <div class="cronograma-card">
+              <div class="cronograma-card cursor-pointer" 
+                   (click)="abrirModalFullscreen('permanencia', { estado: 'SALIDA_2029' })"
+                   title="Clic para ver las unidades con salida al 31/12/2029">
                 <span class="c-year">31/12/2029</span>
                 <span class="c-models">Modelos 2008-2009</span>
                 <span class="c-count">{{ stats.estadisticasPermanencia?.salidaPunoDetalle?.['2029'] || 0 }} unidades</span>
-                <span class="c-status">Plazo: 3 años restantes</span>
+                <span class="c-status">Plazo: 3 años restantes ➜</span>
               </div>
             </div>
           </div>
@@ -884,7 +912,8 @@
               'icon-teal': modalId === 'grafico-rutas',
               'icon-purple': modalId === 'top-flotas',
               'icon-amber': modalId === 'top-tramites',
-              'icon-rose': modalId === 'vencimientos'
+              'icon-rose': modalId === 'vencimientos',
+              'icon-emerald': modalId === 'permanencia'
             }">
               <i class="material-icons-outlined">
                 @switch (modalId) {
@@ -895,6 +924,7 @@
                   @case ('top-flotas') { leaderboard }
                   @case ('top-tramites') { swap_horiz }
                   @case ('vencimientos') { alarm }
+                  @case ('permanencia') { verified_user }
                 }
               </i>
             </div>
@@ -908,6 +938,7 @@
                   @case ('top-flotas') { Padrón Completo: Ranking de Flota por Empresa }
                   @case ('top-tramites') { Dinamismo Administrativo: Trámites por Empresa }
                   @case ('vencimientos') { Resoluciones Próximas a Vencer (Fiscalización Preventiva) }
+                  @case ('permanencia') { Auditoría de Régimen de Permanencia & Categorías MTC }
                 }
               </h2>
               <p class="modal-subtitle">
@@ -919,6 +950,7 @@
                   @case ('top-flotas') { Ranking general de capacidad vehicular operativa autorizada }
                   @case ('top-tramites') { Movimiento de sustituciones de unidades e incrementos de flota }
                   @case ('vencimientos') { Monitoreo con alerta crítica (≤ 30 días) y preventiva (≤ 60 días) }
+                  @case ('permanencia') { Padrón nominal de vehículos autorizados evaluados según Art. 25 RNAT y R.M. 585-2021-MTC }
                 }
               </p>
             </div>
@@ -1759,6 +1791,342 @@
             </div>
           }
 
+          <!-- CASO 8: PERMANENCIA VEHICULAR Y CATEGORÍAS MTC -->
+          @if (modalId === 'permanencia') {
+            @if (cargandoPermanenciaDetalle()) {
+              <div class="modal-loading-state">
+                <div class="spinner-modern"></div>
+                <h3 class="loading-title">Cargando Auditoría de Permanencia Vehicular...</h3>
+                <p class="loading-subtitle">Cruzando 4,344 vehículos habilitados con el cronograma R.M. 585-2021-MTC y Art. 25 RNAT...</p>
+              </div>
+            } @else {
+              <!-- 1. KPI Ribbon / Strip -->
+              <div class="modal-kpi-strip kpi-strip-permanencia">
+                <div class="modal-kpi-item cursor-pointer" (click)="limpiarFiltrosPermanencia()" title="Ver padrón completo sin filtros de estado">
+                  <span class="m-kpi-val">{{ kpiPermanenciaModal().total | number }}</span>
+                  <span class="m-kpi-lbl">Flota Habilitada</span>
+                </div>
+                <div class="modal-kpi-item cursor-pointer" 
+                     [class.kpi-active]="filtroEstadoPermanencia() === 'VENCIDO'"
+                     (click)="filtroEstadoPermanencia.set('VENCIDO')" 
+                     title="Ver vehículos fuera de régimen (> 15 años sin prórroga)">
+                  <span class="m-kpi-val text-rose">{{ kpiPermanenciaModal().vencidos | number }}</span>
+                  <span class="m-kpi-lbl">⛔ Fuera Régimen (>15a)</span>
+                </div>
+                <div class="modal-kpi-item cursor-pointer" 
+                     [class.kpi-active]="filtroEstadoPermanencia() === 'SALIDA_2026'"
+                     (click)="filtroEstadoPermanencia.set('SALIDA_2026')" 
+                     title="Ver unidades con retiro improrrogable este 31/12/2026">
+                  <span class="m-kpi-val text-rose">{{ kpiPermanenciaModal().salida2026 | number }}</span>
+                  <span class="m-kpi-lbl">🚨 Retiro 2026 (Inmediato)</span>
+                </div>
+                <div class="modal-kpi-item cursor-pointer" 
+                     [class.kpi-active]="filtroEstadoPermanencia() === 'CRITICOS'"
+                     (click)="filtroEstadoPermanencia.set('CRITICOS')" 
+                     title="Ver todas las unidades en cronograma extraordinario Puno (2026-2029)">
+                  <span class="m-kpi-val text-amber">{{ kpiPermanenciaModal().salidaPunoTotal | number }}</span>
+                  <span class="m-kpi-lbl">⚠️ Cronograma Puno</span>
+                </div>
+                <div class="modal-kpi-item cursor-pointer" 
+                     [class.kpi-active]="filtroEstadoPermanencia() === 'PROXIMO'"
+                     (click)="filtroEstadoPermanencia.set('PROXIMO')" 
+                     title="Ver unidades con 11 a 15 años de antigüedad">
+                  <span class="m-kpi-val text-blue">{{ kpiPermanenciaModal().proximos | number }}</span>
+                  <span class="m-kpi-lbl">⏳ Próximos (11-15a)</span>
+                </div>
+                <div class="modal-kpi-item cursor-pointer" 
+                     [class.kpi-active]="filtroEstadoPermanencia() === 'OPTIMO'"
+                     (click)="filtroEstadoPermanencia.set('OPTIMO')" 
+                     title="Ver unidades con 10 años o menos de antigüedad">
+                  <span class="m-kpi-val text-emerald">{{ kpiPermanenciaModal().optimos | number }}</span>
+                  <span class="m-kpi-lbl">✅ Óptimos (≤10a)</span>
+                </div>
+                <div class="modal-kpi-item cursor-pointer" 
+                     [class.kpi-active]="filtroCategoriaPermanencia() === 'M2'"
+                     (click)="filtroCategoriaPermanencia.set('M2'); paginaPermanencia.set(1)" 
+                     title="Ver unidades categoría M2 (Minibús / Microbús)">
+                  <span class="m-kpi-val text-cyan">{{ kpiPermanenciaModal().totalM2 | number }}</span>
+                  <span class="m-kpi-lbl">🚐 Cat. M2</span>
+                </div>
+                <div class="modal-kpi-item cursor-pointer" 
+                     [class.kpi-active]="filtroCategoriaPermanencia() === 'M3'"
+                     (click)="filtroCategoriaPermanencia.set('M3'); paginaPermanencia.set(1)" 
+                     title="Ver unidades categoría M3 (Ómnibus / Bus)">
+                  <span class="m-kpi-val text-indigo">{{ kpiPermanenciaModal().totalM3 | number }}</span>
+                  <span class="m-kpi-lbl">🚌 Cat. M3</span>
+                </div>
+                <div class="modal-kpi-item cursor-pointer" 
+                     [class.kpi-active]="filtroCategoriaPermanencia() === 'M1'"
+                     (click)="filtroCategoriaPermanencia.set('M1'); paginaPermanencia.set(1)" 
+                     title="Ver unidades categoría M1 (Auto / Station Wagon)">
+                  <span class="m-kpi-val text-amber">{{ kpiPermanenciaModal().totalM1 | number }}</span>
+                  <span class="m-kpi-lbl">🚗 Cat. M1</span>
+                </div>
+              </div>
+
+              <!-- 2. Barra de Filtros Avanzados -->
+              <div class="modal-toolbar-filters">
+                <div class="filter-group">
+                  <label class="filter-label"><i class="material-icons-outlined">timer</i> Régimen / Situación:</label>
+                  <select class="modal-select" [value]="filtroEstadoPermanencia()" (change)="filtroEstadoPermanencia.set($any($event.target).value); paginaPermanencia.set(1)">
+                    <option value="TODOS">Todos los Estados ({{ permanenciaDetalleLista().length | number }})</option>
+                    <option value="CRITICOS">🚨 Críticos (Vencidos + Cronograma Puno)</option>
+                    <option value="VENCIDO">⛔ Fuera de Régimen (> 15 años vencidos)</option>
+                    <option value="SALIDA_2026">🚨 Retiro Inmediato (31/12/2026 - Mod. 2000-2001)</option>
+                    <option value="SALIDA_2027">⚠️ Salida 31/12/2027 (Mod. 2002-2004)</option>
+                    <option value="SALIDA_2028">⚠️ Salida 31/12/2028 (Mod. 2005-2007)</option>
+                    <option value="SALIDA_2029">⚠️ Salida 31/12/2029 (Mod. 2008-2009)</option>
+                    <option value="PROXIMO">⏳ Próximo a Salir RNAT (11 - 15 años)</option>
+                    <option value="OPTIMO">✅ Regular Óptimo (≤ 10 años)</option>
+                  </select>
+                </div>
+
+                <div class="filter-group">
+                  <label class="filter-label"><i class="material-icons-outlined">category</i> Categoría MTC:</label>
+                  <select class="modal-select" [value]="filtroCategoriaPermanencia()" (change)="filtroCategoriaPermanencia.set($any($event.target).value); paginaPermanencia.set(1)">
+                    <option value="TODAS">Todas las Categorías</option>
+                    <option value="M1">M1 (Auto / Station Wagon)</option>
+                    <option value="M2">M2 (Minibús / Microbús)</option>
+                    <option value="M3">M3 (Ómnibus / Bus)</option>
+                    <option value="OTRAS">Otras Subcategorías</option>
+                  </select>
+                </div>
+
+                <div class="filter-group filter-group-empresa">
+                  <label class="filter-label"><i class="material-icons-outlined">business</i> Empresa:</label>
+                  <select class="modal-select select-empresa-dropdown" [value]="filtroEmpresaPermanencia()" (change)="filtroEmpresaPermanencia.set($any($event.target).value); paginaPermanencia.set(1)">
+                    <option value="TODAS">Todas las Empresas ({{ empresasPermanenciaDisponibles().length }})</option>
+                    @for (emp of empresasPermanenciaDisponibles(); track emp.ruc) {
+                      <option [value]="emp.ruc">{{ emp.razonSocial }} ({{ emp.ruc }})</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="filter-group">
+                  <label class="filter-label"><i class="material-icons-outlined">sort</i> Ordenar:</label>
+                  <select class="modal-select" [value]="ordenPermanencia()" (change)="ordenPermanencia.set($any($event.target).value); paginaPermanencia.set(1)">
+                    <option value="antiguedad-desc">Mayor Antigüedad (Más veteranos)</option>
+                    <option value="antiguedad-asc">Menor Antigüedad (Más modernos)</option>
+                    <option value="placa-asc">Placa (A-Z)</option>
+                    <option value="empresa-asc">Empresa (A-Z)</option>
+                    <option value="retiro-asc">Año de Retiro Más Próximo</option>
+                  </select>
+                </div>
+
+                <div class="filter-actions-group">
+                  <button class="btn-quick-filter" 
+                          [class.btn-quick-danger-active]="filtroEstadoPermanencia() === 'CRITICOS'"
+                          (click)="filtroEstadoPermanencia.set(filtroEstadoPermanencia() === 'CRITICOS' ? 'TODOS' : 'CRITICOS')"
+                          title="Filtrar solo vehículos críticos (vencidos o con salida obligatoria 2026-2029)">
+                    <i class="material-icons-outlined">warning</i>
+                    <span>{{ filtroEstadoPermanencia() === 'CRITICOS' ? 'Mostrar Todos' : 'Ver Críticos' }}</span>
+                  </button>
+
+                  @if (filtroEstadoPermanencia() !== 'TODOS' || filtroCategoriaPermanencia() !== 'TODAS' || filtroEmpresaPermanencia() !== 'TODAS' || busquedaModal()) {
+                    <button class="btn-reset-filters" (click)="limpiarFiltrosPermanencia()" title="Restablecer todos los filtros">
+                      <i class="material-icons-outlined">filter_alt_off</i>
+                      <span>Limpiar</span>
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- 3. Tabla Interactiva de Vehículos con Paginación -->
+              <div class="modal-table-scroll-container">
+                <table class="modal-fullscreen-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 40px; text-align: center;">
+                        <input 
+                          type="checkbox" 
+                          class="modal-checkbox" 
+                          [checked]="todosSeleccionadosModal()" 
+                          (change)="toggleSeleccionarTodos()"
+                          title="Seleccionar o deseleccionar todas las unidades filtradas" />
+                      </th>
+                      <th style="width: 45px; text-align: center;">#</th>
+                      <th style="width: 110px;">Placa</th>
+                      <th style="width: 250px;">Empresa Autorizada</th>
+                      <th style="width: 90px; text-align: center;">Categoría</th>
+                      <th style="width: 140px;">Vehículo</th>
+                      <th style="width: 120px; text-align: center;">Año / Edad</th>
+                      <th style="width: 180px;">Situación de Permanencia</th>
+                      <th style="width: 160px;">Límite Retiro & Norma</th>
+                      <th style="width: 180px;">Acción Legal Requerida</th>
+                      <th style="width: 140px;">TUC / Resolución</th>
+                      <th style="width: 75px; text-align: center;">Ficha 360°</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (v of permanenciaPaginadaModal(); track v.placa; let idx = $index) {
+                      <tr class="table-row-hover" [class.row-selected]="estaSeleccionado(v.placa)">
+                        <td class="text-center checkbox-cell" (click)="$event.stopPropagation()">
+                          <input 
+                            type="checkbox" 
+                            class="modal-checkbox" 
+                            [checked]="estaSeleccionado(v.placa)" 
+                            (change)="toggleSeleccion(v.placa)"
+                            [title]="'Seleccionar placa ' + v.placa" />
+                        </td>
+                        <td class="rank-cell">
+                          <span class="rank-badge">
+                            {{ (paginaPermanencia() - 1) * itemsPorPaginaPermanencia() + idx + 1 }}
+                          </span>
+                        </td>
+                        <td>
+                          <div class="plate-chip" [title]="'Placa: ' + v.placa">
+                            <span class="plate-flag"></span>
+                            <span class="plate-text font-mono">{{ v.placa }}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div class="emp-col-name">
+                            <strong class="emp-name-text" [title]="v.razonSocial">{{ v.razonSocial }}</strong>
+                            <span class="emp-ruc-code font-mono">RUC: {{ v.ruc }}</span>
+                          </div>
+                        </td>
+                        <td class="text-center">
+                          <span class="pill-categoria" 
+                                [class.cat-m1]="v.categoria?.includes('M1')"
+                                [class.cat-m2]="v.categoria?.includes('M2')" 
+                                [class.cat-m3]="v.categoria?.includes('M3')">
+                            {{ v.categoria }}
+                          </span>
+                        </td>
+                        <td>
+                          <div class="veh-specs">
+                            <strong class="veh-brand">{{ v.marca || 'S/D' }}</strong>
+                            <span class="veh-model">{{ v.modelo || 'S/D' }}</span>
+                          </div>
+                        </td>
+                        <td class="text-center">
+                          <div class="veh-age-box">
+                            <span class="veh-year font-mono">{{ v.anioFabricacion || 'S/D' }}</span>
+                            @if (v.edadAnios !== null) {
+                              <span class="veh-age-badge" 
+                                    [class.age-vencido]="v.edadAnios > 15"
+                                    [class.age-alerta]="v.edadAnios >= 11 && v.edadAnios <= 15"
+                                    [class.age-optimo]="v.edadAnios <= 10">
+                                {{ v.edadAnios }} años
+                              </span>
+                            }
+                          </div>
+                        </td>
+                        <td>
+                          <div class="perm-status-badge" [ngClass]="{
+                            'status-vencido': v.badgeColor === 'red',
+                            'status-salida-2026': v.badgeColor === 'rose',
+                            'status-salida-puno': v.badgeColor === 'amber',
+                            'status-proximo': v.badgeColor === 'blue',
+                            'status-optimo': v.badgeColor === 'emerald'
+                          }">
+                            <i class="material-icons-outlined status-icon">
+                              @if (v.badgeColor === 'red') { dangerous }
+                              @else if (v.badgeColor === 'rose') { notification_important }
+                              @else if (v.badgeColor === 'amber') { warning }
+                              @else if (v.badgeColor === 'blue') { schedule }
+                              @else if (v.badgeColor === 'emerald') { check_circle }
+                              @else { help_outline }
+                            </i>
+                            <span>{{ v.situacion }}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div class="norma-info-box">
+                            <span class="norma-date font-bold">{{ v.anioRetiro || 'S/D' }}</span>
+                            <span class="norma-tag font-mono">{{ v.norma }}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="action-legal-desc" [title]="v.accion">{{ v.accion }}</span>
+                        </td>
+                        <td>
+                          <div class="doc-info-box">
+                            <span class="doc-tuc font-mono font-bold" [title]="'TUC: ' + v.nroTuc">{{ v.nroTuc }}</span>
+                            <span class="doc-res font-mono" [title]="'Resolución: ' + v.nroResolucion">{{ v.nroResolucion }}</span>
+                          </div>
+                        </td>
+                        <td class="text-center">
+                          <a class="btn-action-veh" 
+                             [routerLink]="['/vehiculos']" 
+                             [queryParams]="{ placa: v.placa }" 
+                             target="_blank" 
+                             title="Ver Ficha Técnica 360° y Récord Normativo de la placa {{ v.placa }}">
+                            <i class="material-icons-outlined">open_in_new</i>
+                          </a>
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="12" class="empty-state">
+                          No se encontraron vehículos que coincidan con los criterios y filtros seleccionados.
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 4. Barra Inferior de Paginación -->
+              <div class="modal-pagination-bar">
+                <div class="pagination-info">
+                  @if (permanenciaFiltradaModal().length > 0) {
+                    Mostrando registros 
+                    <strong>{{ (paginaPermanencia() - 1) * itemsPorPaginaPermanencia() + 1 }}</strong> a 
+                    <strong>{{ Math.min(paginaPermanencia() * itemsPorPaginaPermanencia(), permanenciaFiltradaModal().length) }}</strong> 
+                    de <strong>{{ permanenciaFiltradaModal().length | number }}</strong> vehículos filtrados
+                    (Total Padrón: {{ permanenciaDetalleLista().length | number }})
+                  } @else {
+                    0 vehículos encontrados
+                  }
+                </div>
+
+                <div class="pagination-controls">
+                  <div class="page-size-selector">
+                    <span>Filas:</span>
+                    <select class="page-size-select" [value]="itemsPorPaginaPermanencia()" (change)="itemsPorPaginaPermanencia.set(+$any($event.target).value); paginaPermanencia.set(1)">
+                      <option [value]="25">25 por pág.</option>
+                      <option [value]="50">50 por pág.</option>
+                      <option [value]="100">100 por pág.</option>
+                      <option [value]="200">200 por pág.</option>
+                    </select>
+                  </div>
+
+                  <div class="page-nav-buttons">
+                    <button class="btn-page-nav" 
+                            [disabled]="paginaPermanencia() === 1" 
+                            (click)="cambiarPaginaPermanencia(1)" 
+                            title="Primera página">
+                      <i class="material-icons-outlined">first_page</i>
+                    </button>
+                    <button class="btn-page-nav" 
+                            [disabled]="paginaPermanencia() === 1" 
+                            (click)="cambiarPaginaPermanencia(paginaPermanencia() - 1)" 
+                            title="Página anterior">
+                      <i class="material-icons-outlined">chevron_left</i>
+                    </button>
+
+                    <span class="page-current-indicator">
+                      Página <strong>{{ paginaPermanencia() }}</strong> de <strong>{{ totalPaginasPermanencia() || 1 }}</strong>
+                    </span>
+
+                    <button class="btn-page-nav" 
+                            [disabled]="paginaPermanencia() >= totalPaginasPermanencia()" 
+                            (click)="cambiarPaginaPermanencia(paginaPermanencia() + 1)" 
+                            title="Página siguiente">
+                      <i class="material-icons-outlined">chevron_right</i>
+                    </button>
+                    <button class="btn-page-nav" 
+                            [disabled]="paginaPermanencia() >= totalPaginasPermanencia()" 
+                            (click)="cambiarPaginaPermanencia(totalPaginasPermanencia())" 
+                            title="Última página">
+                      <i class="material-icons-outlined">last_page</i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          }
         </div>
       </div>
     </div>
