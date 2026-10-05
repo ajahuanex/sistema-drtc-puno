@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,11 +26,13 @@ import { ResolucionPrimigeniaService } from '../../services/resolucion-primigeni
 import { BusquedaGlobalService } from '../../services/busqueda-global.service';
 import { VehiculoDataService } from '../../services/vehiculo-data.service';
 import { TucService } from '../../services/tuc.service';
+import { ExpedienteService } from '../../services/expediente.service';
 import { VehiculoModalComponent, calcularCompletitudVehiculo, enriquecerFichaTecnica } from './vehiculo-modal.component';
 import { RutaModalComponent } from './ruta-modal.component';
 import { SustitucionModalComponent } from './sustitucion-modal.component';
 import { BajaExternaFormComponent } from '../bajas-externas/baja-externa-form/baja-externa-form.component';
 import { RenovacionTucModalComponent } from './renovacion-tuc-modal.component';
+import { EditarTramiteModalComponent } from './editar-tramite-modal.component';
 import { TramiteAdministrativoService, TramiteAdministrativoPayload } from '../../services/tramite-administrativo.service';
 import { environment } from '../../../environments/environment';
 
@@ -73,6 +76,14 @@ export class CentroTramites implements OnInit {
   private tucService = inject(TucService);
   private tramiteAdminService = inject(TramiteAdministrativoService);
   private resolucionPrimigeniaService = inject(ResolucionPrimigeniaService);
+  private expedienteService = inject(ExpedienteService);
+
+  // Advertencias de duplicados en Paso 2
+  advertenciaExpediente = signal<{ mensaje: string; detalle?: string } | null>(null);
+  verificandoExpediente = signal<boolean>(false);
+  advertenciaResolucion = signal<{ mensaje: string; detalle?: string } | null>(null);
+  verificandoResolucion = signal<boolean>(false);
+  advertenciaRenovacionResolucion = signal<{ mensaje: string; detalle?: string } | null>(null);
 
   // States for Drawer / Wizard
   isDrawerOpen = signal<boolean>(false);
@@ -106,6 +117,8 @@ export class CentroTramites implements OnInit {
   paresSustitucion = signal<any[]>([]);
   vehiculosBajaSeleccionados = signal<string[]>([]);
   vehiculosTramiteSeleccionados = signal<string[]>([]);
+  tucsDuplicadoCanje = signal<Record<string, string>>({});
+  rutasDuplicadoCanje = signal<Record<string, string[]>>({});
   isProcessing = signal<boolean>(false);
   cargandoHistorial = signal<boolean>(false);
 
@@ -173,6 +186,80 @@ export class CentroTramites implements OnInit {
       }));
     }
     return [{ codigo: '01', label: 'Ruta 01' }];
+  });
+
+  proyeccionArticulo68_1 = computed(() => {
+    const tipo = this.tramiteSeleccionado();
+    const emp = this.empresaBuscada();
+    const razon = emp?.razon_social || 'la empresa solicitante';
+    const ruc = emp?.ruc || '';
+
+    const partes: string[] = [];
+
+    if (tipo === 'SUSTITUCION') {
+      const salientes = this.paresSustitucion().map(p => p.placa_saliente).filter(Boolean);
+      if (salientes.length > 0) {
+        partes.push(`Disponer la baja y desafectación de la flota vehicular autorizada de "${razon}" (RUC: ${ruc}) de la(s) unidad(es) saliente(s) con placa(s): ${salientes.join(', ')}`);
+      }
+      this.paresSustitucion().forEach(p => {
+        if (p.dar_de_baja_otra_empresa && (p.otra_empresa_razon || p.otra_empresa_info)) {
+          const empOrig = p.otra_empresa_razon || p.otra_empresa_info;
+          const rucOrig = p.otra_empresa_ruc ? ` (RUC: ${p.otra_empresa_ruc})` : '';
+          partes.push(`Disponer la desafectación y baja de la flota de la empresa "${empOrig}"${rucOrig} de la unidad entrante con placa ${p.placa_entrante}`);
+        } else if (p.baja_externa_registrada) {
+          partes.push(`Tener por acreditada y registrar la baja previa de la unidad con placa ${p.placa_entrante} en el ámbito nacional/externo`);
+        }
+      });
+    } else if (tipo === 'INCREMENTO') {
+      this.vehiculosNuevos().forEach(v => {
+        if (v.es_misma_empresa && v.dar_de_baja_misma_empresa) {
+          const resOrig = v.misma_empresa_resolucion ? ` (Resolución ${v.misma_empresa_resolucion})` : '';
+          const tucOrig = v.misma_empresa_tuc ? ` e invalidar el TUC ${v.misma_empresa_tuc}` : ' e invalidar sus credenciales (TUC)';
+          partes.push(`Disponer la baja y desafectación de la habilitación precedente en esta empresa${resOrig} de la unidad vehicular con placa ${v.placa}${tucOrig}, para su regularización e incorporación formal bajo la nueva resolución`);
+        } else if (v.baja_tipo === 'INTERNA' || v.dar_de_baja_otra_empresa) {
+          const empOrig = v.otra_empresa_razon || v.otra_empresa_info || 'Empresa anterior DRTC';
+          const rucOrig = v.otra_empresa_ruc ? ` (RUC: ${v.otra_empresa_ruc})` : '';
+          const resOrig = v.otra_empresa_resolucion ? ` (Resolución ${v.otra_empresa_resolucion})` : '';
+          partes.push(`Disponer la desafectación y baja de la flota vehicular de la empresa "${empOrig}"${rucOrig}${resOrig} de la unidad vehicular con placa ${v.placa} e invalidar sus credenciales (TUC)`);
+        }
+        if ((v.baja_tipo === 'EXTERNA' || v.incluir_baja_externa) && v.baja_externa) {
+          const empExt = v.baja_externa?.empresa_origen || 'empresa externa titular';
+          const rucExt = v.baja_externa?.ruc_empresa_origen ? ` (RUC ${v.baja_externa.ruc_empresa_origen})` : '';
+          const resExt = v.baja_externa?.resolucion_baja ? ` según ${v.baja_externa.resolucion_baja}` : '';
+          const amb = v.baja_externa?.ambito || 'MTC Nacional';
+          partes.push(`Tener por acreditada la baja externa de la unidad con placa ${v.placa} de la empresa "${empExt}"${rucExt} en el ámbito ${amb}${resExt}, disponiendo cursar notificación formal mediante oficio a dicha entidad externa comunicando la habilitación regional otorgada en DRTC Puno`);
+        }
+      });
+      if (partes.length === 0) {
+        return 'No se registran vehículos con baja o desafectación previa requerida (Unidades de nuevo ingreso directo o primera habilitación).';
+      }
+    } else if (tipo === 'BAJAS') {
+      const bajas = this.vehiculosBajaSeleccionados();
+      if (bajas.length > 0) {
+        partes.push(`Disponer la baja y desafectación de la flota vehicular de la empresa "${razon}" (RUC: ${ruc}) de la(s) unidad(es) con placa(s): ${bajas.join(', ')}`);
+      }
+    }
+
+    return partes.length > 0 ? partes.join('; y ') + '.' : 'Sin afectaciones de baja previa.';
+  });
+
+  proyeccionArticulo68_2 = computed(() => {
+    const tipo = this.tramiteSeleccionado();
+    const emp = this.empresaBuscada();
+    const razon = emp?.razon_social || 'la empresa solicitante';
+    const ruc = emp?.ruc || '';
+
+    let placas: string[] = [];
+    if (tipo === 'SUSTITUCION') {
+      placas = this.paresSustitucion().map(p => p.placa_entrante).filter(Boolean);
+    } else if (tipo === 'INCREMENTO') {
+      placas = this.vehiculosNuevos().map(v => v.placa).filter(Boolean);
+    }
+
+    if (placas.length > 0) {
+      return `Disponer la afectación, habilitación e incorporación por concepto de ${tipo} a la flota vehicular autorizada de la empresa "${razon}" (RUC: ${ruc}) de la(s) unidad(es) vehicular(es) con placa(s): ${placas.join(', ')}.`;
+    }
+    return 'Pendiente de registrar unidades a incorporar.';
   });
 
   toggleMarcarVehiculo(placa: string) {
@@ -489,7 +576,12 @@ export class CentroTramites implements OnInit {
 
   vehiculosSalientesFiltrados = computed(() => {
     const yaSustituidos = new Set(this.paresSustitucion().map(p => p.placa_saliente));
-    let lista = this.vehiculosEnResolucion().filter(v => !yaSustituidos.has(v.placa));
+    let lista = this.vehiculosEnResolucion().filter(v => {
+      const est = String(v.estado || '').toUpperCase();
+      const activo = v.esta_activo !== false;
+      const esApto = (est === 'HABILITADO' || !est) && activo && est !== 'SUSTITUIDO' && est !== 'BAJA' && est !== 'INHABILITADO';
+      return esApto && !yaSustituidos.has(v.placa);
+    });
     const txt = this.filtroSalienteText().trim().toUpperCase();
     if (txt) {
       lista = lista.filter(v => 
@@ -503,7 +595,11 @@ export class CentroTramites implements OnInit {
 
   vehiculosSalientesDisponibles = computed(() => {
     const yaSustituidos = new Set(this.paresSustitucion().map(p => p.placa_saliente));
-    return this.vehiculosEnResolucion().filter(v => !yaSustituidos.has(v.placa));
+    return this.vehiculosEnResolucion().filter(v => {
+      const est = String(v.estado || '').toUpperCase();
+      const activo = v.esta_activo !== false;
+      return (est === 'HABILITADO' || !est) && activo && est !== 'SUSTITUIDO' && est !== 'BAJA' && est !== 'INHABILITADO' && !yaSustituidos.has(v.placa);
+    });
   });
 
   vehiculoSalienteSeleccionado = computed(() => {
@@ -589,6 +685,37 @@ export class CentroTramites implements OnInit {
         this.setVigenciaRenovacion(this.duracionAniosRenovacion());
       }
     });
+
+    // Monitoreo reactivo de expediente y resolución para prevención de duplicados
+    this.datosOrigenForm.get('numero_origen')?.valueChanges
+      .pipe(debounceTime(350), distinctUntilChanged())
+      .subscribe(() => {
+        this.validarExpedienteDuplicado();
+      });
+
+    this.datosOrigenForm.get('fecha_origen')?.valueChanges
+      .pipe(distinctUntilChanged())
+      .subscribe(fecha => {
+        this.sincronizarAnioExpedienteConFecha(fecha);
+      });
+
+    this.datosOrigenForm.get('nro_resolucion_hija')?.valueChanges
+      .pipe(debounceTime(350), distinctUntilChanged())
+      .subscribe(() => {
+        this.validarResolucionDuplicada();
+      });
+
+    this.datosOrigenForm.get('fecha_emision_resolucion')?.valueChanges
+      .pipe(distinctUntilChanged())
+      .subscribe(fecha => {
+        this.sincronizarAnioResolucionConFecha(fecha);
+      });
+
+    this.renovacionForm.get('nueva_resolucion_primigenia')?.valueChanges
+      .pipe(debounceTime(350), distinctUntilChanged())
+      .subscribe(() => {
+        this.validarNuevaResolucionPrimigeniaDuplicada();
+      });
   }
 
   cargarCatalogoEmpresas() {
@@ -1060,6 +1187,10 @@ export class CentroTramites implements OnInit {
     this.datosTecnicosEntrante.set(null);
     this.habilitacionOtraEmpresa.set(null);
     this.darDeBajaOtraEmpresa.set(true);
+    this.advertenciaExpediente.set(null);
+    this.advertenciaResolucion.set(null);
+    this.advertenciaRenovacionResolucion.set(null);
+    this.datosOrigenForm.reset({ tipo_origen: 'EXPEDIENTE', numero_origen: '', nro_resolucion_hija: '' });
     this.pasoActual.set(0);
     if (this.stepper) {
       this.stepper.reset();
@@ -1088,6 +1219,17 @@ export class CentroTramites implements OnInit {
       );
       if (tienenTucViejaOVacia) {
         this.generarTucsMasivos(false);
+      }
+    }
+    if (this.tramiteSeleccionado() === 'INCREMENTO' && this.pasoActual() === 2) {
+      const vehSinBaja = this.vehiculosNuevos().find(v => v.es_misma_empresa && !v.dar_de_baja_misma_empresa);
+      if (vehSinBaja) {
+        this.snackBar.open(
+          `⛔ La unidad ${vehSinBaja.placa} ya está habilitada en esta empresa. Debe autorizar la baja de su habilitación previa para evitar doble habilitación o retirarla del trámite.`,
+          'CORREGIR',
+          { duration: 6000 }
+        );
+        return;
       }
     }
     if (this.stepper) {
@@ -1197,7 +1339,13 @@ export class CentroTramites implements OnInit {
         return !!this.tramiteAdminForm.get('debe_decir_texto')?.value;
       }
       if (t === 'SUSTITUCION') return this.paresSustitucion().length > 0;
-      if (t === 'INCREMENTO') return this.vehiculosNuevos().length > 0;
+      if (t === 'INCREMENTO') {
+        if (this.vehiculosNuevos().length === 0) return false;
+        const tieneDobleHabilitacionSinBaja = this.vehiculosNuevos().some(
+          v => v.es_misma_empresa && !v.dar_de_baja_misma_empresa
+        );
+        return !tieneDobleHabilitacionSinBaja;
+      }
       if (t === 'BAJAS') return this.vehiculosBajaSeleccionados().length > 0;
       if (t === 'RENOVACION') {
         return this.vehiculosRenovacionLista().some(v => v.seleccionado);
@@ -1232,6 +1380,22 @@ export class CentroTramites implements OnInit {
     let placa = typeof vehiculo === 'string' ? vehiculo : (vehiculo.placa || '');
     if (/^[A-Z0-9]{6}$/.test(placa)) {
       placa = `${placa.substring(0, 3)}-${placa.substring(3)}`;
+    }
+    const vObj = typeof vehiculo === 'object' ? vehiculo : this.vehiculosEnResolucion().find(v => v.placa === placa);
+    if (vObj) {
+      const est = String(vObj.estado || '').toUpperCase();
+      const activo = vObj.esta_activo !== false;
+      if (['SUSTITUIDO', 'INHABILITADO', 'BAJA'].includes(est) || !activo) {
+        this.snackBar.open(
+          `⛔ La unidad ${placa} figura en estado "${est || 'INACTIVO'}". Ya fue sustituida o dada de baja; no puede ser sustituida dos veces.`,
+          'Cerrar',
+          { duration: 5000 }
+        );
+        this.placaSalienteTemp.set('');
+        this.filtroSalienteText.set('');
+        this.datosTecnicosSaliente.set(null);
+        return;
+      }
     }
     this.placaSalienteTemp.set(placa);
     this.filtroSalienteText.set(placa);
@@ -1300,9 +1464,13 @@ export class CentroTramites implements OnInit {
 
   seleccionarTramite(id: string) {
     this.tramiteSeleccionado.set(id);
+    this.advertenciaExpediente.set(null);
+    this.advertenciaResolucion.set(null);
+    this.advertenciaRenovacionResolucion.set(null);
+    this.datosOrigenForm.get('nro_resolucion_hija')?.setValue('');
+
     if (id === 'RENOVACION') {
       // Para renovación no aplica resolución hija/modificatoria
-      this.datosOrigenForm.get('nro_resolucion_hija')?.setValue('');
       const vList = this.vehiculosEnResolucion();
       if (vList.length > 0 && this.vehiculosRenovacionLista().length === 0) {
         this.inicializarFlotaRenovacion(vList);
@@ -1313,9 +1481,8 @@ export class CentroTramites implements OnInit {
         this.cargarRutasEmpresa(emp.ruc, res || undefined);
       }
     } else {
-      if (!this.datosOrigenForm.get('nro_resolucion_hija')?.value) {
-        this.cargarSiguienteResolucionHija(id);
-      }
+      // En trámites regulares (Incremento, Sustitución, etc.), no se coloca resolución por defecto.
+      // Debe ingresarse manualmente por el usuario.
     }
   }
 
@@ -1323,8 +1490,9 @@ export class CentroTramites implements OnInit {
     const t = tipo || this.tramiteSeleccionado() || undefined;
     this.resolucionHijaService.getSiguienteNumero(t).subscribe({
       next: (res) => {
-        if (res && res.siguiente_numero && !this.datosOrigenForm.get('nro_resolucion_hija')?.value) {
+        if (res && res.siguiente_numero) {
           this.datosOrigenForm.get('nro_resolucion_hija')?.setValue(res.siguiente_numero);
+          this.validarResolucionDuplicada();
         }
       },
       error: (err) => console.warn('No se pudo precargar siguiente número correlativo:', err)
@@ -1343,18 +1511,427 @@ export class CentroTramites implements OnInit {
     }
   }
 
-  abrirModalVehiculo() {
+  abrirModalVehiculo(vehiculoEdit?: any, index?: number) {
     const dialogRef = this.dialog.open(VehiculoModalComponent, {
-      width: '740px',
+      width: '780px',
       maxWidth: '95vw',
-      data: {}
+      data: {
+        vehiculo: vehiculoEdit || {},
+        isEdit: !!vehiculoEdit
+      }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.vehiculosNuevos.update(v => [...v, result]);
+        if (index !== undefined) {
+          this.vehiculosNuevos.update(v => {
+            const copia = [...v];
+            copia[index] = {
+              ...copia[index],
+              ...result,
+              rutas: copia[index].rutas || (result.rutas && result.rutas.length > 0 ? result.rutas : this.rutasOpciones().map(o => o.codigo)),
+              numero_tuc: copia[index].numero_tuc || result.numero_tuc || ''
+            };
+            return copia;
+          });
+          this.snackBar.open(`✓ Ficha técnica actualizada para ${result.placa} (${result.porcentaje_completitud || 0}% datos)`, 'OK', { duration: 2500 });
+        } else {
+          const nuevoIdx = this.vehiculosNuevos().length;
+          const rutasDefecto = this.rutasOpciones().map(o => o.codigo);
+          const nuevoVehiculo = {
+            ...result,
+            rutas: (result.rutas && result.rutas.length > 0) ? result.rutas : rutasDefecto,
+            numero_tuc: result.numero_tuc || '',
+            baja_tipo: 'NINGUNA',
+            dar_de_baja_otra_empresa: false,
+            otra_empresa_ruc: '',
+            otra_empresa_razon: '',
+            otra_empresa_resolucion: '',
+            otra_empresa_estado: '',
+            otra_empresa_tuc: '',
+            baja_interna_encontrada: false,
+            baja_interna_verificada: false,
+            buscando_baja_interna: false,
+            mostrar_ingreso_manual_interna: false,
+            baja_externa: null
+          };
+          this.vehiculosNuevos.update(v => [...v, nuevoVehiculo]);
+          this.snackBar.open(`✓ Vehículo ${result.placa} agregado a la lista`, 'OK', { duration: 2500 });
+          // Verificar automáticamente si esta unidad ya pertenece a otra empresa/resolución en DRTC Puno
+          this.verificarBajaOtraEmpresaParaVehiculo(result.placa, nuevoIdx);
+        }
       }
     });
+  }
+
+  verificarBajaOtraEmpresaParaVehiculo(placa: string, index: number) {
+    if (!placa || placa.length < 5) return;
+    const rucActual = this.empresaBuscada()?.ruc;
+
+    // Normalizar placa para búsqueda regex flexible (acepta con o sin guion)
+    const rawPlaca = placa.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const placaConGuion = rawPlaca.length >= 6 ? `${rawPlaca.substring(0, 3)}-${rawPlaca.substring(3)}` : rawPlaca;
+    const regexPattern = rawPlaca.length >= 6 ? `${rawPlaca.substring(0, 3)}-?${rawPlaca.substring(3)}` : rawPlaca;
+
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (copia[index]) {
+        copia[index] = {
+          ...copia[index],
+          buscando_baja_interna: true
+        };
+      }
+      return copia;
+    });
+
+    this.flotaService.getFlotaPaginada({ placa: regexPattern, limit: 30 }).subscribe({
+      next: (res) => {
+        const items = res?.data || [];
+        // 1. Verificar si ya se encuentra habilitada en la MISMA empresa actual (Doble habilitación prohibida)
+        const mismaEmpresaItems = items.filter((r: any) => r.ruc && r.ruc === rucActual && (r.estado === 'HABILITADO' || r.esta_activo !== false));
+
+        if (mismaEmpresaItems.length > 0) {
+          const matchMisma = mismaEmpresaItems[0];
+          const resActual = matchMisma.nro_resolucion_hija || matchMisma.nro_resolucion_primigenia || 'Resolución Vigente';
+          const tucActual = matchMisma.numero_tuc || '';
+          const estadoActual = (matchMisma.estado || 'HABILITADO').toUpperCase();
+
+          this.vehiculosNuevos.update(list => {
+            const copia = [...list];
+            if (copia[index]) {
+              copia[index] = {
+                ...copia[index],
+                es_misma_empresa: true,
+                misma_empresa_ruc: rucActual,
+                misma_empresa_razon: matchMisma.razon_social || this.empresaBuscada()?.razon_social || 'Misma Empresa',
+                misma_empresa_resolucion: resActual,
+                misma_empresa_tuc: tucActual,
+                misma_empresa_estado: estadoActual,
+                dar_de_baja_misma_empresa: true,
+                baja_tipo: 'INTERNA_MISMA_EMPRESA',
+                baja_interna_encontrada: true,
+                baja_interna_verificada: true,
+                buscando_baja_interna: false
+              };
+            }
+            return copia;
+          });
+
+          this.snackBar.open(
+            `⚠️ ATENCIÓN: La unidad ${placaConGuion} ya está HABILITADA en esta empresa (Res. ${resActual}, TUC: ${tucActual || 'S/N'}). Se requiere dar de baja la habilitación anterior para regularizar (Doble Habilitación Prohibida).`,
+            'ENTENDIDO',
+            { duration: 7000 }
+          );
+          return;
+        }
+
+        // 2. Filtrar registros que pertenezcan a OTRA empresa de DRTC Puno
+        const otrasEmpresas = items.filter((r: any) => r.ruc && r.ruc !== rucActual);
+
+        if (otrasEmpresas.length > 0) {
+          // Priorizar habilitados o activos
+          otrasEmpresas.sort((a: any, b: any) => {
+            const aActivo = a.estado === 'HABILITADO' || a.esta_activo !== false;
+            const bActivo = b.estado === 'HABILITADO' || b.esta_activo !== false;
+            if (aActivo && !bActivo) return -1;
+            if (!aActivo && bActivo) return 1;
+            return 0;
+          });
+
+          const match = otrasEmpresas[0];
+          const resolucionDetectada = match.nro_resolucion_primigenia || match.nro_resolucion_hija || (match as any).resolucion_habilitacion || 'Resolución Registrada';
+          const estadoDetectado = (match.estado || (match.esta_activo !== false ? 'HABILITADO' : 'INACTIVO')).toUpperCase();
+          const resolucionesList = Array.from(new Set(otrasEmpresas.map((r: any) => r.nro_resolucion_primigenia || r.nro_resolucion_hija || (r as any).resolucion_habilitacion).filter(Boolean)));
+
+          const estaHabilitadoEnOtra = estadoDetectado === 'HABILITADO';
+
+          this.vehiculosNuevos.update(list => {
+            const copia = [...list];
+            if (copia[index]) {
+              copia[index] = {
+                ...copia[index],
+                es_misma_empresa: false,
+                dar_de_baja_misma_empresa: false,
+                // Solo si está HABILITADO en otra empresa se configura Baja Interna obligatoria (Art. 68.1).
+                // Si ya figura INHABILITADO en DRTC, queda en 'NINGUNA' (pues ya está desafectado)
+                // y el usuario puede cambiar a 'EXTERNA' si tiene habilitación en el MTC.
+                baja_tipo: estaHabilitadoEnOtra ? 'INTERNA' : 'NINGUNA',
+                dar_de_baja_otra_empresa: estaHabilitadoEnOtra,
+                otra_empresa_ruc: match.ruc,
+                otra_empresa_razon: match.razon_social,
+                otra_empresa_resolucion: resolucionDetectada,
+                otra_empresa_resoluciones: resolucionesList,
+                otra_empresa_estado: estadoDetectado,
+                otra_empresa_tuc: match.numero_tuc || '',
+                otra_empresa_info: `${match.razon_social} (${match.ruc})`,
+                baja_interna_encontrada: true,
+                baja_interna_verificada: true,
+                buscando_baja_interna: false
+              };
+            }
+            return copia;
+          });
+
+          if (estaHabilitadoEnOtra) {
+            this.snackBar.open(
+              `ℹ️ Unidad ${placaConGuion} está HABILITADA en "${match.razon_social}". Se configuró Régimen de Baja Regional (Art. 68.1).`,
+              'OK',
+              { duration: 5000 }
+            );
+          } else {
+            this.snackBar.open(
+              `ℹ️ Unidad ${placaConGuion} figura como ${estadoDetectado} en "${match.razon_social}". No requiere baja regional en DRTC Puno.`,
+              'OK',
+              { duration: 5000 }
+            );
+          }
+        } else {
+          this.vehiculosNuevos.update(list => {
+            const copia = [...list];
+            if (copia[index]) {
+              copia[index] = {
+                ...copia[index],
+                es_misma_empresa: false,
+                dar_de_baja_misma_empresa: false,
+                baja_interna_encontrada: false,
+                baja_interna_verificada: true,
+                buscando_baja_interna: false
+              };
+            }
+            return copia;
+          });
+        }
+      },
+      error: () => {
+        this.vehiculosNuevos.update(list => {
+          const copia = [...list];
+          if (copia[index]) {
+            copia[index] = {
+              ...copia[index],
+              buscando_baja_interna: false,
+              baja_interna_verificada: true
+            };
+          }
+          return copia;
+        });
+      }
+    });
+  }
+
+  toggleBajaMismaEmpresa(index: number, checked: boolean) {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (copia[index]) {
+        copia[index] = {
+          ...copia[index],
+          dar_de_baja_misma_empresa: checked
+        };
+      }
+      return copia;
+    });
+    if (!checked) {
+      this.snackBar.open(
+        '⛔ Atención: Un vehículo no puede tener doble habilitación en la empresa. Si no autoriza la baja previa, el trámite no podrá avanzar.',
+        'Entendido',
+        { duration: 5000 }
+      );
+    }
+  }
+
+  setBajaTipoVehiculoNuevo(index: number, tipo: 'NINGUNA' | 'INTERNA' | 'EXTERNA') {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (!copia[index]) return copia;
+      const v = copia[index];
+      if (tipo === 'NINGUNA') {
+        copia[index] = {
+          ...v,
+          baja_tipo: 'NINGUNA',
+          dar_de_baja_otra_empresa: false,
+          dar_de_baja_misma_empresa: false
+        };
+      } else if (tipo === 'INTERNA') {
+        if (v.es_misma_empresa) {
+          copia[index] = {
+            ...v,
+            baja_tipo: 'INTERNA_MISMA_EMPRESA',
+            dar_de_baja_misma_empresa: true
+          };
+        } else {
+          const puedeDarDeBaja = v.otra_empresa_estado === 'HABILITADO' || !v.otra_empresa_estado;
+          copia[index] = {
+            ...v,
+            baja_tipo: 'INTERNA',
+            dar_de_baja_otra_empresa: puedeDarDeBaja
+          };
+          if (!v.baja_interna_verificada) {
+            this.verificarBajaOtraEmpresaParaVehiculo(v.placa, index);
+          }
+        }
+      } else if (tipo === 'EXTERNA') {
+        copia[index] = {
+          ...v,
+          baja_tipo: 'EXTERNA',
+          dar_de_baja_otra_empresa: false,
+          baja_externa: v.baja_externa || {
+            ambito: 'NACIONAL_MTC',
+            resolucion_baja: '',
+            empresa_origen: '',
+            ruc_empresa_origen: ''
+          }
+        };
+      }
+      return copia;
+    });
+  }
+
+  toggleBajaInternaVehiculoNuevo(index: number, checked: boolean) {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (copia[index]) {
+        copia[index] = {
+          ...copia[index],
+          dar_de_baja_otra_empresa: checked
+        };
+      }
+      return copia;
+    });
+  }
+
+  toggleIngresoManualInterna(index: number) {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (copia[index]) {
+        copia[index] = {
+          ...copia[index],
+          mostrar_ingreso_manual_interna: !copia[index].mostrar_ingreso_manual_interna
+        };
+      }
+      return copia;
+    });
+  }
+
+  actualizarBajaInternaVehiculo(index: number, campo: 'ruc' | 'razon' | 'resolucion', valor: string) {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (copia[index]) {
+        if (campo === 'ruc') copia[index].otra_empresa_ruc = valor;
+        if (campo === 'razon') {
+          copia[index].otra_empresa_razon = valor;
+          copia[index].otra_empresa_info = `${valor} (${copia[index].otra_empresa_ruc || ''})`;
+        }
+        if (campo === 'resolucion') {
+          copia[index].otra_empresa_resolucion = valor;
+        }
+      }
+      return copia;
+    });
+  }
+
+  actualizarBajaExternaVehiculo(index: number, campo: string, valor: any) {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (copia[index]) {
+        copia[index].baja_externa = {
+          ...(copia[index].baja_externa || {}),
+          [campo]: valor
+        };
+      }
+      return copia;
+    });
+  }
+
+  toggleIncluirBajaExterna(index: number) {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (copia[index]) {
+        const actual = !!copia[index].incluir_baja_externa;
+        copia[index] = {
+          ...copia[index],
+          incluir_baja_externa: !actual,
+          baja_externa: (!actual && !copia[index].baja_externa) ? {
+            ambito: 'NACIONAL_MTC',
+            resolucion_baja: '',
+            empresa_origen: ''
+          } : copia[index].baja_externa
+        };
+      }
+      return copia;
+    });
+  }
+
+  onEvidenciaBajaExternaSelected(index: number, event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+
+    if (file.size > 15 * 1024 * 1024) {
+      this.snackBar.open('El archivo excede el tamaño máximo permitido (15 MB)', 'Cerrar', { duration: 4000 });
+      return;
+    }
+
+    const tamano = file.size > 1024 * 1024
+      ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
+      : Math.round(file.size / 1024) + ' KB';
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      this.vehiculosNuevos.update(list => {
+        const copia = [...list];
+        if (copia[index]) {
+          copia[index] = {
+            ...copia[index],
+            baja_externa: {
+              ...(copia[index].baja_externa || { ambito: 'NACIONAL_MTC', resolucion_baja: '', empresa_origen: '' }),
+              evidencia_nombre: file.name,
+              evidencia_tamano: tamano,
+              evidencia_tipo: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+              evidencia_base64: base64
+            }
+          };
+        }
+        return copia;
+      });
+      this.snackBar.open(`✓ Evidencia "${file.name}" adjuntada correctamente`, 'OK', { duration: 3000 });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  verEvidenciaBajaExterna(index: number) {
+    const v = this.vehiculosNuevos()[index];
+    const evidencia = v?.baja_externa?.evidencia_base64;
+    if (!evidencia) return;
+
+    const win = window.open('', '_blank');
+    if (win) {
+      if (v.baja_externa?.evidencia_tipo?.includes('pdf') || v.baja_externa?.evidencia_nombre?.toLowerCase().endsWith('.pdf')) {
+        win.document.write(
+          `<html><head><title>Evidencia MTC - ${v.placa}</title></head><body style="margin:0;"><iframe src="${evidencia}" frameborder="0" style="border:0; width:100%; height:100vh;" allowfullscreen></iframe></body></html>`
+        );
+      } else {
+        win.document.write(
+          `<html><head><title>Evidencia MTC - ${v.placa}</title></head><body style="margin:0; background:#0f172a; display:flex; align-items:center; justify-content:center; min-height:100vh;"><img src="${evidencia}" style="max-width:96%; max-height:96vh; object-fit:contain; border-radius:8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);"></body></html>`
+        );
+      }
+    }
+  }
+
+  quitarEvidenciaBajaExterna(index: number) {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (copia[index] && copia[index].baja_externa) {
+        copia[index].baja_externa = {
+          ...copia[index].baja_externa,
+          evidencia_nombre: undefined,
+          evidencia_tamano: undefined,
+          evidencia_tipo: undefined,
+          evidencia_base64: undefined
+        };
+      }
+      return copia;
+    });
+    this.snackBar.open('Evidencia retirada', 'OK', { duration: 2000 });
   }
 
   onPlacaEntranteInput(event: Event) {
@@ -1382,6 +1959,16 @@ export class CentroTramites implements OnInit {
     this.flotaService.getFlotaPaginada({ placa, solo_activos: true, limit: 10 }).subscribe({
       next: (resFlota) => {
         const registros = resFlota.data || [];
+        const mismaEmpresa = registros.find(r => r.ruc === empresaActualRuc && (r.estado === 'HABILITADO' || r.esta_activo !== false));
+        if (mismaEmpresa) {
+          const resMis = mismaEmpresa.nro_resolucion_hija || mismaEmpresa.nro_resolucion_primigenia || 'Resolución Vigente';
+          const tucMis = mismaEmpresa.numero_tuc || 'S/TUC';
+          this.snackBar.open(
+            `⚠️ ATENCIÓN: La unidad entrante ${placa} ya está HABILITADA en esta empresa (Res. ${resMis}, TUC: ${tucMis}). Al configurar la sustitución se dará de baja su habilitación previa para regularizar (Doble Habilitación Prohibida).`,
+            'ENTENDIDO',
+            { duration: 7000 }
+          );
+        }
         const otraEmpresa = registros.find(r => r.ruc !== empresaActualRuc && (r.estado === 'HABILITADO' || r.esta_activo !== false));
         if (otraEmpresa) {
           this.habilitacionOtraEmpresa.set({
@@ -1573,8 +2160,25 @@ export class CentroTramites implements OnInit {
     }
 
     const salienteObj = this.vehiculoSalienteSeleccionado() || this.vehiculosEnResolucion().find(v => v.placa === saliente) || {};
+    const estadoSal = String(salienteObj.estado || '').toUpperCase();
+    const activoSal = salienteObj.esta_activo !== false;
+    if (['SUSTITUIDO', 'INHABILITADO', 'BAJA'].includes(estadoSal) || !activoSal) {
+      this.snackBar.open(
+        `⛔ El vehículo saliente ${saliente} se encuentra en estado "${estadoSal || 'INACTIVO'}". Ya fue sustituido o dado de baja previamente; un vehículo no puede ser sustituido dos veces.`,
+        'Cerrar',
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    const entranteMisma = this.vehiculosEnResolucion().find(v => v.placa === entrante);
+    const esMismaEmpresaEntrante = !!entranteMisma && (entranteMisma.estado === 'HABILITADO' || entranteMisma.esta_activo !== false);
+
     const dt = this.datosTecnicosEntrante() || {};
     const otraEmp = this.habilitacionOtraEmpresa();
+    const rutasPar = (salienteObj?.rutas && salienteObj.rutas.length > 0)
+      ? [...salienteObj.rutas]
+      : this.rutasOpciones().map(o => o.codigo);
     const nuevoPar = {
       placa_saliente: saliente,
       saliente_marca: salienteObj?.marca || 'S/M',
@@ -1591,13 +2195,18 @@ export class CentroTramites implements OnInit {
       categoria: dt.categoria || 'M2',
       asientos: dt.asientos || dt.numero_asientos || dt.numero_pasajeros || null,
       peso_neto: dt.peso_neto || null,
-      numero_tuc: dt.numero_tuc || undefined,
+      numero_tuc: dt.numero_tuc || '',
+      rutas: rutasPar,
       datos_completos: dt,
       dar_de_baja_otra_empresa: otraEmp ? this.darDeBajaOtraEmpresa() : false,
       otra_empresa_info: otraEmp ? `${otraEmp.razon_social} (${otraEmp.ruc})` : null,
       otra_empresa_ruc: otraEmp ? otraEmp.ruc : null,
       otra_empresa_razon: otraEmp ? otraEmp.razon_social : null,
-      baja_externa_registrada: false
+      baja_externa_registrada: false,
+      dar_de_baja_misma_empresa: esMismaEmpresaEntrante,
+      es_misma_empresa: esMismaEmpresaEntrante,
+      misma_empresa_resolucion: entranteMisma?.nro_resolucion_hija || entranteMisma?.nro_resolucion_primigenia || null,
+      misma_empresa_tuc: entranteMisma?.numero_tuc || null
     };
 
     this.paresSustitucion.update(pares => [...pares, nuevoPar]);
@@ -2231,13 +2840,390 @@ export class CentroTramites implements OnInit {
     return this.vehiculosRenovacionLista().filter(v => v.seleccionado).length;
   }
 
+  // --- Asignación de Rutas y TUCs para INCREMENTO ---
+  toggleRutaVehiculoNuevo(index: number, codRuta: string) {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (!copia[index]) return list;
+      const rActuales = Array.isArray(copia[index].rutas) ? [...copia[index].rutas] : this.rutasOpciones().map(o => o.codigo);
+      const idx = rActuales.indexOf(codRuta);
+      if (idx >= 0) {
+        rActuales.splice(idx, 1);
+      } else {
+        rActuales.push(codRuta);
+      }
+      copia[index] = { ...copia[index], rutas: rActuales };
+      return copia;
+    });
+  }
+
+  asignarTodasRutasVehiculoNuevo(index: number) {
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (!copia[index]) return list;
+      copia[index] = { ...copia[index], rutas: this.rutasOpciones().map(o => o.codigo) };
+      return copia;
+    });
+  }
+
+  actualizarTucVehiculoNuevo(index: number, event: Event) {
+    const val = (event.target as HTMLInputElement).value?.trim() || '';
+    this.vehiculosNuevos.update(list => {
+      const copia = [...list];
+      if (copia[index]) {
+        copia[index] = { ...copia[index], numero_tuc: val };
+      }
+      return copia;
+    });
+  }
+
+  generarTucVehiculoNuevo(index: number) {
+    this.tucService.getSiguienteNumero('FISICA').subscribe({
+      next: (res) => {
+        const sig = res?.siguienteNroTuc || 'T-000001';
+        this.vehiculosNuevos.update(list => {
+          const copia = [...list];
+          if (copia[index]) {
+            copia[index] = { ...copia[index], numero_tuc: sig };
+          }
+          return copia;
+        });
+        this.snackBar.open(`✓ TUC Física ${sig} asignada`, 'Cerrar', { duration: 2500 });
+      },
+      error: () => {
+        const num = String(index + 1).padStart(6, '0');
+        const fallback = `T-${num}`;
+        this.vehiculosNuevos.update(list => {
+          const copia = [...list];
+          if (copia[index]) {
+            copia[index] = { ...copia[index], numero_tuc: fallback };
+          }
+          return copia;
+        });
+        this.snackBar.open(`✓ TUC Física ${fallback} asignada`, 'Cerrar', { duration: 2500 });
+      }
+    });
+  }
+
+  generarTucsMasivosIncremento() {
+    const lista = this.vehiculosNuevos();
+    if (lista.length === 0) {
+      this.snackBar.open('No hay vehículos para asignar TUCs', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    this.tucService.getSiguienteNumero('FISICA').subscribe({
+      next: (res) => {
+        const sig = res?.siguienteNroTuc || 'T-000001';
+        this.asignarTucsSecuencialesIncremento(sig);
+      },
+      error: () => {
+        this.asignarTucsSecuencialesIncremento('T-000001');
+      }
+    });
+  }
+
+  private asignarTucsSecuencialesIncremento(tucInicial: string) {
+    const match = tucInicial.match(/^([A-Za-z]+-?)(\d+)(.*)$/);
+    let prefijo = 'T-';
+    let baseNum = 1;
+    let sufijo = '';
+
+    if (match) {
+      prefijo = match[1];
+      baseNum = parseInt(match[2], 10) || 1;
+      sufijo = match[3] || '';
+    }
+
+    let contador = baseNum;
+    const total = this.vehiculosNuevos().length;
+    this.vehiculosNuevos.update(list =>
+      list.map(v => {
+        const numFormateado = String(contador).padStart(6, '0');
+        const tuc = `${prefijo}${numFormateado}${sufijo}`;
+        contador++;
+        return { ...v, numero_tuc: tuc };
+      })
+    );
+    this.snackBar.open(`✓ Se asignaron ${total} TUCs secuenciales`, 'OK', { duration: 3000 });
+  }
+
+  // --- Asignación de Rutas y TUCs para SUSTITUCIÓN ---
+  toggleRutaParSustitucion(index: number, codRuta: string) {
+    this.paresSustitucion.update(pares => {
+      const copia = [...pares];
+      if (!copia[index]) return pares;
+      const rActuales = Array.isArray(copia[index].rutas) ? [...copia[index].rutas] : this.rutasOpciones().map(o => o.codigo);
+      const idx = rActuales.indexOf(codRuta);
+      if (idx >= 0) {
+        rActuales.splice(idx, 1);
+      } else {
+        rActuales.push(codRuta);
+      }
+      copia[index] = { ...copia[index], rutas: rActuales };
+      return copia;
+    });
+  }
+
+  asignarTodasRutasParSustitucion(index: number) {
+    this.paresSustitucion.update(pares => {
+      const copia = [...pares];
+      if (!copia[index]) return pares;
+      copia[index] = { ...copia[index], rutas: this.rutasOpciones().map(o => o.codigo) };
+      return copia;
+    });
+  }
+
+  actualizarTucParSustitucion(index: number, event: Event) {
+    const val = (event.target as HTMLInputElement).value?.trim() || '';
+    this.paresSustitucion.update(pares =>
+      pares.map((p, i) => i === index ? { ...p, numero_tuc: val } : p)
+    );
+  }
+
+  generarTucParSustitucion(index: number) {
+    this.tucService.getSiguienteNumero('FISICA').subscribe({
+      next: (res) => {
+        const sig = res?.siguienteNroTuc || 'T-000001';
+        this.paresSustitucion.update(pares =>
+          pares.map((p, i) => i === index ? { ...p, numero_tuc: sig } : p)
+        );
+        this.snackBar.open(`✓ TUC Física ${sig} asignada`, 'Cerrar', { duration: 2500 });
+      },
+      error: () => {
+        const num = String(index + 1).padStart(6, '0');
+        const fallback = `T-${num}`;
+        this.paresSustitucion.update(pares =>
+          pares.map((p, i) => i === index ? { ...p, numero_tuc: fallback } : p)
+        );
+        this.snackBar.open(`✓ TUC Física ${fallback} asignada`, 'Cerrar', { duration: 2500 });
+      }
+    });
+  }
+
+  generarTucsMasivosSustitucion() {
+    const pares = this.paresSustitucion();
+    if (pares.length === 0) {
+      this.snackBar.open('No hay pares configurados para asignar TUCs', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    this.tucService.getSiguienteNumero('FISICA').subscribe({
+      next: (res) => {
+        const sig = res?.siguienteNroTuc || 'T-000001';
+        this.asignarTucsSecuencialesSustitucion(sig);
+      },
+      error: () => {
+        this.asignarTucsSecuencialesSustitucion('T-000001');
+      }
+    });
+  }
+
+  private asignarTucsSecuencialesSustitucion(tucInicial: string) {
+    const match = tucInicial.match(/^([A-Za-z]+-?)(\d+)(.*)$/);
+    let prefijo = 'T-';
+    let baseNum = 1;
+    let sufijo = '';
+
+    if (match) {
+      prefijo = match[1];
+      baseNum = parseInt(match[2], 10) || 1;
+      sufijo = match[3] || '';
+    }
+
+    let contador = baseNum;
+    const total = this.paresSustitucion().length;
+    this.paresSustitucion.update(pares =>
+      pares.map(p => {
+        const numFormateado = String(contador).padStart(6, '0');
+        const tuc = `${prefijo}${numFormateado}${sufijo}`;
+        contador++;
+        return { ...p, numero_tuc: tuc };
+      })
+    );
+    this.snackBar.open(`✓ Se asignaron ${total} TUCs secuenciales`, 'OK', { duration: 3000 });
+  }
+
+  // --- Asignación de Rutas y TUCs para DUPLICADO y CANJE ---
+  actualizarTucDuplicadoCanje(placa: string, event: Event) {
+    const val = (event.target as HTMLInputElement).value?.trim() || '';
+    this.tucsDuplicadoCanje.update(m => ({ ...m, [placa]: val }));
+  }
+
+  generarTucDuplicadoCanje(placa: string) {
+    this.tucService.getSiguienteNumero('FISICA').subscribe({
+      next: (res) => {
+        const sig = res?.siguienteNroTuc || 'T-000001';
+        this.tucsDuplicadoCanje.update(m => ({ ...m, [placa]: sig }));
+        this.snackBar.open(`✓ TUC Física ${sig} asignada a ${placa}`, 'Cerrar', { duration: 2500 });
+      },
+      error: () => {
+        const fallback = 'T-000001';
+        this.tucsDuplicadoCanje.update(m => ({ ...m, [placa]: fallback }));
+        this.snackBar.open(`✓ TUC Física ${fallback} asignada a ${placa}`, 'Cerrar', { duration: 2500 });
+      }
+    });
+  }
+
+  generarTucsMasivosDuplicadoCanje() {
+    const seleccionados = this.vehiculosTramiteSeleccionados();
+    if (seleccionados.length === 0) {
+      this.snackBar.open('Seleccione al menos un vehículo para asignar TUCs', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    this.tucService.getSiguienteNumero('FISICA').subscribe({
+      next: (res) => {
+        const sig = res?.siguienteNroTuc || 'T-000001';
+        this.asignarTucsSecuencialesDuplicadoCanje(sig);
+      },
+      error: () => {
+        this.asignarTucsSecuencialesDuplicadoCanje('T-000001');
+      }
+    });
+  }
+
+  private asignarTucsSecuencialesDuplicadoCanje(tucInicial: string) {
+    const match = tucInicial.match(/^([A-Za-z]+-?)(\d+)(.*)$/);
+    let prefijo = 'T-';
+    let baseNum = 1;
+    let sufijo = '';
+
+    if (match) {
+      prefijo = match[1];
+      baseNum = parseInt(match[2], 10) || 1;
+      sufijo = match[3] || '';
+    }
+
+    let contador = baseNum;
+    const nuevasTucs = { ...this.tucsDuplicadoCanje() };
+    for (const placa of this.vehiculosTramiteSeleccionados()) {
+      const numFormateado = String(contador).padStart(6, '0');
+      nuevasTucs[placa] = `${prefijo}${numFormateado}${sufijo}`;
+      contador++;
+    }
+    this.tucsDuplicadoCanje.set(nuevasTucs);
+    this.snackBar.open(`✓ Se asignaron ${this.vehiculosTramiteSeleccionados().length} TUCs secuenciales`, 'OK', { duration: 3000 });
+  }
+
+  toggleRutaDuplicadoCanje(placa: string, codRuta: string) {
+    this.rutasDuplicadoCanje.update(m => {
+      const current = m[placa] ? [...m[placa]] : (this.vehiculosEnResolucion().find(v => v.placa === placa)?.rutas || this.rutasOpciones().map(o => o.codigo));
+      const idx = current.indexOf(codRuta);
+      if (idx >= 0) {
+        current.splice(idx, 1);
+      } else {
+        current.push(codRuta);
+      }
+      return { ...m, [placa]: current };
+    });
+  }
+
+  getRutasVehiculoDuplicadoCanje(placa: string): string[] {
+    if (this.rutasDuplicadoCanje()[placa]) {
+      return this.rutasDuplicadoCanje()[placa];
+    }
+    const v = this.vehiculosEnResolucion().find(x => x.placa === placa);
+    if (v?.rutas && v.rutas.length > 0) {
+      return v.rutas;
+    }
+    return this.rutasOpciones().map(o => o.codigo);
+  }
+
+  abrirModalVehiculoEnResolucion(v: any, index: number) {
+    const dialogRef = this.dialog.open(VehiculoModalComponent, {
+      width: '740px',
+      maxWidth: '95vw',
+      panelClass: 'modal-vehiculo-overlay-elevado',
+      data: {
+        vehiculo: v,
+        isEdit: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe((res: any) => {
+      if (res) {
+        this.vehiculosEnResolucion.update(lista =>
+          lista.map((item, i) => i === index ? { ...item, ...res } : item)
+        );
+      }
+    });
+  }
+
+  extraerAnioDeFecha(fecha: any): string {
+    if (!fecha) return new Date().getFullYear().toString();
+    if (typeof fecha === 'string') {
+      const trimmed = fecha.trim();
+      const mStart = trimmed.match(/^(\d{4})[-\/]/);
+      if (mStart) return mStart[1];
+      const mEnd = trimmed.match(/[-\/](\d{4})$/);
+      if (mEnd) return mEnd[1];
+    }
+    const d = new Date(fecha);
+    if (!isNaN(d.getFullYear())) {
+      return d.getFullYear().toString();
+    }
+    return new Date().getFullYear().toString();
+  }
+
+  sincronizarAnioExpedienteConFecha(fecha: any) {
+    if (!fecha) {
+      this.validarExpedienteDuplicado();
+      return;
+    }
+    const anio = this.extraerAnioDeFecha(fecha);
+    const actual = this.datosOrigenForm.get('numero_origen')?.value;
+    if (!actual || !actual.trim()) {
+      this.validarExpedienteDuplicado();
+      return;
+    }
+
+    const tipo = this.datosOrigenForm.get('tipo_origen')?.value || 'EXPEDIENTE';
+    let prefijo = 'E';
+    if (tipo === 'OFICIO') prefijo = 'O';
+    if (tipo === 'MEMORANDUM') prefijo = 'M';
+
+    const clean = actual.trim().toUpperCase();
+    const m = clean.match(/(?:[A-Z]-)?0*(\d+)(?:-\d{4})?/);
+    if (m) {
+      const numPadded = m[1].padStart(4, '0');
+      const nuevo = `${prefijo}-${numPadded}-${anio}`;
+      if (nuevo !== actual) {
+        this.datosOrigenForm.get('numero_origen')?.setValue(nuevo, { emitEvent: false });
+      }
+    }
+    this.validarExpedienteDuplicado();
+  }
+
+  sincronizarAnioResolucionConFecha(fecha: any) {
+    if (!fecha) {
+      this.validarResolucionDuplicada();
+      return;
+    }
+    const anio = this.extraerAnioDeFecha(fecha);
+    const actual = this.datosOrigenForm.get('nro_resolucion_hija')?.value;
+    if (!actual || !actual.trim()) {
+      this.validarResolucionDuplicada();
+      return;
+    }
+
+    const clean = actual.trim().toUpperCase();
+    const m = clean.match(/^R?-?0*(\d+)(?:-\d{4})?/);
+    if (m) {
+      const numPadded = m[1].padStart(4, '0');
+      const nuevo = `R-${numPadded}-${anio}`;
+      if (nuevo !== actual) {
+        this.datosOrigenForm.get('nro_resolucion_hija')?.setValue(nuevo, { emitEvent: false });
+      }
+    }
+    this.validarResolucionDuplicada();
+  }
+
   cambiarTipoOrigen() {
     let current = this.datosOrigenForm.get('numero_origen')?.value;
     if (current && current.includes('-')) {
       const parts = current.split('-');
       if (parts.length === 3) {
         const num = parts[1];
-        const anio = parts[2];
+        const fechaDoc = this.datosOrigenForm.get('fecha_origen')?.value;
+        const anio = fechaDoc ? this.extraerAnioDeFecha(fechaDoc) : parts[2];
         const tipo = this.datosOrigenForm.get('tipo_origen')?.value;
         let prefijo = 'E';
         if (tipo === 'OFICIO') prefijo = 'O';
@@ -2249,36 +3235,309 @@ export class CentroTramites implements OnInit {
 
   normalizarNumero() {
     let num = this.datosOrigenForm.get('numero_origen')?.value;
-    if (!num || num.includes('-')) return;
+    if (!num) {
+      this.validarExpedienteDuplicado();
+      return;
+    }
 
-    const numPadded = num.toString().padStart(4, '0');
-    const anio = new Date().getFullYear();
+    num = num.trim().toUpperCase();
+    const fechaDoc = this.datosOrigenForm.get('fecha_origen')?.value;
+    const anio = this.extraerAnioDeFecha(fechaDoc);
+
     const tipo = this.datosOrigenForm.get('tipo_origen')?.value;
-    
     let prefijo = 'E';
     if (tipo === 'OFICIO') prefijo = 'O';
     if (tipo === 'MEMORANDUM') prefijo = 'M';
 
-    this.datosOrigenForm.get('numero_origen')?.setValue(`${prefijo}-${numPadded}-${anio}`);
+    const m = num.match(/(?:[A-Z]-)?0*(\d+)(?:-(\d{4}))?/);
+    if (m) {
+      const numPadded = m[1].padStart(4, '0');
+      let anioFinal = anio;
+      if (!fechaDoc && m[2]) {
+        anioFinal = m[2];
+      }
+      this.datosOrigenForm.get('numero_origen')?.setValue(`${prefijo}-${numPadded}-${anioFinal}`);
+    }
+    this.validarExpedienteDuplicado();
   }
 
   normalizarResolucionHija() {
     let num = this.datosOrigenForm.get('nro_resolucion_hija')?.value;
-    if (!num) return;
-
-    num = num.trim().toUpperCase();
-    if (num.startsWith('R-')) {
-      this.datosOrigenForm.get('nro_resolucion_hija')?.setValue(num);
+    if (!num) {
+      this.validarResolucionDuplicada();
       return;
     }
 
-    const anio = new Date().getFullYear();
-    if (/^\d{1,4}$/.test(num)) {
-      this.datosOrigenForm.get('nro_resolucion_hija')?.setValue(`R-${num.padStart(4, '0')}-${anio}`);
-    } else if (/^\d{1,4}-\d{4}$/.test(num)) {
-      const [n, a] = num.split('-');
-      this.datosOrigenForm.get('nro_resolucion_hija')?.setValue(`R-${n.padStart(4, '0')}-${a}`);
+    num = num.trim().toUpperCase();
+    const fechaEmision = this.datosOrigenForm.get('fecha_emision_resolucion')?.value;
+    const anio = this.extraerAnioDeFecha(fechaEmision);
+
+    const m = num.match(/^R?-?0*(\d+)(?:-(\d{4}))?/);
+    if (m) {
+      const numPadded = m[1].padStart(4, '0');
+      let anioFinal = anio;
+      if (!fechaEmision && m[2]) {
+        anioFinal = m[2];
+      }
+      this.datosOrigenForm.get('nro_resolucion_hija')?.setValue(`R-${numPadded}-${anioFinal}`);
     }
+    this.validarResolucionDuplicada();
+  }
+
+  validarExpedienteDuplicado() {
+    const rawVal = this.datosOrigenForm.get('numero_origen')?.value;
+    if (!rawVal || !rawVal.trim()) {
+      this.advertenciaExpediente.set(null);
+      return;
+    }
+
+    const val = rawVal.trim().toUpperCase();
+    const fechaDoc = this.datosOrigenForm.get('fecha_origen')?.value;
+    const anioDoc = this.extraerAnioDeFecha(fechaDoc);
+
+    // Extraer número y año para búsqueda flexible
+    let coreNum: number | null = null;
+    let coreAnio: string = anioDoc;
+
+    const matchFormat = val.match(/(?:[A-Z]-)?0*(\d+)-(\d{4})/);
+    if (matchFormat) {
+      coreNum = parseInt(matchFormat[1], 10);
+      coreAnio = fechaDoc ? anioDoc : matchFormat[2];
+    } else if (/^\d+$/.test(val)) {
+      coreNum = parseInt(val, 10);
+      coreAnio = anioDoc;
+    }
+
+    // 1. Búsqueda instantánea en el historial en memoria de todas las resoluciones
+    const match = this.todasResoluciones().find(item => {
+      const doc = (item.expediente_numero || item.doc || '').trim().toUpperCase();
+      if (!doc) return false;
+      if (doc === val) return true;
+
+      if (coreNum !== null && coreAnio !== null) {
+        const m = doc.match(/(?:[A-Z]-)?0*(\d+)-(\d{4})/);
+        if (m && parseInt(m[1], 10) === coreNum && m[2] === coreAnio) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (match) {
+      this.advertenciaExpediente.set({
+        mensaje: `⚠️ Advertencia: El expediente ${val} ya se encuentra registrado.`,
+        detalle: `Asociado al trámite ${match.id || match.nro_resolucion_raw} (${match.tipoLabel || match.tipo}) de la empresa "${match.empresa}" (RUC: ${match.ruc}) emitido el ${match.fecha}.`
+      });
+      return;
+    }
+
+    // 2. Consultar servicio de expedientes (backend)
+    if (coreNum !== null && coreAnio !== null) {
+      this.verificandoExpediente.set(true);
+      this.expedienteService.validarNumeroBackend(coreNum.toString(), parseInt(coreAnio, 10)).subscribe({
+        next: (resp) => {
+          this.verificandoExpediente.set(false);
+          if (resp && resp.valido === false) {
+            const expEx = resp.expedienteExistente;
+            this.advertenciaExpediente.set({
+              mensaje: `⚠️ Advertencia: ${resp.mensaje || 'Este expediente ya existe en la base de datos.'}`,
+              detalle: expEx ? `Expediente: ${expEx.nroExpediente || val} | Estado: ${expEx.estado || 'PROCESADO'} | Empresa: ${expEx.empresaId || 'Consignada'}` : undefined
+            });
+          } else {
+            this.advertenciaExpediente.set(null);
+          }
+        },
+        error: () => {
+          this.verificandoExpediente.set(false);
+          this.advertenciaExpediente.set(null);
+        }
+      });
+    } else {
+      this.advertenciaExpediente.set(null);
+    }
+  }
+
+  validarResolucionDuplicada() {
+    const rawVal = this.datosOrigenForm.get('nro_resolucion_hija')?.value;
+    if (!rawVal || !rawVal.trim()) {
+      this.advertenciaResolucion.set(null);
+      return;
+    }
+
+    const val = rawVal.trim().toUpperCase();
+
+    // Determinar año base para la validación de unicidad anual
+    const fechaEmision = this.datosOrigenForm.get('fecha_emision_resolucion')?.value;
+    const anioEmision = this.extraerAnioDeFecha(fechaEmision);
+
+    let coreNum: number | null = null;
+    let coreAnio: string = anioEmision;
+
+    const matchConAnio = val.match(/^R?-?0*(\d+)-(\d{4})/);
+    if (matchConAnio) {
+      coreNum = parseInt(matchConAnio[1], 10);
+      coreAnio = fechaEmision ? anioEmision : matchConAnio[2];
+    } else {
+      const matchSoloNum = val.match(/^R?-?0*(\d+)$/);
+      if (matchSoloNum) {
+        coreNum = parseInt(matchSoloNum[1], 10);
+        coreAnio = anioEmision;
+      }
+    }
+
+    if (coreNum === null) {
+      this.advertenciaResolucion.set(null);
+      return;
+    }
+
+    const numPadded = coreNum.toString().padStart(4, '0');
+    const codigoNormalizado = `R-${numPadded}-${coreAnio}`;
+
+    // 1. Búsqueda instantánea en el historial de resoluciones hijas verificando unicidad estricta EN EL AÑO
+    const matchHija = this.todasResoluciones().find(item => {
+      if (item.id === codigoNormalizado) return true;
+
+      let itemNum: number | null = null;
+      let itemAnio: string | null = (item.anio && item.anio !== 'S/A') ? item.anio : null;
+
+      const txt = (item.id || item.nro_resolucion_raw || '').trim().toUpperCase();
+      const m = txt.match(/^R?-?0*(\d+)-(\d{4})/);
+      if (m) {
+        itemNum = parseInt(m[1], 10);
+        itemAnio = m[2];
+      } else {
+        const mSolo = txt.match(/^R?-?0*(\d+)/);
+        if (mSolo) itemNum = parseInt(mSolo[1], 10);
+      }
+
+      // Debe coincidir el número correlativo Y el año
+      return itemNum !== null && itemNum === coreNum && itemAnio === coreAnio;
+    });
+
+    if (matchHija) {
+      this.advertenciaResolucion.set({
+        mensaje: `⚠️ Advertencia: La resolución R-${numPadded}-${coreAnio} ya existe para el año ${coreAnio}.`,
+        detalle: `Asociada al trámite ${matchHija.tipoLabel || matchHija.tipo} de la empresa "${matchHija.empresa}" (RUC: ${matchHija.ruc}) emitido el ${matchHija.fecha}. El número de resolución debe ser único en el año ${coreAnio}.`
+      });
+      return;
+    }
+
+    // 2. Verificar contra resoluciones primigenias de la empresa actual y en memoria
+    const matchPrimLocal = this.resoluciones().find(p => {
+      let pNum: number | null = null;
+      let pAnio: string | null = null;
+      const txt = (p.nro_resolucion || '').trim().toUpperCase();
+      const m = txt.match(/^R?-?0*(\d+)-(\d{4})/);
+      if (m) {
+        pNum = parseInt(m[1], 10);
+        pAnio = m[2];
+      } else {
+        const mSolo = txt.match(/^R?-?0*(\d+)/);
+        if (mSolo) pNum = parseInt(mSolo[1], 10);
+        if (p.fecha_resolucion) {
+          const d = new Date(p.fecha_resolucion);
+          if (!isNaN(d.getFullYear())) pAnio = d.getFullYear().toString();
+        }
+      }
+      return pNum !== null && pNum === coreNum && pAnio === coreAnio;
+    });
+
+    if (matchPrimLocal) {
+      this.advertenciaResolucion.set({
+        mensaje: `⚠️ Advertencia: El número R-${numPadded}-${coreAnio} ya existe como Resolución Primigenia del año ${coreAnio}.`,
+        detalle: `Resolución: ${matchPrimLocal.nro_resolucion} | Estado: ${matchPrimLocal.estado || 'VIGENTE'}. Debe ingresar un correlativo único para el año ${coreAnio}.`
+      });
+      return;
+    }
+
+    // 3. Consultar servicio backend para verificar si existe en la BD para ese año
+    this.verificandoResolucion.set(true);
+    this.resolucionHijaService.getHijaByNumero(codigoNormalizado).subscribe({
+      next: (hija) => {
+        this.verificandoResolucion.set(false);
+        if (hija && hija.nro_resolucion) {
+          this.advertenciaResolucion.set({
+            mensaje: `⚠️ Advertencia: La resolución R-${numPadded}-${coreAnio} ya existe para el año ${coreAnio}.`,
+            detalle: `Registrada para la empresa "${hija.razon_social || hija.ruc_empresa}" (Tipo: ${hija.tipo_acto || 'Trámite'}).`
+          });
+        } else {
+          this.advertenciaResolucion.set(null);
+        }
+      },
+      error: () => {
+        // Consultar también primigenias en backend
+        this.resolucionPrimigeniaService.getResolucionByNumero(codigoNormalizado).subscribe({
+          next: (prim) => {
+            this.verificandoResolucion.set(false);
+            if (prim && prim.nro_resolucion) {
+              this.advertenciaResolucion.set({
+                mensaje: `⚠️ Advertencia: El número R-${numPadded}-${coreAnio} ya existe como Resolución Primigenia del año ${coreAnio}.`,
+                detalle: `Empresa: "${prim.razon_social || prim.ruc_empresa}" | Estado: ${prim.estado || 'VIGENTE'}.`
+              });
+            } else {
+              this.advertenciaResolucion.set(null);
+            }
+          },
+          error: () => {
+            this.verificandoResolucion.set(false);
+            this.advertenciaResolucion.set(null);
+          }
+        });
+      }
+    });
+  }
+
+  validarNuevaResolucionPrimigeniaDuplicada() {
+    const rawVal = this.renovacionForm.get('nueva_resolucion_primigenia')?.value;
+    if (!rawVal || !rawVal.trim()) {
+      this.advertenciaRenovacionResolucion.set(null);
+      return;
+    }
+
+    const val = rawVal.trim().toUpperCase();
+    let coreNum: number | null = null;
+    let coreAnio: string | null = null;
+
+    const matchFormat = val.match(/^R?-?0*(\d+)-(\d{4})/);
+    if (matchFormat) {
+      coreNum = parseInt(matchFormat[1], 10);
+      coreAnio = matchFormat[2];
+    }
+
+    const matchHija = this.todasResoluciones().find(item => {
+      const nro = (item.id || item.nro_resolucion_raw || '').trim().toUpperCase();
+      if (!nro) return false;
+      if (nro === val) return true;
+      if (coreNum !== null && coreAnio !== null) {
+        const m = nro.match(/^R?-?0*(\d+)-(\d{4})/);
+        if (m && parseInt(m[1], 10) === coreNum && m[2] === coreAnio) return true;
+      }
+      return false;
+    });
+
+    if (matchHija) {
+      this.advertenciaRenovacionResolucion.set({
+        mensaje: `⚠️ Advertencia: El número ${val} ya existe registrado en una resolución previa.`,
+        detalle: `Trámite ${matchHija.tipoLabel || matchHija.tipo} de "${matchHija.empresa}" (${matchHija.fecha}).`
+      });
+      return;
+    }
+
+    this.resolucionPrimigeniaService.getResolucionByNumero(val).subscribe({
+      next: (prim) => {
+        if (prim && prim.nro_resolucion) {
+          this.advertenciaRenovacionResolucion.set({
+            mensaje: `⚠️ Advertencia: El número ${val} ya existe como Resolución Primigenia en el sistema.`,
+            detalle: `Empresa: "${prim.razon_social || prim.ruc_empresa}" | Estado: ${prim.estado || 'VIGENTE'}.`
+          });
+        } else {
+          this.advertenciaRenovacionResolucion.set(null);
+        }
+      },
+      error: () => {
+        this.advertenciaRenovacionResolucion.set(null);
+      }
+    });
   }
 
   confirmar() {
@@ -2360,7 +3619,16 @@ export class CentroTramites implements OnInit {
         placa_saliente: p.placa_saliente,
         tipo_operacion: 'SUSTITUCION',
         numero_tuc: p.numero_tuc || undefined,
+        rutas: (p.rutas && p.rutas.length > 0) ? p.rutas : this.rutasOpciones().map(o => o.codigo),
         dar_de_baja_otra_empresa: !!p.dar_de_baja_otra_empresa,
+        otra_empresa_ruc: p.otra_empresa_ruc || undefined,
+        otra_empresa_razon: p.otra_empresa_razon || undefined,
+        baja_tipo: p.dar_de_baja_otra_empresa ? 'INTERNA' : (p.baja_externa_registrada ? 'EXTERNA' : 'NINGUNA'),
+        baja_externa: p.baja_externa || undefined,
+        dar_de_baja_misma_empresa: !!p.dar_de_baja_misma_empresa,
+        es_misma_empresa: !!p.es_misma_empresa,
+        misma_empresa_resolucion: p.misma_empresa_resolucion || undefined,
+        misma_empresa_tuc: p.misma_empresa_tuc || undefined,
         datos_tecnicos: {
           marca: p.marca,
           modelo: p.modelo,
@@ -2375,17 +3643,38 @@ export class CentroTramites implements OnInit {
         this.snackBar.open('Debe agregar al menos un vehículo para incremento', 'Cerrar', { duration: 4000 });
         return;
       }
+      const tieneDobleHabilitacionSinBaja = this.vehiculosNuevos().find(
+        v => v.es_misma_empresa && !v.dar_de_baja_misma_empresa
+      );
+      if (tieneDobleHabilitacionSinBaja) {
+        this.snackBar.open(
+          `⛔ Bloqueo normativo: La unidad ${tieneDobleHabilitacionSinBaja.placa} ya está habilitada en esta empresa. Debe autorizar la baja previa o retirar el vehículo (un vehículo no puede tener doble habilitación).`,
+          'CORREGIR',
+          { duration: 6000 }
+        );
+        return;
+      }
       vehiculosItems = this.vehiculosNuevos().map(v => ({
         placa: v.placa,
         tipo_operacion: 'INCREMENTO',
         numero_tuc: v.numero_tuc || undefined,
+        rutas: (v.rutas && v.rutas.length > 0) ? v.rutas : this.rutasOpciones().map(o => o.codigo),
+        dar_de_baja_otra_empresa: !!v.dar_de_baja_otra_empresa,
+        otra_empresa_ruc: v.otra_empresa_ruc || undefined,
+        otra_empresa_razon: v.otra_empresa_razon || undefined,
+        baja_tipo: v.baja_tipo || (v.dar_de_baja_otra_empresa ? 'INTERNA' : (v.baja_externa ? 'EXTERNA' : 'NINGUNA')),
+        baja_externa: (v.baja_tipo === 'EXTERNA' || v.incluir_baja_externa) ? v.baja_externa : undefined,
+        dar_de_baja_misma_empresa: !!v.dar_de_baja_misma_empresa,
+        es_misma_empresa: !!v.es_misma_empresa,
+        misma_empresa_resolucion: v.misma_empresa_resolucion || undefined,
+        misma_empresa_tuc: v.misma_empresa_tuc || undefined,
         datos_tecnicos: {
           marca: v.marca,
           modelo: v.modelo,
           anio_fabricacion: v.anio_fabricacion,
           categoria: v.categoria || 'M2',
-          asientos: v.asientos || undefined,
-          peso_neto: v.peso_neto || undefined
+          asientos: v.asientos || v.numero_asientos || undefined,
+          peso_neto: v.peso_neto || v.peso_seco || undefined
         }
       }));
     } else if (tipo === 'BAJAS') {
@@ -2473,11 +3762,17 @@ export class CentroTramites implements OnInit {
         return;
       }
       const motivo = this.duplicadoCanjeForm.value.motivo || 'DETERIORO';
-      vehiculosItems = this.vehiculosTramiteSeleccionados().map(placa => ({
-        placa: placa,
-        tipo_operacion: tipo,
-        observacion_custom: `${tipo}: ${motivo}`
-      }));
+      vehiculosItems = this.vehiculosTramiteSeleccionados().map(placa => {
+        const tuc = this.tucsDuplicadoCanje()[placa] || undefined;
+        const rutasVeh = this.getRutasVehiculoDuplicadoCanje(placa);
+        return {
+          placa: placa,
+          tipo_operacion: tipo,
+          numero_tuc: tuc,
+          rutas: rutasVeh,
+          observacion_custom: `${tipo}: ${motivo}`
+        };
+      });
     } else if (tipo === 'CANCELACION') {
       payloadExtra = {
         cancelacion_total: this.cancelacionForm.value.cancelacion_total ?? true
@@ -2527,31 +3822,32 @@ export class CentroTramites implements OnInit {
         this.cargarHistorialTramites();
         this.cargarCatalogoEmpresas();
 
-        // En caso de RENOVACIÓN: Abrir automáticamente el diálogo de generación e impresión de TUCs
-        if (tipo === 'RENOVACION') {
-          const vehiculosParaTuc = res?.vehiculos && res.vehiculos.length > 0
-            ? res.vehiculos
-            : (vehiculosItems || []).map((v: any, idx: number) => ({
-                placa: v.placa,
-                numero_tuc: v.numero_tuc,
-                orden: v.orden || (idx + 1),
-                marca: v.datos_tecnicos?.marca,
-                modelo: v.datos_tecnicos?.modelo,
-                anio_fabricacion: v.datos_tecnicos?.anio_fabricacion,
-                categoria: v.datos_tecnicos?.categoria || 'M2',
-                color: v.datos_tecnicos?.color,
-                rutas: v.rutas || []
-              }));
+        // Generación / Impresión de TUCs para CUALQUIER trámite que tenga vehículos
+        const vehiculosParaTuc = res?.vehiculos && res.vehiculos.length > 0
+          ? res.vehiculos
+          : (vehiculosItems || []).filter((v: any) => v.placa && v.tipo_movimiento !== 'BAJA').map((v: any, idx: number) => ({
+              placa: v.placa,
+              numero_tuc: v.numero_tuc,
+              orden: v.orden || (idx + 1),
+              marca: v.datos_tecnicos?.marca,
+              modelo: v.datos_tecnicos?.modelo,
+              anio_fabricacion: v.datos_tecnicos?.anio_fabricacion,
+              categoria: v.datos_tecnicos?.categoria || 'M2',
+              color: v.datos_tecnicos?.color,
+              rutas: v.rutas || []
+            }));
 
+        if (vehiculosParaTuc.length > 0) {
           this.dialog.open(RenovacionTucModalComponent, {
             data: {
-              nro_resolucion: res?.nro_resolucion_hija || payloadExtra.nueva_resolucion_primigenia || resPrimigenia,
+              nro_resolucion: res?.nro_resolucion_hija || payloadExtra.nueva_resolucion_primigenia || resPrimigenia || nroHija,
               ruc: emp.ruc,
               razon_social: emp.razon_social,
-              fecha_emision: this.renovacionForm.value.nueva_fecha_emision,
-              fecha_inicio_vigencia: this.renovacionForm.value.nueva_fecha_inicio_vigencia,
+              fecha_emision: fechaRes,
+              fecha_inicio_vigencia: fechaRes,
               fecha_fin_vigencia: this.renovacionForm.value.nueva_fecha_fin_vigencia,
               duracion_anios: this.duracionAniosRenovacion(),
+              tipo_tramite: tipo,
               vehiculos: vehiculosParaTuc
             },
             width: '1060px',
@@ -2570,7 +3866,7 @@ export class CentroTramites implements OnInit {
     });
   }
 
-  // ACCIONES DE IMPRESIÓN DE TUC PARA EL HISTORIAL
+  // ACCIONES DE IMPRESIÓN / GENERACIÓN DE TUC PARA CUALQUIER TRÁMITE
   abrirModalImpresionTucs(tramite: any) {
     if (!tramite) return;
     const placas: string[] = tramite.placasIng && tramite.placasIng.length > 0
@@ -2579,25 +3875,88 @@ export class CentroTramites implements OnInit {
 
     const tucs: string[] = tramite.numeros_tuc || [];
 
-    const vehiculosInfo = placas.map((p, idx) => ({
-      placa: p,
-      numero_tuc: tucs[idx] || undefined,
-      orden: idx + 1
-    }));
+    if (placas.length > 0) {
+      const vehiculosInfo = placas.map((p, idx) => ({
+        placa: p,
+        numero_tuc: tucs[idx] || undefined,
+        orden: idx + 1
+      }));
 
-    this.dialog.open(RenovacionTucModalComponent, {
-      data: {
-        nro_resolucion: tramite.nro_resolucion_primigenia || tramite.id || 'S/N',
-        ruc: tramite.ruc,
-        razon_social: tramite.empresa,
-        fecha_emision: tramite.fecha_resolucion_raw,
-        fecha_inicio_vigencia: tramite.fecha_inicio_efectos,
-        vehiculos: vehiculosInfo
-      },
-      width: '1060px',
+      this.dialog.open(RenovacionTucModalComponent, {
+        data: {
+          nro_resolucion: tramite.nro_resolucion_primigenia || tramite.nro_resolucion || tramite.id || 'S/N',
+          ruc: tramite.ruc,
+          razon_social: tramite.empresa,
+          fecha_emision: tramite.fecha_resolucion_raw || tramite.fecha,
+          fecha_inicio_vigencia: tramite.fecha_inicio_efectos,
+          tipo_tramite: tramite.tipoLabel || tramite.tipoRaw || 'MODIFICACION',
+          vehiculos: vehiculosInfo
+        },
+        width: '1060px',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
+        panelClass: 'tuc-impresion-dialog-panel'
+      });
+    } else {
+      // Si no vienen placas precargadas, consultar vehículos del trámite en backend
+      const hijaId = tramite.id || tramite._id || tramite.nro_resolucion;
+      this.resolucionHijaService.getVehiculosDetalleTramite(hijaId).subscribe({
+        next: (resp) => {
+          const vehs = (resp.vehiculos || []).filter((v: any) => !v.es_saliente).map((v: any, idx: number) => ({
+            placa: v.placa,
+            numero_tuc: v.numero_tuc,
+            orden: idx + 1,
+            marca: v.marca,
+            modelo: v.modelo,
+            anio_fabricacion: v.anio_fabricacion,
+            categoria: v.categoria
+          }));
+
+          if (vehs.length === 0) {
+            this.snackBar.open('Este trámite no tiene vehículos ingresantes registrados para emitir TUC.', 'OK', { duration: 3500 });
+            return;
+          }
+
+          this.dialog.open(RenovacionTucModalComponent, {
+            data: {
+              nro_resolucion: resp.nro_resolucion || tramite.id || 'S/N',
+              ruc: resp.ruc_empresa || tramite.ruc,
+              razon_social: resp.razon_social || tramite.empresa,
+              fecha_emision: resp.fecha_resolucion || tramite.fecha,
+              tipo_tramite: tramite.tipoLabel || tramite.tipoRaw || 'MODIFICACION',
+              vehiculos: vehs
+            },
+            width: '1060px',
+            maxWidth: '96vw',
+            maxHeight: '92vh',
+            panelClass: 'tuc-impresion-dialog-panel'
+          });
+        },
+        error: () => {
+          this.snackBar.open('No se encontraron vehículos ingresantes para imprimir TUCs.', 'OK', { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  abrirModalEditarTramite(tramite: any) {
+    if (!tramite) return;
+    const dialogRef = this.dialog.open(EditarTramiteModalComponent, {
+      data: tramite,
+      width: '1100px',
       maxWidth: '96vw',
-      maxHeight: '92vh',
-      panelClass: 'tuc-impresion-dialog-panel'
+      maxHeight: '94vh',
+      disableClose: true,
+      panelClass: 'clean-modal-panel'
+    });
+
+    dialogRef.afterClosed().subscribe((guardado) => {
+      if (guardado) {
+        this.cargarHistorialTramites();
+        if (this.mostrarDetalle()) {
+          this.cerrarDetalle();
+        }
+      }
     });
   }
 

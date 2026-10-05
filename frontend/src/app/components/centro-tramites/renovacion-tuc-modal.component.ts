@@ -11,6 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TucService } from '../../services/tuc.service';
 import { GenerarTucDialogComponent } from '../vehiculos-empresa/generar-tuc-dialog.component';
 import { environment } from '../../../environments/environment';
+import { FechaLatinaPipe } from '../../pipes/fecha-latina.pipe';
 
 export interface VehiculoTucInfo {
   placa: string;
@@ -33,6 +34,7 @@ export interface RenovacionTucModalData {
   fecha_inicio_vigencia?: string;
   fecha_fin_vigencia?: string;
   duracion_anios?: number;
+  tipo_tramite?: string;
   vehiculos: VehiculoTucInfo[];
 }
 
@@ -48,7 +50,8 @@ export interface RenovacionTucModalData {
     MatChipsModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    FechaLatinaPipe
   ],
   template: `
     <div class="renovacion-tuc-dialog">
@@ -60,8 +63,8 @@ export interface RenovacionTucModalData {
           </div>
           <div>
             <div class="badge-tag">
-              <mat-icon style="font-size: 13px; width: 13px; height: 13px;">autorenew</mat-icon>
-              Trámite de Renovación Procesado
+              <mat-icon style="font-size: 13px; width: 13px; height: 13px;">assignment</mat-icon>
+              Trámite {{ data.tipo_tramite ? 'de ' + data.tipo_tramite : 'Vehicular' }} Procesado
             </div>
             <h2 class="modal-title">Emisión e Impresión de TUCs Oficiales</h2>
             <p class="modal-subtitle">
@@ -79,7 +82,7 @@ export interface RenovacionTucModalData {
       <div class="stats-ribbon">
         <div class="stat-pill">
           <mat-icon style="color: #0284c7;">directions_bus</mat-icon>
-          <span>Vehículos Renovados: <strong>{{ data.vehiculos.length }}</strong></span>
+          <span>Vehículos en Trámite: <strong>{{ data.vehiculos.length }}</strong></span>
         </div>
         @if (rangoTucs()) {
           <div class="stat-pill">
@@ -90,7 +93,7 @@ export interface RenovacionTucModalData {
         @if (data.fecha_inicio_vigencia && data.fecha_fin_vigencia) {
           <div class="stat-pill">
             <mat-icon style="color: #d97706;">event_available</mat-icon>
-            <span>Vigencia: <strong>{{ data.fecha_inicio_vigencia | slice:0:10 }} al {{ data.fecha_fin_vigencia | slice:0:10 }}</strong></span>
+            <span>Vigencia: <strong>{{ data.fecha_inicio_vigencia | fechaLatina }} al {{ data.fecha_fin_vigencia | fechaLatina }}</strong></span>
           </div>
         }
       </div>

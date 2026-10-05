@@ -2245,10 +2245,12 @@ body.dark-theme, [data-theme="dark"], .dark-theme {
 }
 
 /* ============================================================================
-   DARK DIALOG OVERLAY & MAT-FORM-FIELD HIGH-CONTRAST STYLES
+   DARK & CLEAN DIALOG OVERLAYS & MAT-FORM-FIELD HIGH-CONTRAST STYLES
    ============================================================================ */
 .dark-dialog-panel .mdc-dialog__surface,
-.dark-dialog-panel .mat-mdc-dialog-container {
+.dark-dialog-panel .mat-mdc-dialog-container,
+.tuc-impresion-dialog-panel .mdc-dialog__surface,
+.tuc-impresion-dialog-panel .mat-mdc-dialog-container {
   background-color: #0f172a !important;
   color: #f8fafc !important;
   border-radius: 16px !important;
@@ -2256,6 +2258,22 @@ body.dark-theme, [data-theme="dark"], .dark-theme {
   padding: 0 !important;
   border: 1px solid #334155 !important;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75) !important;
+}
+
+.clean-modal-panel .mdc-dialog__surface,
+.clean-modal-panel .mat-mdc-dialog-container {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Helpers */
+.w-full {
+  width: 100% !important;
 }
 
 .dark-dialog-panel,

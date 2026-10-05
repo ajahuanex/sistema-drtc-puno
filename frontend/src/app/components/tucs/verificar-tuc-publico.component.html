@@ -1,0 +1,497 @@
+<!-- Franja Tricolor Institucional República del Perú -->
+<div class="peru-ribbon" aria-hidden="true">
+  <div class="ribbon-red"></div>
+  <div class="ribbon-white"></div>
+  <div class="ribbon-red"></div>
+</div>
+
+<!-- Encabezado Institucional DRTC Puno -->
+<header class="portal-header">
+  <div class="header-container">
+    <div class="brand-group">
+      <div class="brand-icon-shield" title="Dirección Regional de Transportes y Comunicaciones Puno">
+        <mat-icon>verified_user</mat-icon>
+      </div>
+      <div class="brand-texts">
+        <span class="brand-subtitle-gov">Gobierno Regional Puno</span>
+        <h1 class="brand-title">DRTC <span class="brand-puno">PUNO</span></h1>
+        <span class="brand-dept">Dirección Regional de Transportes y Comunicaciones</span>
+      </div>
+    </div>
+
+    <div class="header-badge-status" title="Conexión en tiempo real con la base de datos oficial del SIRRETT DRTC Puno">
+      <div class="live-pulse">
+        <span class="pulse-ring"></span>
+        <span class="pulse-dot"></span>
+      </div>
+      <span class="badge-label">EN LÍNEA</span>
+    </div>
+  </div>
+</header>
+
+<!-- Barra de Telemetría y Fiscalización en Campo -->
+<div class="telemetry-strip">
+  <div class="telemetry-container">
+    <div class="telemetry-left">
+      <mat-icon>security</mat-icon>
+      <span>SISTEMA OFICIAL DE FISCALIZACIÓN EN CAMPO • NODO CENTRAL PUNO</span>
+    </div>
+    <div class="telemetry-clock">
+      {{ fechaHoraActual() }}
+    </div>
+  </div>
+</div>
+
+<!-- Contenido Principal -->
+<main class="portal-main">
+  
+  <!-- ESTADO DE CARGA -->
+  @if (cargando()) {
+    <div class="state-container">
+      <div class="loading-card">
+        <div class="loading-pulse-shield">
+          <mat-icon>shield</mat-icon>
+        </div>
+        <mat-spinner diameter="44" strokeWidth="4"></mat-spinner>
+        <div>
+          <h2 class="loading-title">Verificando Autenticidad</h2>
+          <p class="loading-desc mt-1">Consultando el registro oficial de Títulos Habilitantes en la base de datos de la DRTC Puno...</p>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ESTADO DE ERROR / NO ENCONTRADO -->
+  @else if (error()) {
+    <div class="state-container">
+      <div class="error-card">
+        <div class="error-icon-box">
+          <mat-icon>gpp_bad</mat-icon>
+        </div>
+        <h2 class="error-title">Título Habilitante No Encontrado</h2>
+        <p class="error-detail">{{ error() }}</p>
+        <div class="error-advice">
+          <strong>Aviso al Fiscalizador / Usuario:</strong><br>
+          Si el código QR escaneado no corresponde a una TUC oficial emitida por la Dirección Regional de Transportes y Comunicaciones de Puno, la unidad carece de autorización legal para operar.
+        </div>
+        <div class="action-secondary-row w-full mt-3">
+          <button type="button" class="btn-secondary-action w-full" (click)="reintentar()">
+            <mat-icon>refresh</mat-icon> Reintentar Consulta
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- DETALLE OFICIAL DEL TÍTULO HABILITANTE (TUC) -->
+  @else if (datos()) {
+    <div class="verification-content-wrapper">
+
+      <!-- ====================================================================
+           1. BANNER PRINCIPAL DE ESTADO (HABILITADO / INHABILITADO)
+           ==================================================================== -->
+      <section 
+        class="status-banner" 
+        [class.status-vigente]="datos()?.esVigente" 
+        [class.status-inhabilitado]="!datos()?.esVigente">
+        <div class="banner-stripe"></div>
+
+        <div class="banner-top-row">
+          <div class="banner-main-info">
+            <div class="status-icon-wrapper">
+              <mat-icon>{{ datos()?.esVigente ? 'verified' : 'cancel' }}</mat-icon>
+            </div>
+            <div>
+              <span class="status-tag">
+                <mat-icon style="font-size: 13px; width: 13px; height: 13px;">
+                  {{ datos()?.esVigente ? 'check_circle' : 'warning' }}
+                </mat-icon>
+                {{ datos()?.esVigente ? 'AUTORIZACIÓN VIGENTE' : 'ALERTA DE FISCALIZACIÓN' }}
+              </span>
+
+              <h2 class="status-headline">
+                {{ datos()?.mensajeEstado }}
+              </h2>
+
+              <p class="status-subtitle">
+                Emisión {{ datos()?.tipoEmision || 'ELECTRÓNICA' }} • N° {{ datos()?.nroTuc }}
+              </p>
+            </div>
+          </div>
+
+          <div class="banner-dates-badge">
+            <span class="date-label">Fecha de Vencimiento</span>
+            <span class="date-val">
+              {{ formatearFechaLatina(datos()?.fechaVencimiento) || 'INDEFINIDO' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Alerta explicativa en caso de No Habilitado -->
+        @if (!datos()?.esVigente) {
+          <div class="banner-alert-box">
+            <div class="alert-box-title">
+              <mat-icon>report</mat-icon> Causal de Intervención en Vía Pública
+            </div>
+            <p class="alert-box-desc">
+              La Tarjeta Única de Circulación se encuentra en estado <strong>{{ datos()?.estado }}</strong>. La unidad vehicular <strong>no cuenta con habilitación vigente</strong> para brindar servicio de transporte interprovincial regular de pasajeros en el ámbito regional Puno.
+            </p>
+          </div>
+        }
+
+        <!-- Grilla de Metadatos del Título -->
+        <div class="banner-meta-grid">
+          <div class="meta-col">
+            <span class="meta-lbl">N° de Registro TUC</span>
+            <span class="meta-data">{{ datos()?.nroTuc }}</span>
+          </div>
+          <div class="meta-col">
+            <span class="meta-lbl">Modalidad de Emisión</span>
+            <span class="meta-data">{{ datos()?.tipoEmision }}</span>
+          </div>
+          <div class="meta-col">
+            <span class="meta-lbl">Fecha de Expedición</span>
+            <span class="meta-data">{{ formatearFechaLatina(datos()?.fechaEmision) || 'REGISTRADA' }}</span>
+          </div>
+          <div class="meta-col">
+            <span class="meta-lbl">Condición Operativa</span>
+            <span class="meta-data">{{ datos()?.esVigente ? 'HABILITADO' : 'INHABILITADO' }}</span>
+          </div>
+        </div>
+
+        <!-- Indicador de días restantes si es vigente -->
+        @if (datos()?.esVigente && diasRestantes(); as infoDias) {
+          <div class="banner-bottom-badge status-time-box">
+            <mat-icon>schedule</mat-icon>
+            <span>{{ infoDias.texto }}</span>
+          </div>
+        }
+      </section>
+
+      <!-- ====================================================================
+           2. PLACA DE RODAJE SKEUOMÓRFICA (ESTILO CHAPA PERÚ OFICIAL)
+           ==================================================================== -->
+      <section class="plate-showcase-section">
+        <div class="plate-frame" [title]="'Placa Única Nacional de Rodaje: ' + (obtenerPlaca())">
+          <!-- Tornillos en esquinas -->
+          <div class="screw screw-top-left"></div>
+          <div class="screw screw-top-right"></div>
+          <div class="screw screw-bottom-left"></div>
+          <div class="screw screw-bottom-right"></div>
+
+          <!-- Banda superior de la placa -->
+          <div class="plate-top-bar">
+            <div class="plate-dept-tag">
+              <span class="dot-red"></span>
+              <span>DRTC</span>
+            </div>
+            <span class="plate-country-name">PERÚ</span>
+            <div class="plate-dept-tag">
+              <span>PUNO</span>
+              <span class="dot-red"></span>
+            </div>
+          </div>
+
+          <!-- Matrícula grande -->
+          <div class="plate-number-display">
+            <span class="plate-text">{{ obtenerPlaca() }}</span>
+          </div>
+        </div>
+
+        <div class="plate-actions">
+          <span class="plate-hint">Placa Única de Rodaje</span>
+          <button type="button" class="btn-copy-plate" (click)="copiarTexto(obtenerPlaca(), 'placa')">
+            <mat-icon>{{ copiadoPlaca() ? 'check' : 'content_copy' }}</mat-icon>
+            <span>{{ copiadoPlaca() ? '¡Copiado!' : 'Copiar Placa' }}</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           3. BENTO GRID: FICHA TÉCNICA VEHICULAR & EMPRESA TRANSPORTISTA
+           ==================================================================== -->
+      <div class="bento-section">
+        
+        <!-- Ficha Técnica del Vehículo -->
+        <div class="official-card">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <span class="card-header-icon"><mat-icon>directions_bus</mat-icon></span>
+              <h3 class="card-title">Ficha Técnica Vehicular</h3>
+            </div>
+            <span class="card-badge badge-neutral">
+              {{ datos()?.vehiculo?.['categoria'] || 'M3' }}
+            </span>
+          </div>
+
+          <div class="tech-grid">
+            <div class="tech-item">
+              <span class="item-label">Categoría MTC</span>
+              <span class="item-value item-val-accent">{{ datos()?.vehiculo?.['categoria'] || 'M3' }}</span>
+            </div>
+
+            <div class="tech-item">
+              <span class="item-label">Año de Fabricación</span>
+              <span class="item-value font-mono">{{ datos()?.vehiculo?.['anioFabricacion'] || 'N/A' }}</span>
+            </div>
+
+            <div class="tech-item item-full">
+              <span class="item-label">Marca y Modelo</span>
+              <span class="item-value">
+                {{ datos()?.vehiculo?.['marca'] || '' }} {{ datos()?.vehiculo?.['modelo'] || 'No especificado' }}
+              </span>
+            </div>
+
+            <div class="tech-item item-full">
+              <div class="item-header-action">
+                <span class="item-label">Número de Motor</span>
+                <button type="button" class="btn-mini-copy" (click)="copiarTexto(datos()?.vehiculo?.['numeroMotor'] || '', 'motor')">
+                  <mat-icon>{{ copiadoMotor() ? 'check' : 'content_copy' }}</mat-icon>
+                  <span>{{ copiadoMotor() ? 'Copiado' : 'Copiar' }}</span>
+                </button>
+              </div>
+              <span class="item-value font-mono">{{ datos()?.vehiculo?.['numeroMotor'] || 'No registrado' }}</span>
+            </div>
+
+            <div class="tech-item item-full">
+              <div class="item-header-action">
+                <span class="item-label">VIN / Número de Serie / Chasis</span>
+                <button type="button" class="btn-mini-copy" (click)="copiarTexto(datos()?.vehiculo?.['numeroSerie'] || datos()?.vehiculo?.['chasis'] || '', 'chasis')">
+                  <mat-icon>{{ copiadoChasis() ? 'check' : 'content_copy' }}</mat-icon>
+                  <span>{{ copiadoChasis() ? 'Copiado' : 'Copiar' }}</span>
+                </button>
+              </div>
+              <span class="item-value font-mono">{{ datos()?.vehiculo?.['numeroSerie'] || datos()?.vehiculo?.['chasis'] || 'No registrado' }}</span>
+            </div>
+
+            @if (datos()?.vehiculo?.['carroceria']) {
+              <div class="tech-item">
+                <span class="item-label">Carrocería</span>
+                <span class="item-value">{{ datos()?.vehiculo?.['carroceria'] }}</span>
+              </div>
+            }
+
+            @if (datos()?.vehiculo?.['asientos']) {
+              <div class="tech-item">
+                <span class="item-label">Capacidad Asientos</span>
+                <span class="item-value">{{ datos()?.vehiculo?.['asientos'] }} Pasajeros</span>
+              </div>
+            }
+          </div>
+
+          <!-- Certificaciones Técnicas / SOAT / CITV -->
+          <div class="security-guarantees-grid">
+            <div class="guarantee-box">
+              <div class="guarantee-left">
+                <div class="guarantee-icon"><mat-icon>health_and_safety</mat-icon></div>
+                <div>
+                  <div class="guarantee-title">Póliza SOAT</div>
+                  <div class="guarantee-sub">{{ datos()?.vehiculo?.['soat'] || 'Registro Conforme' }}</div>
+                </div>
+              </div>
+              <span class="guarantee-badge">REGISTRADO</span>
+            </div>
+
+            <div class="guarantee-box">
+              <div class="guarantee-left">
+                <div class="guarantee-icon"><mat-icon>verified</mat-icon></div>
+                <div>
+                  <div class="guarantee-title">Inspección CITV</div>
+                  <div class="guarantee-sub">{{ datos()?.vehiculo?.['citv'] || 'Inspección Aprobada' }}</div>
+                </div>
+              </div>
+              <span class="guarantee-badge">CONFORME</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ficha de la Empresa Transportista -->
+        <div class="official-card">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <span class="card-header-icon"><mat-icon>business</mat-icon></span>
+              <h3 class="card-title">Empresa Concesionaria</h3>
+            </div>
+            <span class="card-badge badge-sunat">HABIDO • ACTIVO SUNAT</span>
+          </div>
+
+          <div class="company-info-stack">
+            <div class="company-name-box">
+              <span class="company-lbl">Razón Social Registrada</span>
+              <h4 class="company-name">{{ datos()?.empresa?.['razonSocial'] || 'Sin Razón Social' }}</h4>
+            </div>
+
+            <div class="company-sub-grid">
+              <div class="sub-item">
+                <span class="sub-lbl">Número de RUC</span>
+                <span class="sub-val val-ruc">{{ datos()?.empresa?.['ruc'] || 'N/A' }}</span>
+              </div>
+
+              <div class="sub-item">
+                <span class="sub-lbl">Resolución Primigenia</span>
+                <span class="sub-val val-resolucion">{{ datos()?.resolucion?.['nroResolucion'] || 'N/A' }}</span>
+              </div>
+            </div>
+
+            <div class="resolution-card-inner">
+              <div class="res-meta">
+                <mat-icon>calendar_month</mat-icon>
+                <span>
+                  <strong>Vigencia de Concesión:</strong> 
+                  {{ formatearFechaLatina(datos()?.resolucion?.['fechaInicioVigencia']) || 'Inicio N/A' }} al {{ formatearFechaLatina(datos()?.resolucion?.['fechaFinVigencia']) || 'Fin N/A' }}
+                </span>
+              </div>
+
+              @if (datos()?.empresa?.['direccion']) {
+                <div class="res-meta mt-1">
+                  <mat-icon>location_on</mat-icon>
+                  <span><strong>Domicilio Fiscal:</strong> {{ datos()?.empresa?.['direccion'] }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ====================================================================
+           4. RUTAS E ITINERARIOS HABILITADOS PARA OPERACIÓN
+           ==================================================================== -->
+      <section class="official-card card-full-width mb-4">
+        <div class="card-header-bar">
+          <div class="card-title-group">
+            <span class="card-header-icon"><mat-icon>alt_route</mat-icon></span>
+            <h3 class="card-title">Rutas Habilitadas para Operación</h3>
+          </div>
+          <span class="card-badge badge-neutral">
+            {{ (datos()?.rutas)!.length }} Ruta(s) Autorizada(s)
+          </span>
+        </div>
+
+        <div class="routes-wrapper">
+          @if ((datos()?.rutas)!.length === 0) {
+            <p class="empty-routes">
+              No se registran itinerarios específicos vinculados en esta consulta. Consulte el expediente de la resolución matriz.
+            </p>
+          } @else {
+            <div class="route-table-container">
+              <table class="route-table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Corredor (Origen - Destino)</th>
+                    <th>Itinerario y Escalas</th>
+                    <th>Frecuencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of datos()?.rutas; track r['codigo'] || r['origen']) {
+                    <tr>
+                      <td class="td-code">{{ r['codigo'] || 'N/A' }}</td>
+                      <td class="td-corridor">
+                        <mat-icon>route</mat-icon>
+                        <span>{{ r['origen'] }} ➔ {{ r['destino'] }}</span>
+                      </td>
+                      <td class="td-itinerary">{{ r['itinerario'] || 'Ruta Troncal Regional' }}</td>
+                      <td class="td-freq">{{ r['frecuencia'] || 'DIARIO' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           5. FIRMA DIGITAL Y SELLO CRIPTOGRÁFICO DE SEGURIDAD (SHA-256)
+           ==================================================================== -->
+      <section class="cryptographic-card">
+        <div class="crypto-watermark-stamp">
+          DRTC PUNO OFICIAL
+        </div>
+
+        <div class="crypto-header">
+          <div class="crypto-title">
+            <mat-icon>security</mat-icon>
+            <span>Validación Criptográfica y Firma Digital</span>
+          </div>
+          <span class="pki-tag">PKI-MTC • RENIEC</span>
+        </div>
+
+        <div class="crypto-body">
+          <div class="crypto-cert-strip">
+            <div class="cert-info">
+              <div class="cert-authority">RENIEC / MTC Autoridad Certificadora</div>
+              <div class="cert-sync">
+                Verificación con Sincronización NTP: <strong>{{ fechaHoraActual() }}</strong>
+              </div>
+            </div>
+            <div class="cert-shield-badge">
+              <mat-icon>verified</mat-icon> FIRMA VÁLIDA
+            </div>
+          </div>
+
+          <!-- Hash SHA-256 -->
+          <div class="hash-container">
+            <div class="hash-header">
+              <span class="hash-lbl">
+                <mat-icon>fingerprint</mat-icon> Código Hash Criptográfico SHA-256
+              </span>
+              <button type="button" class="btn-copy-hash" (click)="copiarTexto(datos()?.hashSeguridad || '', 'hash')">
+                <mat-icon>{{ copiadoHash() ? 'check' : 'content_copy' }}</mat-icon>
+                <span>{{ copiadoHash() ? '¡Hash Copiado!' : 'Copiar Hash' }}</span>
+              </button>
+            </div>
+            <div class="hash-string" [title]="'Hash SHA-256: ' + datos()?.hashSeguridad">
+              {{ datos()?.hashSeguridad || 'NO-HASH-DISPONIBLE' }}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           6. ACCIONES TÁCTICAS (IMPRESIÓN / COMPARTIR / NUEVA CONSULTA)
+           ==================================================================== -->
+      <section class="action-buttons-group">
+        <button type="button" class="btn-print-action" (click)="imprimirConstancia()">
+          <mat-icon>print</mat-icon>
+          <span>Imprimir Constancia Oficial de Fiscalización</span>
+        </button>
+
+        <div class="action-secondary-row">
+          <button type="button" class="btn-secondary-action" (click)="copiarLink()">
+            <mat-icon>{{ copiadoLink() ? 'check' : 'share' }}</mat-icon>
+            <span>{{ copiadoLink() ? '¡Enlace Copiado!' : 'Compartir Enlace' }}</span>
+          </button>
+
+          <button type="button" class="btn-secondary-action" (click)="consultarNuevamente()">
+            <mat-icon>qr_code_scanner</mat-icon>
+            <span>Actualizar Consulta</span>
+          </button>
+        </div>
+      </section>
+
+    </div>
+  }
+
+</main>
+
+<!-- Pie de Página Institucional -->
+<footer class="portal-footer">
+  <div class="footer-container">
+    <div class="footer-gov-name">
+      GOBIERNO REGIONAL PUNO • DIRECCIÓN REGIONAL DE TRANSPORTES Y COMUNICACIONES
+    </div>
+    <p class="footer-norma">
+      Sistema Oficial de Verificación de Títulos Habilitantes según el D.S. N° 017-2009-MTC (Reglamento Nacional de Administración de Transporte) y normas complementarias de la Región Puno.
+    </p>
+    <div class="footer-links">
+      <a href="https://regionpuno.gob.pe" target="_blank" rel="noopener">Portal GORE Puno</a>
+      <span class="sep">•</span>
+      <a href="https://www.gob.pe/mtc" target="_blank" rel="noopener">MTC Perú</a>
+      <span class="sep">•</span>
+      <a href="https://www.gob.pe/sutran" target="_blank" rel="noopener">SUTRAN</a>
+    </div>
+  </div>
+</footer>

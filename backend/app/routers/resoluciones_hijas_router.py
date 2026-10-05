@@ -159,6 +159,265 @@ async def delete_resolucion_hija(
     if not success:
         raise HTTPException(status_code=404, detail=f"No se encontró resolución hija con ID {hija_id}")
 
+
+from bson import ObjectId
+from pydantic import BaseModel
+
+class VehiculoEdicionTramite(BaseModel):
+    placa: str
+    numero_tuc: Optional[str] = None
+    marca: Optional[str] = None
+    modelo: Optional[str] = None
+    anio_fabricacion: Optional[Any] = None
+    categoria: Optional[str] = None
+    color: Optional[str] = None
+    rutas: Optional[List[str]] = None
+    es_saliente: bool = False
+
+class EditarTramiteCompletoRequest(BaseModel):
+    nro_resolucion: Optional[str] = None
+    nro_resolucion_primigenia: Optional[str] = None
+    expediente_numero: Optional[str] = None
+    fecha_resolucion: Optional[Any] = None
+    observaciones: Optional[str] = None
+    vehiculos: List[VehiculoEdicionTramite] = []
+
+
+@router.get("/{hija_id}/vehiculos-detalle")
+async def get_vehiculos_detalle_tramite(
+    hija_id: str,
+    db = Depends(get_database)
+):
+    """
+    Obtiene la lista detallada de vehículos vinculados al trámite (ingresantes y salientes)
+    con sus datos técnicos y números de TUC para su edición.
+    """
+    query = {"id": hija_id}
+    if ObjectId.is_valid(hija_id):
+        query = {"$or": [{"id": hija_id}, {"_id": ObjectId(hija_id)}]}
+    
+    doc = await db["resoluciones_hijas"].find_one(query)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Trámite no encontrado")
+        
+    ruc = doc.get("ruc_empresa")
+    placas_ing = doc.get("vehiculos_ingresantes") or []
+    placas_sal = doc.get("vehiculos_salientes") or []
+    numeros_tuc = doc.get("numeros_tuc") or []
+    
+    todas_placas = list(set(placas_ing + placas_sal))
+    
+    # Buscar datos en flota_empresa y vehiculos_data
+    flota_cursor = db["flota_empresa"].find({"ruc": ruc, "placa": {"$in": todas_placas}})
+    flota_map = {}
+    async for fv in flota_cursor:
+        flota_map[fv.get("placa")] = fv
+        
+    tuc_pos_map = {}
+    for idx, p in enumerate(placas_ing):
+        if idx < len(numeros_tuc):
+            tuc_pos_map[p] = numeros_tuc[idx]
+            
+    resultado = []
+    for p in todas_placas:
+        es_saliente = p in placas_sal and p not in placas_ing
+        fv = flota_map.get(p) or {}
+        
+        marca = fv.get("marca")
+        modelo = fv.get("modelo")
+        anio = fv.get("anio_fabricacion")
+        categoria = fv.get("categoria")
+        color = fv.get("color")
+        
+        if not marca:
+            clean_p = p.replace("-", "").strip()
+            vd = await db["vehiculos_data"].find_one({"$or": [{"placa_actual": p}, {"placa_actual": clean_p}, {"placa": p}]})
+            if vd:
+                marca = vd.get("marca")
+                modelo = vd.get("modelo")
+                anio = vd.get("anio_fabricacion")
+                categoria = vd.get("categoria")
+                color = vd.get("color")
+                
+        resultado.append({
+            "placa": p,
+            "numero_tuc": fv.get("numero_tuc") or tuc_pos_map.get(p) or "",
+            "marca": marca or "",
+            "modelo": modelo or "",
+            "anio_fabricacion": anio,
+            "categoria": categoria or "M2",
+            "color": color or "",
+            "rutas": fv.get("rutas") or doc.get("rutas_modificadas_ids") or [],
+            "es_saliente": es_saliente,
+            "estado": fv.get("estado", "HABILITADO" if not es_saliente else "INHABILITADO")
+        })
+        
+    return {
+        "tramite_id": str(doc.get("_id") or doc.get("id")),
+        "nro_resolucion": doc.get("nro_resolucion"),
+        "nro_resolucion_primigenia": doc.get("nro_resolucion_primigenia"),
+        "ruc_empresa": ruc,
+        "razon_social": doc.get("razon_social"),
+        "expediente_numero": doc.get("expediente_numero"),
+        "fecha_resolucion": doc.get("fecha_resolucion"),
+        "observaciones": doc.get("observaciones"),
+        "vehiculos": resultado
+    }
+
+
+@router.put("/{hija_id}/editar-tramite")
+async def editar_tramite_completo(
+    hija_id: str,
+    payload: EditarTramiteCompletoRequest,
+    db = Depends(get_database)
+):
+    """
+    Edita la información del trámite y permite agregar, modificar o eliminar vehículos,
+    sincronizando la flota de la empresa y la trazabilidad de TUCs.
+    """
+    query = {"id": hija_id}
+    if ObjectId.is_valid(hija_id):
+        query = {"$or": [{"id": hija_id}, {"_id": ObjectId(hija_id)}]}
+        
+    doc = await db["resoluciones_hijas"].find_one(query)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Trámite no encontrado")
+        
+    ruc = doc.get("ruc_empresa")
+    razon_social = doc.get("razon_social")
+    nro_res_actual = payload.nro_resolucion.strip() if payload.nro_resolucion else doc.get("nro_resolucion")
+    nro_prim_actual = payload.nro_resolucion_primigenia.strip() if payload.nro_resolucion_primigenia else doc.get("nro_resolucion_primigenia")
+    now = datetime.utcnow()
+    
+    placas_ing_anteriores = set(doc.get("vehiculos_ingresantes") or [])
+    
+    # Separar ingresantes y salientes del payload
+    ingresantes = [v for v in payload.vehiculos if not v.es_saliente]
+    salientes = [v for v in payload.vehiculos if v.es_saliente]
+    
+    nuevas_placas_ing = [v.placa.strip().upper() for v in ingresantes if v.placa]
+    nuevas_placas_sal = [v.placa.strip().upper() for v in salientes if v.placa]
+    nuevos_tucs = [v.numero_tuc.strip() for v in ingresantes if v.numero_tuc and v.numero_tuc.strip()]
+    
+    # 1. Vehículos eliminados del trámite: antes estaban en ingresantes pero ya no están
+    placas_removidas = placas_ing_anteriores - set(nuevas_placas_ing)
+    for p_rem in placas_removidas:
+        await db["flota_empresa"].update_one(
+            {"ruc": ruc, "placa": p_rem},
+            {"$set": {
+                "esta_activo": False,
+                "estado": "INHABILITADO",
+                "fecha_actualizacion": now
+            },
+            "$push": {
+                "observaciones_historial": {
+                    "fecha": now,
+                    "texto": f"Removido del trámite {nro_res_actual} durante edición de resolución",
+                    "fuente": "edicion_tramite"
+                }
+            }}
+        )
+        
+    # 2. Procesar / agregar / actualizar cada vehículo ingresante
+    for v in ingresantes:
+        p = v.placa.strip().upper()
+        if not p:
+            continue
+            
+        update_data = {
+            "ruc": ruc,
+            "razon_social": razon_social,
+            "placa": p,
+            "nro_resolucion_hija": nro_res_actual,
+            "nro_resolucion_primigenia": nro_prim_actual,
+            "numero_tuc": v.numero_tuc.strip() if v.numero_tuc else None,
+            "marca": v.marca.strip() if v.marca else None,
+            "modelo": v.modelo.strip() if v.modelo else None,
+            "anio_fabricacion": v.anio_fabricacion,
+            "categoria": v.categoria or "M2",
+            "color": v.color,
+            "rutas": v.rutas or doc.get("rutas_modificadas_ids") or [],
+            "estado": "HABILITADO",
+            "esta_activo": True,
+            "fecha_actualizacion": now
+        }
+        
+        fields_set = {k: val for k, val in update_data.items() if val is not None}
+        
+        existente = await db["flota_empresa"].find_one({"ruc": ruc, "placa": p})
+        if existente:
+            await db["flota_empresa"].update_one(
+                {"_id": existente["_id"]},
+                {"$set": fields_set}
+            )
+        else:
+            fields_set["fecha_registro"] = now
+            await db["flota_empresa"].insert_one(fields_set)
+            
+        # Sincronizar TUC si fue especificado
+        if v.numero_tuc and v.numero_tuc.strip():
+            await db["tucs"].update_one(
+                {"placa": p, "ruc": ruc},
+                {"$set": {
+                    "placa": p,
+                    "ruc": ruc,
+                    "razonSocial": razon_social,
+                    "nroTuc": v.numero_tuc.strip(),
+                    "nroResolucion": nro_res_actual,
+                    "estado": "VIGENTE",
+                    "fechaActualizacion": now.isoformat()
+                }},
+                upsert=True
+            )
+            
+    # 3. Procesar vehículos salientes (baja)
+    for v in salientes:
+        p_sal = v.placa.strip().upper()
+        if p_sal:
+            await db["flota_empresa"].update_many(
+                {"ruc": ruc, "placa": p_sal},
+                {"$set": {
+                    "estado": "INHABILITADO",
+                    "fecha_actualizacion": now
+                }}
+            )
+
+    # 4. Actualizar el documento de resolucion_hija
+    update_doc = {
+        "nro_resolucion": nro_res_actual,
+        "nro_resolucion_primigenia": nro_prim_actual,
+        "vehiculos_ingresantes": nuevas_placas_ing,
+        "vehiculos_salientes": nuevas_placas_sal,
+        "numeros_tuc": nuevos_tucs,
+        "fecha_actualizacion": now
+    }
+    
+    if payload.expediente_numero is not None:
+        update_doc["expediente_numero"] = payload.expediente_numero.strip()
+    if payload.observaciones is not None:
+        update_doc["observaciones"] = payload.observaciones.strip()
+    if payload.fecha_resolucion:
+        try:
+            if isinstance(payload.fecha_resolucion, str):
+                update_doc["fecha_resolucion"] = datetime.fromisoformat(payload.fecha_resolucion.replace("Z", "+00:00"))
+            else:
+                update_doc["fecha_resolucion"] = payload.fecha_resolucion
+        except Exception:
+            pass
+
+    await db["resoluciones_hijas"].update_one(
+        query,
+        {"$set": update_doc}
+    )
+    
+    doc_actualizado = await db["resoluciones_hijas"].find_one(query)
+    doc_actualizado["_id"] = str(doc_actualizado["_id"])
+    return {
+        "success": True,
+        "mensaje": f"Trámite {nro_res_actual} actualizado con éxito",
+        "tramite": doc_actualizado
+    }
+
 # ========================================
 # ENDPOINTS DE CARGA MASIVA
 # ========================================

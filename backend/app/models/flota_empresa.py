@@ -246,7 +246,15 @@ class ItemTramiteVehiculo(BaseModel):
     datos_tecnicos: Optional[dict] = Field(default_factory=dict, description="Diccionario con los 23 campos de especificaciones técnicas")
     observacion_custom: Optional[str] = None
     numero_tuc: Optional[str] = None
-    dar_de_baja_otra_empresa: bool = Field(default=False, description="Dar de baja en la otra empresa si estaba habilitada")
+    dar_de_baja_otra_empresa: bool = Field(default=False, description="Dar de baja en la otra empresa si estaba habilitada (Art. 68.1)")
+    otra_empresa_ruc: Optional[str] = Field(default=None, description="RUC de la empresa anterior donde estaba habilitado")
+    otra_empresa_razon: Optional[str] = Field(default=None, description="Razón social de la empresa anterior")
+    baja_tipo: Optional[str] = Field(default=None, description="Tipo de baja previa: INTERNA, EXTERNA, NINGUNA")
+    baja_externa: Optional[dict] = Field(default=None, description="Datos de baja externa (MTC/otra región): {empresa_origen, resolucion_baja, ambito, fecha_baja}")
+    dar_de_baja_misma_empresa: bool = Field(default=False, description="Dar de baja la habilitación previa en esta misma empresa si ya estaba habilitado")
+    es_misma_empresa: bool = Field(default=False, description="Indica si la unidad ya estaba registrada/habilitada en esta misma empresa")
+    misma_empresa_resolucion: Optional[str] = Field(default=None, description="N° de resolución de la habilitación previa en la misma empresa")
+    misma_empresa_tuc: Optional[str] = Field(default=None, description="N° de TUC anterior en la misma empresa")
     orden: Optional[int] = Field(default=None, description="Número de orden correlativo en la resolución/flota")
 
 

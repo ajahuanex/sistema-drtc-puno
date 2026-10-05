@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { VehiculoDataService } from '../../services/vehiculo-data.service';
 
 export function calcularCompletitudVehiculo(v: any): number {
@@ -179,7 +180,8 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatCheckboxModule
   ],
   template: `
     <div class="modal-container">
@@ -215,8 +217,8 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
             <div class="placa-search-row">
               <mat-form-field appearance="outline" class="field-placa" subscriptSizing="dynamic">
                 <mat-label>Número de Placa *</mat-label>
-                <input matInput formControlName="placa" placeholder="ABC-123" style="font-family: monospace; font-weight: 700; text-transform: uppercase;">
-                <button type="button" mat-icon-button matSuffix (click)="buscarPorPlaca()" [disabled]="form.get('placa')?.invalid || buscando || consultandoPcm" matTooltip="Consultar en BD local" color="primary">
+                <input matInput formControlName="placa" placeholder="ABC-123" (input)="onPlacaInput($event)" (blur)="onPlacaBlur()" style="font-family: monospace; font-weight: 700; text-transform: uppercase;">
+                <button type="button" mat-icon-button matSuffix (click)="buscarPorPlaca(true)" [disabled]="buscando || consultandoPcm" matTooltip="Consultar en BD local vehiculos_data" color="primary">
                   @if (!buscando) {
                     <mat-icon>search</mat-icon>
                   } @else {
@@ -225,7 +227,7 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
                 </button>
               </mat-form-field>
 
-              <button type="button" mat-flat-button class="btn-pcm-consultar" (click)="consultarApiPcm()" [disabled]="form.get('placa')?.invalid || consultandoPcm || buscando" matTooltip="Consultar y sincronizar datos técnicos oficiales desde SUNARP / PCM">
+              <button type="button" mat-flat-button class="btn-pcm-consultar" (click)="consultarApiPcm()" [disabled]="form.get('placa')?.invalid || consultandoPcm || buscando" matTooltip="Consultar y sincronizar datos técnicos oficiales desde SUNARP / PCM si no se encuentran en vehiculos_data">
                 @if (!consultandoPcm) {
                   <mat-icon style="font-size: 18px; width: 18px; height: 18px;">cloud_sync</mat-icon>
                 } @else {
@@ -236,7 +238,7 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
               
               @if (mensajeBusqueda) {
                 <div class="search-status-box" [ngClass]="{'error': errorBusqueda}">
-                  <mat-icon style="font-size: 16px; width: 16px; height: 16px;">{{ errorBusqueda ? 'error' : 'check_circle' }}</mat-icon>
+                  <mat-icon style="font-size: 16px; width: 16px; height: 16px;">{{ errorBusqueda ? 'info' : 'check_circle' }}</mat-icon>
                   <span>{{ mensajeBusqueda }}</span>
                 </div>
               }
@@ -409,6 +411,7 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
               </mat-form-field>
             </div>
           </div>
+
 
           <!-- Observaciones -->
           <div class="form-section-compact" style="margin-bottom: 0;">
@@ -626,6 +629,8 @@ export class VehiculoModalComponent {
 
   private vehiculoDataService = inject(VehiculoDataService);
   anioPcmSugerido: number | null = null;
+  ultimaPlacaBuscada = '';
+  busquedaCompletadaExitosa = false;
 
   get porcentajeCompletitud(): number {
     return calcularCompletitudVehiculo(this.form ? this.form.value : null);
@@ -779,8 +784,10 @@ export class VehiculoModalComponent {
     this.recalcularCargaUtil();
 
     const currentPlaca = v.placa || v.placa_actual;
-    if (currentPlaca && (!v.marca || !v.modelo || !v.numero_motor || !pesoBruto)) {
-      this.buscarPorPlaca();
+    if (currentPlaca) {
+      if (!v.marca || !v.modelo || !v.numero_motor || !pesoBruto) {
+        this.buscarPorPlaca(false);
+      }
     }
   }
 
@@ -818,36 +825,71 @@ export class VehiculoModalComponent {
     }
   }
 
-  buscarPorPlaca() {
+  onPlacaInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let val = (input.value || '').toUpperCase().trim();
+    if (val.length === 6 && !val.includes('-')) {
+      val = `${val.substring(0, 3)}-${val.substring(3)}`;
+      this.form.get('placa')?.setValue(val, { emitEvent: false });
+    }
+    
+    // Auto-búsqueda inmediata en vehiculos_data cuando la placa tiene el largo de formato (6 caracteres)
+    const cleanPlaca = val.replace('-', '');
+    if (cleanPlaca.length === 6) {
+      this.buscarPorPlaca(false);
+    }
+  }
+
+  onPlacaBlur() {
+    const val = (this.form.get('placa')?.value || '').trim();
+    if (val.length >= 6) {
+      this.buscarPorPlaca(true);
+    }
+  }
+
+  buscarPorPlaca(notificarSiNoExiste: boolean = true) {
     let placa = this.form.get('placa')?.value;
     if (!placa) return;
     
     placa = placa.toUpperCase().trim();
     if (/^[A-Z0-9]{6}$/.test(placa)) {
       placa = `${placa.substring(0, 3)}-${placa.substring(3)}`;
-      this.form.get('placa')?.setValue(placa);
+      this.form.get('placa')?.setValue(placa, { emitEvent: false });
+    }
+
+    if (placa === this.ultimaPlacaBuscada && this.busquedaCompletadaExitosa) {
+      return;
     }
 
     this.buscando = true;
-    this.mensajeBusqueda = 'Consultando en vehiculos_data...';
+    this.mensajeBusqueda = 'Consultando en base de datos vehiculos_data...';
     this.errorBusqueda = false;
+    this.ultimaPlacaBuscada = placa;
     
     this.vehiculoDataService.getVehiculoDataByPlaca(placa).subscribe({
       next: (res) => {
         this.buscando = false;
-        if (res.success && res.data) {
-          const d = res.data;
-          this.mensajeBusqueda = 'Datos técnicos cargados desde vehiculos_data';
-          this.aplicarDatosTecnicos(d);
+        if (res.success && res.data && (res.data.marca || res.data.modelo || res.data.peso_bruto)) {
+          this.busquedaCompletadaExitosa = true;
+          this.aplicarDatosTecnicos(res.data);
+          const pct = calcularCompletitudVehiculo(this.form.value);
+          this.errorBusqueda = false;
+          this.mensajeBusqueda = `✓ Datos cargados de vehiculos_data (${pct}% completado)`;
         } else {
+          this.busquedaCompletadaExitosa = false;
+          const pct = calcularCompletitudVehiculo(this.form.value);
           this.errorBusqueda = true;
-          this.mensajeBusqueda = res.message || 'No se encontraron datos en vehiculos_data';
+          this.mensajeBusqueda = `No registrado en vehiculos_data (${pct}% completado). Ingrese los datos o consulte opcionalmente a PCM.`;
         }
       },
       error: () => {
         this.buscando = false;
-        this.errorBusqueda = true;
-        this.mensajeBusqueda = 'Error al consultar vehiculos_data';
+        this.busquedaCompletadaExitosa = false;
+        const pct = calcularCompletitudVehiculo(this.form.value);
+        if (notificarSiNoExiste) {
+          this.errorBusqueda = true;
+          this.mensajeBusqueda = `No encontrado en vehiculos_data (${pct}% completado). Puede consultar opcionalmente a PCM.`;
+        }
       }
     });
   }
@@ -859,7 +901,7 @@ export class VehiculoModalComponent {
     placa = placa.toUpperCase().trim();
     if (/^[A-Z0-9]{6}$/.test(placa)) {
       placa = `${placa.substring(0, 3)}-${placa.substring(3)}`;
-      this.form.get('placa')?.setValue(placa);
+      this.form.get('placa')?.setValue(placa, { emitEvent: false });
     }
 
     this.consultandoPcm = true;
@@ -870,17 +912,20 @@ export class VehiculoModalComponent {
       next: (res) => {
         this.consultandoPcm = false;
         if (res.success && res.data) {
-          this.mensajeBusqueda = '✓ Datos obtenidos exitosamente de la API PCM (SUNARP)';
+          this.busquedaCompletadaExitosa = true;
           this.aplicarDatosTecnicos(res.data);
+          const pct = calcularCompletitudVehiculo(this.form.value);
+          this.errorBusqueda = false;
+          this.mensajeBusqueda = `✓ Sincronizado desde API PCM (${pct}% completado)`;
         } else {
           this.errorBusqueda = true;
-          this.mensajeBusqueda = res.message || 'No se encontraron datos en la API PCM';
+          this.mensajeBusqueda = res.message || 'No se obtuvieron datos de la API PCM (SUNARP). Ingrese los datos manualmente.';
         }
       },
       error: () => {
         this.consultandoPcm = false;
         this.errorBusqueda = true;
-        this.mensajeBusqueda = 'Error o sin respuesta de la API PCM (SUNARP)';
+        this.mensajeBusqueda = 'Error de conexión con la API PCM. Ingrese los datos manualmente.';
       }
     });
   }
@@ -999,6 +1044,9 @@ export class VehiculoModalComponent {
         : this.round3(val.carga_util);
       const catUpper = String(val.categoria || '').toUpperCase();
       const claseFinal = catUpper.includes('C3') ? 'C3' : '';
+
+      const pct = calcularCompletitudVehiculo({ ...val, clase: claseFinal, carga_util: cuCalculada });
+
       const result = {
         ...val,
         placa: cleanPlaca,
@@ -1021,8 +1069,8 @@ export class VehiculoModalComponent {
         longitud: this.round3(val.longitud),
         ancho: this.round3(val.ancho),
         altura: this.round3(val.altura),
-        numero_serie: val.vin,
-        porcentaje_completitud: calcularCompletitudVehiculo({ ...val, clase: claseFinal, carga_util: cuCalculada })
+        numero_serie: val.vin || '',
+        porcentaje_completitud: pct
       };
 
       // Guardar ficha técnica en vehiculos_data para permanencia

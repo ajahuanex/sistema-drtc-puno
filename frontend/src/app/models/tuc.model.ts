@@ -2,6 +2,7 @@ export type TipoEmisionTuc = 'ELECTRONICA' | 'FISICA';
 
 export type EstadoTuc = 
   | 'VIGENTE' 
+  | 'INHABILITADA'
   | 'ANULADA' 
   | 'SUSPENDIDA' 
   | 'REEMPLAZADA' 
@@ -129,6 +130,8 @@ export interface TucVerificacionPublica {
 export interface TucEstadisticas {
   totalTucs: number;
   vigentes: number;
+  inhabilitadas?: number;
+  vencidas?: number;
   electronicas: number;
   fisicas: number;
   anuladas: number;

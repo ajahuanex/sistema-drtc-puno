@@ -216,19 +216,32 @@ class TucService:
             datos_empresa = {"ruc": ruc, "razonSocial": ruc}
         
         # Buscar Resolución y Rutas
-        res_prim = await db.resoluciones_primigenias.find_one({"nroResolucion": {"$regex": f"^{re.escape(nro_resolucion)}$", "$options": "i"}})
+        clean_res = nro_resolucion.strip().upper()
+        sin_p = clean_res[2:] if clean_res.startswith("R-") else clean_res
+        res_prim = await db.resoluciones_primigenias.find_one({
+            "$or": [
+                {"nro_resolucion": clean_res},
+                {"nro_resolucion": f"R-{sin_p}"},
+                {"nro_resolucion": sin_p},
+                {"nroResolucion": clean_res},
+                {"nroResolucion": f"R-{sin_p}"},
+                {"nroResolucion": sin_p}
+            ]
+        })
         datos_resolucion = {}
         resolucion_id = None
         rutas_habilitadas = []
         
+        f_prim_fin = None
         if res_prim:
             resolucion_id = str(res_prim["_id"])
+            f_prim_fin = res_prim.get("fecha_fin_vigencia") or res_prim.get("fecha_vigencia_hasta") or res_prim.get("fechaFinVigencia")
             datos_resolucion = {
-                "nroResolucion": res_prim.get("nroResolucion"),
-                "fechaEmision": res_prim.get("fechaEmision"),
-                "fechaInicioVigencia": res_prim.get("fechaInicioVigencia"),
-                "fechaFinVigencia": res_prim.get("fechaFinVigencia"),
-                "tipoServicio": res_prim.get("tipoServicio")
+                "nroResolucion": res_prim.get("nro_resolucion") or res_prim.get("nroResolucion"),
+                "fechaEmision": res_prim.get("fecha_emision") or res_prim.get("fecha_resolucion") or res_prim.get("fechaEmision"),
+                "fechaInicioVigencia": res_prim.get("fecha_inicio_vigencia") or res_prim.get("fechaInicioVigencia"),
+                "fechaFinVigencia": f_prim_fin,
+                "tipoServicio": res_prim.get("tipo_servicio") or res_prim.get("tipoServicio")
             }
             rutas_ids = res_prim.get("rutasIds", [])
             if rutas_ids:
@@ -248,6 +261,21 @@ class TucService:
         else:
             datos_resolucion = {"nroResolucion": nro_resolucion}
         
+        # Autocalcular fecha de vencimiento según fin de la primigenia y corte de régimen de permanencia
+        fecha_venc_final = data.fechaVencimiento
+        from app.utils.tuc_vigencia_utils import calcular_vigencia_tuc
+        vig_calc = calcular_vigencia_tuc(
+            fecha_hija=data.fechaEmision,
+            fecha_primigenia_fin=f_prim_fin,
+            anio_fabricacion=datos_vehiculo.get("anioFabricacion"),
+            fecha_actual=date.today()
+        )
+        if not fecha_venc_final and vig_calc.get("fecha_fin"):
+            fecha_venc_final = vig_calc["fecha_fin"]
+        if vig_calc.get("influye_permanencia"):
+            datos_resolucion["influyePermanencia"] = True
+            datos_resolucion["fechaLimitePermanencia"] = vig_calc.get("fecha_limite_permanencia")
+
         hash_seg = generar_hash_tuc(nro_tuc, placa, ruc, data.fechaEmision)
         qr_url = f"/verificar-tuc/{hash_seg}"
         
@@ -267,7 +295,7 @@ class TucService:
             "nroResolucion": nro_resolucion,
             "resolucionId": resolucion_id,
             "fechaEmision": data.fechaEmision,
-            "fechaVencimiento": data.fechaVencimiento,
+            "fechaVencimiento": fecha_venc_final,
             "hashSeguridad": hash_seg,
             "qrVerificationUrl": qr_url,
             "loteKardexId": data.loteKardexId,
@@ -349,6 +377,18 @@ class TucService:
                         "direccion": emp.get("direccion") or ""
                     }
 
+        # Precargar mapa de resoluciones primigenias para vigencias y fin de autorización
+        prim_map = {}
+        async for p_doc in db.resoluciones_primigenias.find({}):
+            nro_p = str(p_doc.get("nro_resolucion") or p_doc.get("nroResolucion") or "").strip().upper()
+            if nro_p:
+                prim_map[nro_p] = p_doc
+                sin_p = nro_p[2:] if nro_p.startswith("R-") else nro_p
+                prim_map[sin_p] = p_doc
+                clean_p = re.sub(r"[^A-Z0-9]", "", nro_p)
+                if clean_p:
+                    prim_map[clean_p] = p_doc
+
         # Precargar mapa de resoluciones hijas para validar tipo exacto de trámite
         hijas_map = {}
         async for h_doc in db.resoluciones_hijas.find({}, {"nro_resolucion": 1, "tipo_acto": 1, "tipo_tramite_origen": 1}):
@@ -411,27 +451,50 @@ class TucService:
                 is_electronica = raw_tuc.startswith("TE-") or "E-" in raw_tuc
                 is_t_placa = bool(re.match(r"^T-[A-Z0-9]{3}-[A-Z0-9]{3}$", raw_tuc))
 
+                from app.utils.tuc_vigencia_utils import calcular_vigencia_tuc, determinar_estado_tuc
+                
+                # Obtener primigenia asociada para determinar la fecha fin
+                p_info = None
+                if nro_prim_raw:
+                    p_info = prim_map.get(nro_prim_raw) or prim_map.get(nro_prim_raw[2:] if nro_prim_raw.startswith("R-") else nro_prim_raw) or prim_map.get(re.sub(r"[^A-Z0-9]", "", nro_prim_raw))
+
+                f_prim_ini = p_info.get("fecha_inicio_vigencia") or p_info.get("fecha_resolucion") or p_info.get("fecha_emision") if p_info else None
+                f_prim_fin = p_info.get("fecha_fin_vigencia") or p_info.get("fecha_vigencia_hasta") if p_info else None
+
+                v_info = veh_map.get(placa) or veh_map.get(re.sub(r"[^A-Z0-9]", "", placa)) or {}
+                anio_fab = v_info.get("anio_fabricacion") or v_info.get("anio") or reg.get("anio_fabricacion")
+                anio_mod = v_info.get("anio_modelo") or reg.get("anio_modelo")
+
+                f_emision_raw = reg.get("fecha_emision_resolucion") or reg.get("fecha_cronologica") or reg.get("fecha_expediente")
+                f_venc_raw = reg.get("fecha_vigencia_hasta")
+
+                vig = calcular_vigencia_tuc(
+                    fecha_hija=f_emision_raw if nro_hija_raw else None,
+                    fecha_primigenia_inicio=f_prim_ini or f_emision_raw,
+                    fecha_primigenia_fin=f_venc_raw or f_prim_fin,
+                    anio_fabricacion=anio_fab,
+                    anio_modelo=anio_mod,
+                    fecha_actual=date.today()
+                )
+
+                f_emision = vig["fecha_inicio"] or (str(f_emision_raw)[:10] if f_emision_raw and str(f_emision_raw) != "NaT" else date.today().isoformat())
+                f_venc = vig["fecha_fin"] or (str(f_venc_raw)[:10] if f_venc_raw else None)
+
                 if is_antiguedad:
                     tipo_emision = TipoEmisionTuc.FISICA.value
                     estado_tuc = EstadoTuc.ANULADA.value
                     motivo_val = MotivoEmision.HISTORICO_MIGRADO.value
                     obs_tuc = reg.get("observaciones") or f"TUC Histórica por Antigüedad (Reemplazada) - Placa previa: {placa}"
-                elif is_electronica:
-                    tipo_emision = TipoEmisionTuc.ELECTRONICA.value
-                    estado_tuc = EstadoTuc.VIGENTE.value if reg.get("estado") == "HABILITADO" else EstadoTuc.ANULADA.value
-                    obs_tuc = reg.get("observaciones") or reg.get("detalles") or "TUC Electrónica oficial migrada desde base matriz"
-                elif is_t_placa:
-                    tipo_emision = TipoEmisionTuc.FISICA.value
-                    estado_tuc = EstadoTuc.VIGENTE.value if reg.get("estado") == "HABILITADO" else EstadoTuc.ANULADA.value
-                    obs_tuc = reg.get("observaciones") or f"TUC provisional asignada con número de placa ({placa})"
                 else:
-                    tipo_emision = TipoEmisionTuc.FISICA.value
-                    estado_tuc = EstadoTuc.VIGENTE.value if reg.get("estado") == "HABILITADO" else EstadoTuc.ANULADA.value
-                    obs_tuc = reg.get("observaciones") or reg.get("detalles") or "TUC Física oficial migrada desde base matriz"
-
-                f_emision_raw = reg.get("fecha_emision_resolucion") or reg.get("fecha_cronologica") or reg.get("fecha_expediente")
-                f_emision = str(f_emision_raw)[:10] if f_emision_raw and str(f_emision_raw) != "NaT" else date.today().isoformat()
-                f_venc = str(reg.get("fecha_vigencia_hasta"))[:10] if reg.get("fecha_vigencia_hasta") else None
+                    tipo_emision = TipoEmisionTuc.ELECTRONICA.value if is_electronica else TipoEmisionTuc.FISICA.value
+                    estado_tuc = determinar_estado_tuc(
+                        estado_vehiculo_flota=reg.get("estado"),
+                        fecha_fin_vigencia=f_venc,
+                        fecha_actual=date.today()
+                    )
+                    obs_tuc = reg.get("observaciones") or reg.get("detalles") or (
+                        "TUC Electrónica oficial migrada desde base matriz" if is_electronica else "TUC Física oficial migrada desde base matriz"
+                    )
 
                 # Validar tipo de resolución hija contra el módulo 'resoluciones_hijas'
                 tipo_hija_val = reg.get("tipo_resolucion_hija")
@@ -504,7 +567,12 @@ class TucService:
 
                 datos_resolucion = {
                     "nroResolucion": nro_resolucion,
-                    "fechaEmision": f_emision
+                    "nroResolucionPrimigenia": nro_prim_raw,
+                    "fechaEmision": f_emision,
+                    "fechaInicioVigencia": f_emision,
+                    "fechaFinVigencia": f_venc,
+                    "influyePermanencia": vig.get("influye_permanencia", False),
+                    "fechaLimitePermanencia": vig.get("fecha_limite_permanencia")
                 }
 
                 rutas_codigos = reg.get("rutas", [])
@@ -917,6 +985,8 @@ class TucService:
         db = await _get_db()
         total = await db.tucs.count_documents({})
         vigentes = await db.tucs.count_documents({"estado": EstadoTuc.VIGENTE.value})
+        inhabilitadas = await db.tucs.count_documents({"estado": {"$in": [EstadoTuc.INHABILITADA.value, "INHABILITADO"]}})
+        vencidas = await db.tucs.count_documents({"estado": EstadoTuc.VENCIDA.value})
         electronicas = await db.tucs.count_documents({"tipoEmision": TipoEmisionTuc.ELECTRONICA.value})
         fisicas = await db.tucs.count_documents({"tipoEmision": TipoEmisionTuc.FISICA.value})
         anuladas = await db.tucs.count_documents({"estado": {"$in": [EstadoTuc.ANULADA.value, EstadoTuc.ANULADA_POR_DUPLICADO.value]}})
@@ -937,6 +1007,8 @@ class TucService:
         return {
             "totalTucs": total,
             "vigentes": vigentes,
+            "inhabilitadas": inhabilitadas,
+            "vencidas": vencidas,
             "electronicas": electronicas,
             "fisicas": fisicas,
             "anuladas": anuladas,

@@ -86,6 +86,7 @@ build/
 .vector_cache/
 .kiro/
 .gemini/
+.agents/
 scratch/
 *.ps1
 ia.py

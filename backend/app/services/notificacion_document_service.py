@@ -1,4 +1,6 @@
+import os
 import re
+import base64
 import logging
 from datetime import datetime, date
 from typing import Dict, Any, List, Optional
@@ -38,6 +40,47 @@ def clean_num_resolucion(res_str: Optional[str]) -> str:
     if s.startswith("R-"):
         s = s[2:].strip()
     return s
+
+_ESCUDO_B64: Optional[str] = None
+_DRTC_LOGO_B64: Optional[str] = None
+
+def _get_escudo_b64() -> str:
+    global _ESCUDO_B64
+    if _ESCUDO_B64 is None:
+        posibles = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "src", "assets", "images", "escudo-region-puno.png"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "dist", "sirret-frontend", "assets", "images", "escudo-region-puno.png")
+        ]
+        for p in posibles:
+            if os.path.exists(p):
+                try:
+                    with open(p, "rb") as f:
+                        _ESCUDO_B64 = base64.b64encode(f.read()).decode("utf-8")
+                        break
+                except Exception:
+                    pass
+        if _ESCUDO_B64 is None:
+            _ESCUDO_B64 = ""
+    return _ESCUDO_B64
+
+def _get_drtc_logo_b64() -> str:
+    global _DRTC_LOGO_B64
+    if _DRTC_LOGO_B64 is None:
+        posibles = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates", "banner_drtc.png"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "src", "assets", "images", "drtc-logo-dark.png")
+        ]
+        for p in posibles:
+            if os.path.exists(p):
+                try:
+                    with open(p, "rb") as f:
+                        _DRTC_LOGO_B64 = base64.b64encode(f.read()).decode("utf-8")
+                        break
+                except Exception:
+                    pass
+        if _DRTC_LOGO_B64 is None:
+            _DRTC_LOGO_B64 = ""
+    return _DRTC_LOGO_B64
 
 class NotificacionDocumentService:
 
@@ -84,11 +127,8 @@ class NotificacionDocumentService:
         if ruc:
             query_flota = {"ruc": ruc}
             if nro_hija_raw:
-                # Si el vehículo tiene resolución hija, listamos los que comparten esa resolución hija
                 query_flota["nro_resolucion_hija"] = nro_hija_raw
             else:
-                # Si no tiene resolución hija (ej. renovación pura), listamos los de la misma primigenia 
-                # que TAMPOCO tengan resolución hija
                 query_flota["nro_resolucion_primigenia"] = nro_primigenia_raw
                 query_flota["$or"] = [
                     {"nro_resolucion_hija": {"$exists": False}},
@@ -103,21 +143,72 @@ class NotificacionDocumentService:
         if not vehiculos_flota:
             vehiculos_flota = [vehiculo]
 
+        # Obtener ruta por defecto si alguna unidad no tiene rutas asignadas
+        ruta_default = "01"
+        try:
+            clean_res_query = clean_num_resolucion(nro_res)
+            q_r = {
+                "$or": [
+                    {"resolucion.nroResolucion": {"$regex": f"{re.escape(clean_res_query)}", "$options": "i"}},
+                    {"empresa.ruc": ruc},
+                    {"ruc": ruc}
+                ]
+            }
+            r_doc = await db.rutas.find_one(q_r)
+            if r_doc:
+                raw_c = r_doc.get("codigoRuta") or r_doc.get("codigo") or r_doc.get("codigo_ruta")
+                if raw_c:
+                    s_c = str(raw_c).strip()
+                    ruta_default = s_c.zfill(2) if s_c.isdigit() else s_c
+        except Exception as e_r:
+            logger.warning(f"Error al buscar ruta para notificación: {e_r}")
+
         lista_vehiculos_tabla = []
-        for index, v in enumerate(vehiculos_flota[:20], 1):
+        for index, v in enumerate(vehiculos_flota[:35], 1):
             p = (v.get("placa") or "-").strip().upper()
             v_data = await db.vehiculos_data.find_one({"$or": [{"placa_actual": p}, {"placa": p}]})
-            anio = str(v_data.get("anio_fabricacion") or v_data.get("anio_modelo") or "-") if v_data else "-"
-            cat = (v_data.get("categoria") or "-").strip().upper() if v_data else "-"
-            tuc_num = v.get("numero_tuc") or v.get("tuc") or "-"
             
+            # Año de fabricación
+            anio = "-"
+            if v_data:
+                anio = str(v_data.get("anio_fabricacion") or v_data.get("anio_modelo") or "")
+            if not anio or anio == "-":
+                anio = str(v.get("anio_fabricacion") or v.get("anio_modelo") or "-")
+            
+            # Categoría
+            cat = "-"
+            if v_data:
+                cat = (v_data.get("categoria") or "").strip().upper()
+            if not cat or cat == "-":
+                cat = (v.get("categoria") or "-").strip().upper()
+            
+            # Número TUC (limpiar prefijo T- si es numérico)
+            raw_tuc = str(v.get("numero_tuc") or v.get("tuc") or "-").strip()
+            if raw_tuc.startswith("T-") and len(raw_tuc) > 2:
+                tuc_display = raw_tuc[2:].strip()
+            elif raw_tuc.startswith("T") and len(raw_tuc) > 1 and raw_tuc[1:].isdigit():
+                tuc_display = raw_tuc[1:].strip()
+            else:
+                tuc_display = raw_tuc
+
+            # Rutas
             rutas_list = v.get("rutas", [])
-            rutas_str = ",".join(rutas_list) if rutas_list else "-"
+            if rutas_list and isinstance(rutas_list, list):
+                cods_fmt = []
+                for c in rutas_list:
+                    cs = str(c).strip()
+                    cods_fmt.append(cs.zfill(2) if cs.isdigit() else cs)
+                rutas_str = ", ".join(cods_fmt)
+            elif v.get("ruta"):
+                rs = str(v.get("ruta")).strip()
+                rutas_str = rs.zfill(2) if rs.isdigit() else rs
+            else:
+                rutas_str = ruta_default
 
             lista_vehiculos_tabla.append({
                 "item": index,
                 "placa": p,
-                "tuc": tuc_num,
+                "tuc": tuc_display,
                 "anio": anio,
                 "categoria": cat,
                 "ruta": rutas_str,
@@ -167,7 +258,7 @@ class NotificacionDocumentService:
     def generar_html_notificacion(data: Dict[str, Any]) -> str:
         """
         Genera la página HTML en formato A4 para la Cédula de Notificación,
-        coincidiendo exactamente con la plantilla oficial de Google Docs.
+        coincidiendo exactamente con el formato oficial de la DRTC Puno.
         """
         num_res = data.get("numRes", "-")
         fecha_res = data.get("fechaRes", "-")
@@ -177,28 +268,37 @@ class NotificacionDocumentService:
         update_date = data.get("update", datetime.now().strftime("%d/%m/%Y"))
         vehiculos = data.get("vehiculos", [])
 
+        # Subtítulo de resolución
+        clean_res = str(num_res).strip()
+        if "-GRP" in clean_res.upper():
+            res_subtitle = f"RESOLUCIÓN DIRECTORAL REGIONAL N° {clean_res}({fecha_res})"
+        else:
+            res_subtitle = f"RESOLUCIÓN DIRECTORAL REGIONAL N° {clean_res}-GRP/GRI/DRTC({fecha_res})"
+
+        escudo_b64 = _get_escudo_b64()
+        drtc_b64 = _get_drtc_logo_b64()
+
         tabla_rows_html = ""
         if vehiculos:
             for v in vehiculos:
                 tabla_rows_html += f"""
                 <tr>
-                    <td style="text-align:center; font-weight:bold;">{v.get('item')}</td>
-                    <td style="font-weight:bold; font-family:'Roboto Mono', monospace;">{v.get('placa')}</td>
-                    <td>{v.get('marca')}</td>
-                    <td style="text-align:center;">{v.get('anio')}</td>
-                    <td style="font-family:'Roboto Mono', monospace;">{v.get('vin')}</td>
-                    <td style="text-align:center;">{v.get('categoria')}</td>
-                    <td style="text-align:center; font-family:'Roboto Mono', monospace; font-weight:bold;">{v.get('tuc')}</td>
+                    <td class="col-item">{v.get('item')}</td>
+                    <td class="col-placa">{v.get('placa')}</td>
+                    <td class="col-tuc">{v.get('tuc')}</td>
+                    <td class="col-anio">{v.get('anio')}</td>
+                    <td class="col-cat">{v.get('categoria')}</td>
+                    <td class="col-ruta">{v.get('ruta')}</td>
                 </tr>"""
         else:
-            tabla_rows_html = '<tr><td colspan="7" style="text-align:center; font-style:italic; color:#64748b;">SIN VEHÍCULOS REGISTRADOS</td></tr>'
+            tabla_rows_html = '<tr><td colspan="6" style="text-align: center; font-style: italic; color: #64748b; padding: 12px;">SIN VEHÍCULOS REGISTRADOS</td></tr>'
 
         html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>NOTIFICACIÓN - R.D.R. N° {num_res} | DRTC Puno</title>
+    <title>NOTIFICACIÓN - {clean_res} | DRTC Puno</title>
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 
@@ -251,38 +351,90 @@ class NotificacionDocumentService:
             font-size: 13px;
             margin-left: 8px;
         }}
+        .btn-close:hover {{ background: rgba(255,255,255,0.25); }}
 
         /* HOJA A4 */
         .a4-sheet {{
             width: 210mm;
             min-height: 297mm;
             background: #ffffff;
-            padding: 22mm 20mm;
+            padding: 18mm 20mm;
             box-shadow: 0 15px 45px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
         }}
 
+        /* BANNER INSTITUCIONAL */
+        .banner-institucional {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }}
+        .banner-escudo {{
+            height: 52px;
+            width: auto;
+            object-fit: contain;
+        }}
+        .banner-bloques {{
+            display: flex;
+            align-items: center;
+            height: 38px;
+        }}
+        .banner-block {{
+            height: 38px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            color: #ffffff !important;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 7.2px;
+            font-weight: 800;
+            line-height: 1.15;
+            padding: 0 8px;
+            letter-spacing: 0.1px;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }}
+        .banner-red {{
+            background-color: #cc0000 !important;
+        }}
+        .banner-black {{
+            background-color: #000000 !important;
+        }}
+        .banner-gray {{
+            background-color: #71717a !important;
+        }}
+        .banner-drtc {{
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+            margin-left: 4px;
+        }}
+
         /* LEMA AÑO */
         .lema-header {{
             text-align: center;
-            font-size: 11px;
+            font-size: 10.5px;
             font-style: italic;
-            margin-bottom: 25px;
+            margin-bottom: 16px;
+            color: #1e293b;
         }}
 
         /* TITULO NOTIFICACION */
         .doc-title {{
             text-align: center;
-            font-size: 16px;
+            font-size: 14.5px;
             font-weight: bold;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
         }}
 
         .res-subtitle {{
             text-align: center;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             margin-bottom: 4px;
         }}
@@ -291,95 +443,208 @@ class NotificacionDocumentService:
             text-align: center;
             font-size: 12px;
             font-weight: bold;
-            margin-bottom: 25px;
+            font-style: italic;
+            margin-bottom: 18px;
             text-transform: uppercase;
         }}
 
-        /* DATOS EMPRESA */
-        .empresa-box {{
-            font-size: 12px;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }}
-        .empresa-box strong {{ font-weight: bold; }}
-
-        .divider-line {{
-            border-bottom: 1.5px solid #000;
-            margin: 15px 0 20px;
-        }}
-
-        /* RECEPTOR FORMULARIO */
-        .receptor-grid {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px 25px;
+        /* TABLA DATOS EMPRESA */
+        .empresa-table {{
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #d1d5db;
+            margin-bottom: 18px;
             font-size: 11px;
-            margin-bottom: 25px;
         }}
-
-        .form-field {{
-            display: flex;
-            align-items: baseline;
-            gap: 6px;
+        .empresa-table td {{
+            border: 1px solid #e5e7eb;
+            padding: 6px 8px;
+            vertical-align: middle;
         }}
-        .form-field .field-label {{
+        .td-rs-lbl {{
+            width: 55px;
+            font-size: 10.5px;
+            line-height: 1.2;
+            color: #000;
+        }}
+        .td-sep {{
+            width: 12px;
+            text-align: center;
             font-weight: bold;
+            padding: 6px 2px !important;
+        }}
+        .td-rs-val {{
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #000;
+            font-size: 11px;
+        }}
+        .td-ruc-lbl {{
+            width: 48px;
+            text-align: right;
+            white-space: nowrap;
+            font-size: 10.5px;
+        }}
+        .td-ruc-val {{
+            width: 120px;
+            font-weight: bold;
+            font-size: 11.5px;
             white-space: nowrap;
         }}
-        .form-field .field-line {{
+
+        /* FORMULARIO RECEPTOR DE NOTIFICACION */
+        .receptor-box {{
+            display: flex;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 10px 0;
+            margin-bottom: 18px;
+            font-size: 10.5px;
+        }}
+        .receptor-col-left {{
+            flex: 1.15;
+            padding-right: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+        }}
+        .receptor-col-right {{
+            flex: 0.85;
+            border-left: 1.5px solid #000;
+            padding-left: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }}
+        .form-row {{
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+        }}
+        .lbl-multi {{
+            width: 68px;
+            line-height: 1.15;
+            font-size: 10.5px;
+            white-space: nowrap;
+        }}
+        .lbl-single {{
+            width: 68px;
+            font-size: 10.5px;
+        }}
+        .line-dotted {{
             flex: 1;
-            border-bottom: 1px dashed #475569;
-            min-height: 16px;
+            border-bottom: 1.2px dotted #000;
+            margin-bottom: 2px;
+            min-height: 12px;
+        }}
+        .firma-header {{
+            font-size: 10.5px;
+            margin-bottom: 2px;
+        }}
+        .firma-space {{
+            height: 48px;
+        }}
+        .firma-line-box {{
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 8px;
+        }}
+        .line-dotted-firma {{
+            width: 84%;
+            border-bottom: 1.2px dotted #000;
+        }}
+        .dni-row {{
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            gap: 6px;
+        }}
+        .lbl-dni {{
+            font-size: 10.5px;
+        }}
+        .line-dotted-dni {{
+            width: 74%;
+            border-bottom: 1.2px dotted #000;
+            min-height: 12px;
         }}
 
         /* TABLA DE VEHICULOS INVOLUCRADOS */
-        .tablita-title {{
-            font-size: 11px;
-            font-weight: bold;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }}
-
-        .tablita-vehiculos {{
+        .tabla-vehiculos {{
             width: 100%;
             border-collapse: collapse;
-            font-size: 10.5px;
-            margin-bottom: 25px;
+            border: 1.5px solid #000;
+            font-size: 10px;
+            margin-bottom: 24px;
         }}
-
-        .tablita-vehiculos th {{
+        .tabla-vehiculos th {{
             border: 1px solid #000;
-            background: #f1f5f9;
+            background-color: #ffffff;
             padding: 6px 4px;
             font-weight: bold;
             text-align: center;
+            letter-spacing: 0.2px;
+            text-transform: uppercase;
         }}
-
-        .tablita-vehiculos td {{
+        .tabla-vehiculos td {{
             border: 1px solid #000;
             padding: 5px 4px;
+            vertical-align: middle;
+        }}
+        .col-item {{
+            text-align: center;
+            font-weight: bold;
+            width: 45px;
+        }}
+        .col-placa {{
+            text-align: center;
+            font-weight: bold;
+            font-family: 'Roboto Mono', monospace, Arial;
+            width: 100px;
+        }}
+        .col-tuc {{
+            text-align: center;
+            font-family: 'Roboto Mono', monospace, Arial;
+            width: 110px;
+        }}
+        .col-anio {{
+            text-align: center;
+            width: 70px;
+        }}
+        .col-cat {{
+            text-align: center;
+            width: 95px;
+        }}
+        .col-ruta {{
+            text-align: center;
+            font-weight: bold;
+            width: 75px;
         }}
 
         /* PIE DE ELABORACION */
         .notif-footer {{
             margin-top: auto;
+            text-align: center;
             font-size: 11px;
             font-weight: bold;
-            padding-top: 15px;
+            padding: 25px 0 10px 0;
         }}
 
         @media print {{
             @page {{
                 size: A4 portrait;
-                margin: 15mm 18mm;
+                margin: 12mm 15mm;
             }}
             body {{ background: #fff !important; padding: 0 !important; }}
             .toolbar {{ display: none !important; }}
-            .a4-sheet {{ box-shadow: none !important; padding: 0 !important; width: 100% !important; }}
-            .tablita-vehiculos th {{
+            .a4-sheet {{ box-shadow: none !important; padding: 0 !important; width: 100% !important; min-height: auto !important; }}
+            .banner-block {{
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }}
+            .banner-red {{ background-color: #cc0000 !important; }}
+            .banner-black {{ background-color: #000000 !important; }}
+            .banner-gray {{ background-color: #71717a !important; }}
         }}
     </style>
 </head>
@@ -388,7 +653,7 @@ class NotificacionDocumentService:
     <!-- TOOLBAR (Navegación) -->
     <div class="toolbar">
         <div class="toolbar-title">
-            Cédula de Notificación — R.D.R. N° {num_res} (Formato Oficial A4)
+            Cédula de Notificación — R.D.R. N° {clean_res} (Formato Oficial DRTC Puno)
         </div>
         <div>
             <button class="btn-print" onclick="window.print()">Imprimir Cédula (Ctrl+P)</button>
@@ -399,62 +664,89 @@ class NotificacionDocumentService:
     <!-- HOJA A4 -->
     <div class="a4-sheet">
 
+        <!-- BANNER INSTITUCIONAL OFICIAL -->
+        <div class="banner-institucional">
+            {f'<img src="data:image/png;base64,{escudo_b64}" class="banner-escudo" alt="Escudo">' if escudo_b64 else ''}
+            <div class="banner-bloques">
+                <div class="banner-block banner-red">
+                    <span>GOBIERNO</span>
+                    <span>REGIONAL</span>
+                    <span>PUNO</span>
+                </div>
+                <div class="banner-block banner-black">
+                    <span>DIRECCION REGIONAL DE</span>
+                    <span>TRANSPORTES Y</span>
+                    <span>COMUNICACIONES PUNO</span>
+                </div>
+                <div class="banner-block banner-gray">
+                    <span>DIRECCIÓN DE</span>
+                    <span>CIRCULACIÓN</span>
+                    <span>TERRESTRE</span>
+                </div>
+            </div>
+            {f'<img src="data:image/png;base64,{drtc_b64}" class="banner-drtc" alt="DRTC-P">' if drtc_b64 else ''}
+        </div>
+
         <div class="lema-header">“Año del Fortalecimiento de la Soberanía Nacional”</div>
 
         <div class="doc-title">NOTIFICACIÓN</div>
-        <div class="res-subtitle">RESOLUCIÓN DIRECTORAL REGIONAL N° {num_res}-GRP/GRI/DRTC({fecha_res})</div>
+        <div class="res-subtitle">{res_subtitle}</div>
         <div class="res-motivo">({motivo_res})</div>
 
-        <!-- DATOS EMPRESA -->
-        <div class="empresa-box">
-            <div><strong>Razón Social :</strong> {razon_social}</div>
-            <div><strong>RUC :</strong> {ruc}</div>
-        </div>
-
-        <div class="divider-line"></div>
+        <!-- DATOS EMPRESA (TABLA OFICIAL) -->
+        <table class="empresa-table">
+            <tr>
+                <td class="td-rs-lbl">Razón<br>Social</td>
+                <td class="td-sep">:</td>
+                <td class="td-rs-val">{razon_social}</td>
+                <td class="td-ruc-lbl">RUC :</td>
+                <td class="td-ruc-val">{ruc}</td>
+            </tr>
+        </table>
 
         <!-- FORMULARIO RECEPCION NOTIFICACION -->
-        <div class="receptor-grid">
-            <div class="form-field" style="grid-column: 1 / -1;">
-                <span class="field-label">Nombres y Apellidos:</span>
-                <span class="field-line"></span>
+        <div class="receptor-box">
+            <div class="receptor-col-left">
+                <div class="form-row">
+                    <span class="lbl-multi">Nombres y<br>Apellidos:</span>
+                    <div class="line-dotted"></div>
+                </div>
+                <div class="form-row">
+                    <span class="lbl-single">Cargo:</span>
+                    <div class="line-dotted"></div>
+                </div>
+                <div class="form-row">
+                    <span class="lbl-single">Teléfono:</span>
+                    <div class="line-dotted"></div>
+                </div>
+                <div class="form-row">
+                    <span class="lbl-single">Fecha:</span>
+                    <div class="line-dotted"></div>
+                </div>
             </div>
-            <div class="form-field">
-                <span class="field-label">Firma:</span>
-                <span class="field-line"></span>
-            </div>
-            <div class="form-field">
-                <span class="field-label">Cargo:</span>
-                <span class="field-line"></span>
-            </div>
-            <div class="form-field">
-                <span class="field-label">Teléfono:</span>
-                <span class="field-line"></span>
-            </div>
-            <div class="form-field">
-                <span class="field-label">Fecha:</span>
-                <span class="field-line"></span>
-            </div>
-            <div class="form-field" style="grid-column: 1 / -1;">
-                <span class="field-label">DNI:</span>
-                <span class="field-line"></span>
+            <div class="receptor-col-right">
+                <div class="firma-header">Firma:</div>
+                <div class="firma-space"></div>
+                <div class="firma-line-box">
+                    <div class="line-dotted-firma"></div>
+                </div>
+                <div class="dni-row">
+                    <span class="lbl-dni">DNI:</span>
+                    <div class="line-dotted-dni"></div>
+                </div>
             </div>
         </div>
 
-        <div class="divider-line"></div>
-
-        <!-- TABLA VEHICULOS {{tablita}} -->
-        <div class="tablita-title">Vehículos Involucrados en el Trámite:</div>
-        <table class="tablita-vehiculos">
+        <!-- TABLA VEHICULOS INVOLUCRADOS (ITEM, PLACA, NUMERO TUC, AÑO, CATEGORIA, RUTA) -->
+        <table class="tabla-vehiculos">
             <thead>
                 <tr>
-                    <th style="width: 30px;">N°</th>
-                    <th style="width: 80px;">Placa</th>
-                    <th>Marca</th>
-                    <th style="width: 60px;">Año</th>
-                    <th>VIN / Serie</th>
-                    <th style="width: 60px;">Cat.</th>
-                    <th style="width: 90px;">N° TUC</th>
+                    <th style="width: 45px;">ITEM</th>
+                    <th style="width: 100px;">PLACA</th>
+                    <th style="width: 110px;">NUMERO TUC</th>
+                    <th style="width: 70px;">AÑO</th>
+                    <th style="width: 100px;">CATEGORIA</th>
+                    <th style="width: 80px;">RUTA</th>
                 </tr>
             </thead>
             <tbody>
@@ -464,7 +756,7 @@ class NotificacionDocumentService:
 
         <!-- FOOTER ELABORACION TUC -->
         <div class="notif-footer">
-            Fecha de elaboración de TUC: ”{update_date}”
+            Fecha de elaboración de TUC:"{update_date}"
         </div>
 
     </div>

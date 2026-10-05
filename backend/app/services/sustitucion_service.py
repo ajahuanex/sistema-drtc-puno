@@ -21,12 +21,16 @@ class SustitucionService:
         # 1. Buscar placa_baja en flota_empresa
         vehiculo_baja = await self.flota_collection.find_one({
             "ruc": request.ruc_empresa,
-            "placa": request.placa_baja,
-            "estado": {"$ne": "INHABILITADO"}
+            "placa": request.placa_baja
         })
         
         if not vehiculo_baja:
-            raise ValueError(f"El vehículo {request.placa_baja} no se encuentra habilitado para el RUC {request.ruc_empresa}.")
+            raise ValueError(f"El vehículo {request.placa_baja} no se encuentra registrado en la flota para el RUC {request.ruc_empresa}.")
+
+        estado_baja = str(vehiculo_baja.get("estado", "")).upper()
+        activo_baja = vehiculo_baja.get("esta_activo", True)
+        if estado_baja in ["SUSTITUIDO", "INHABILITADO", "BAJA"] or activo_baja is False:
+            raise ValueError(f"Operación Denegada: El vehículo {request.placa_baja} se encuentra en estado '{estado_baja}' (ya fue sustituido o dado de baja previamente). Un vehículo no puede ser sustituido 2 veces.")
             
         resolucion_primigenia = vehiculo_baja.get("nro_resolucion_primigenia", "S/N")
         razon_social = vehiculo_baja.get("razon_social", "")
@@ -64,7 +68,9 @@ class SustitucionService:
         await self.flota_collection.update_one(
             {"_id": vehiculo_baja["_id"]},
             {"$set": {
-                "estado": "INHABILITADO",
+                "estado": "SUSTITUIDO",
+                "esta_activo": False,
+                "motivo_baja": f"Sustituido por {request.placa_alta} mediante Res. {nro_res}",
                 "observaciones": obs_baja.strip(" |"),
                 "observaciones_historial": historial_baja,
                 "fecha_actualizacion": datetime.utcnow()

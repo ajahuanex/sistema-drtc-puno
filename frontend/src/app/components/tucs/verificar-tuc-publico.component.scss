@@ -1,0 +1,1599 @@
+/* ==========================================================================
+   PORTAL OFICIAL DE VERIFICACIÓN QR - DRTC PUNO (DIRECCIÓN REGIONAL DE TRANSPORTES)
+   Inspirado en el Sistema de Diseño Cívico y Fiscalización en Campo (Stitch Design)
+   ========================================================================== */
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: #0b1120;
+  color: #f1f5f9;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --------------------------------------------------------------------------
+   Franja Tricolor Institucional Perú
+   -------------------------------------------------------------------------- */
+.peru-ribbon {
+  display: flex;
+  width: 100%;
+  height: 5px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  .ribbon-red {
+    flex: 1;
+    background-color: #d91023;
+  }
+  .ribbon-white {
+    flex: 1;
+    background-color: #ffffff;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Encabezado Institucional
+   -------------------------------------------------------------------------- */
+.portal-header {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #1e293b;
+  position: sticky;
+  top: 5px;
+  z-index: 90;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+
+  .header-container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0.875rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+
+    .brand-icon-shield {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e3a8a, #0f172a);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #60a5fa;
+      box-shadow: 0 0 15px rgba(37, 99, 235, 0.25);
+
+      mat-icon {
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
+      }
+    }
+
+    .brand-texts {
+      .brand-subtitle-gov {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #94a3b8;
+        display: block;
+        line-height: 1;
+        margin-bottom: 3px;
+      }
+
+      .brand-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+        margin: 0;
+        line-height: 1.1;
+
+        .brand-puno {
+          color: #ef4444;
+          font-weight: 900;
+        }
+      }
+
+      .brand-dept {
+        font-size: 0.72rem;
+        color: #cbd5e1;
+        display: block;
+        margin-top: 2px;
+      }
+    }
+  }
+
+  .header-badge-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #0f172a;
+    border: 1px solid #334155;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+
+    .live-pulse {
+      position: relative;
+      display: flex;
+      width: 8px;
+      height: 8px;
+
+      .pulse-ring {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 9999px;
+        background-color: #10b981;
+        opacity: 0.75;
+        animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+      }
+
+      .pulse-dot {
+        position: relative;
+        display: inline-flex;
+        border-radius: 9999px;
+        width: 8px;
+        height: 8px;
+        background-color: #10b981;
+      }
+    }
+
+    .badge-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #34d399;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Sub-Header / Telemetría de Fiscalización
+   -------------------------------------------------------------------------- */
+.telemetry-strip {
+  background: #080d1a;
+  border-bottom: 1px solid #1e293b;
+  padding: 0.4rem 1.25rem;
+
+  .telemetry-container {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #94a3b8;
+
+    .telemetry-left {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: #38bdf8;
+      }
+    }
+
+    .telemetry-clock {
+      font-family: 'JetBrains Mono', monospace;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Contenedor Principal
+   -------------------------------------------------------------------------- */
+.portal-main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   Estados de Carga y Error
+   -------------------------------------------------------------------------- */
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+  text-align: center;
+  gap: 1.25rem;
+
+  .loading-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 1.25rem;
+    padding: 3rem 2rem;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+
+    .loading-pulse-shield {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(30, 58, 138, 0.25);
+      border: 2px solid rgba(59, 130, 246, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #60a5fa;
+      animation: pulseGlow 2s infinite ease-in-out;
+
+      mat-icon {
+        font-size: 36px;
+        width: 36px;
+        height: 36px;
+      }
+    }
+
+    .loading-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0;
+    }
+
+    .loading-desc {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin: 0;
+      line-height: 1.4;
+    }
+  }
+
+  .error-card {
+    background: linear-gradient(180deg, rgba(69, 10, 10, 0.5) 0%, rgba(15, 23, 42, 0.95) 100%);
+    border: 2px solid #ef4444;
+    border-radius: 1.25rem;
+    padding: 2.5rem 2rem;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 10px 30px -5px rgba(239, 68, 68, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+
+    .error-icon-box {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.2);
+      border: 2px solid #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f87171;
+
+      mat-icon {
+        font-size: 36px;
+        width: 36px;
+        height: 36px;
+      }
+    }
+
+    .error-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0;
+    }
+
+    .error-detail {
+      font-size: 0.9rem;
+      color: #fca5a5;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .error-advice {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #334155;
+      margin-top: 0.5rem;
+    }
+
+    .action-secondary-row {
+      width: 100%;
+      margin-top: 0.75rem;
+      display: flex;
+      justify-content: center;
+
+      .btn-secondary-action {
+        width: 100%;
+        background: #1e293b;
+        border: 1px solid #475569;
+        color: #ffffff;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #334155;
+          border-color: #64748b;
+        }
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+      }
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   BANNERS DE ESTADO DE HABILITACIÓN VEHICULAR
+   -------------------------------------------------------------------------- */
+.status-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+
+  .banner-stripe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+  }
+
+  &.status-vigente {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.45) 0%, rgba(15, 23, 42, 0.95) 100%);
+    border: 2px solid #10b981;
+    box-shadow: 0 10px 35px -5px rgba(16, 185, 129, 0.2);
+
+    .banner-stripe {
+      background-color: #10b981;
+    }
+
+    .status-icon-wrapper {
+      background: rgba(16, 185, 129, 0.2);
+      border: 2px solid #10b981;
+      color: #34d399;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .status-tag {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .status-headline {
+      color: #ffffff;
+    }
+
+    .status-time-box {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #a7f3d0;
+    }
+  }
+
+  &.status-inhabilitado {
+    background: linear-gradient(135deg, rgba(127, 29, 29, 0.5) 0%, rgba(15, 23, 42, 0.95) 100%);
+    border: 2px solid #ef4444;
+    box-shadow: 0 10px 35px -5px rgba(239, 68, 68, 0.25);
+
+    .banner-stripe {
+      background-color: #ef4444;
+    }
+
+    .status-icon-wrapper {
+      background: rgba(239, 68, 68, 0.2);
+      border: 2px solid #ef4444;
+      color: #f87171;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
+    }
+
+    .status-tag {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .status-headline {
+      color: #fecaca;
+    }
+
+    .status-time-box {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+  }
+
+  .banner-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    .banner-main-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .status-icon-wrapper {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        mat-icon {
+          font-size: 34px;
+          width: 34px;
+          height: 34px;
+        }
+      }
+
+      .status-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      .status-headline {
+        font-size: 1.35rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        margin: 0.25rem 0 0.15rem 0;
+        line-height: 1.2;
+      }
+
+      .status-subtitle {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin: 0;
+      }
+    }
+
+    .banner-dates-badge {
+      text-align: right;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-left: auto;
+
+      .date-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #94a3b8;
+        display: block;
+        font-weight: 700;
+      }
+
+      .date-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #ffffff;
+      }
+    }
+  }
+
+  .banner-meta-grid {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+
+    .meta-col {
+      .meta-lbl {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: #94a3b8;
+        display: block;
+      }
+
+      .meta-data {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #f1f5f9;
+        margin-top: 2px;
+        display: block;
+      }
+    }
+  }
+
+  .banner-alert-box {
+    margin-top: 1rem;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+
+    .alert-box-title {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #f87171;
+      margin-bottom: 0.25rem;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .alert-box-desc {
+      font-size: 0.8rem;
+      color: #e2e8f0;
+      margin: 0;
+      line-height: 1.4;
+    }
+  }
+
+  .banner-bottom-badge {
+    margin-top: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   PLACA OFICIAL SKEUOMORFICA (Estilo Chapa Perú Oficial MTC)
+   -------------------------------------------------------------------------- */
+.plate-showcase-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem 0 2rem 0;
+
+  .plate-frame {
+    width: 100%;
+    max-width: 320px;
+    background: #ffffff;
+    border: 5px solid #0f172a;
+    border-radius: 12px;
+    padding: 6px 12px 10px 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), inset 0 0 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+    user-select: all;
+
+    /* Tornillos en las esquinas */
+    .screw {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #94a3b8;
+      border: 1px solid #475569;
+      border-radius: 50%;
+      box-shadow: inset 1px 1px 2px #ffffff, 0 1px 2px rgba(0, 0, 0, 0.4);
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 4px;
+        left: 2px;
+        width: 6px;
+        height: 1.5px;
+        background: #334155;
+      }
+
+      &.screw-top-left { top: -6px; left: 18px; }
+      &.screw-top-right { top: -6px; right: 18px; }
+      &.screw-bottom-left { bottom: -6px; left: 18px; }
+      &.screw-bottom-right { bottom: -6px; right: 18px; }
+    }
+
+    .plate-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid rgba(15, 23, 42, 0.15);
+      padding-bottom: 2px;
+      margin-bottom: 4px;
+
+      .plate-dept-tag {
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+
+        .dot-red {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #d91023;
+        }
+      }
+
+      .plate-country-name {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.95rem;
+        font-weight: 900;
+        letter-spacing: 0.22em;
+        color: #0f172a;
+      }
+    }
+
+    .plate-number-display {
+      text-align: center;
+      line-height: 1;
+      padding: 6px 0 2px 0;
+
+      .plate-text {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        color: #000000;
+        display: block;
+        text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+      }
+    }
+  }
+
+  .plate-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+
+    .plate-hint {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+    }
+
+    .btn-copy-plate {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #334155;
+        color: #ffffff;
+      }
+
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   SECCIONES Y TARJETAS (Bento Grid)
+   -------------------------------------------------------------------------- */
+.bento-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.official-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+
+  &.card-full-width {
+    grid-column: 1 / -1;
+  }
+
+  .card-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #1e293b;
+    margin-bottom: 1rem;
+
+    .card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+
+      .card-header-icon {
+        color: #38bdf8;
+        display: flex;
+        align-items: center;
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .card-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #ffffff;
+        margin: 0;
+      }
+    }
+
+    .card-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+
+      &.badge-neutral {
+        background: #1e293b;
+        color: #94a3b8;
+        border: 1px solid #334155;
+      }
+
+      &.badge-success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+
+      &.badge-sunat {
+        background: rgba(14, 165, 233, 0.15);
+        color: #38bdf8;
+        border: 1px solid rgba(14, 165, 233, 0.3);
+      }
+    }
+  }
+
+  /* Grid de Datos Técnicos Vehiculares */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+
+    .tech-item {
+      background: #090e1a;
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      border-radius: 0.6rem;
+      padding: 0.65rem 0.85rem;
+
+      &.item-full {
+        grid-column: 1 / -1;
+      }
+
+      .item-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+        color: #94a3b8;
+        display: block;
+        margin-bottom: 0.15rem;
+      }
+
+      .item-value {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #ffffff;
+        display: block;
+
+        &.font-mono {
+          font-family: 'JetBrains Mono', monospace;
+          letter-spacing: 0.02em;
+        }
+
+        &.item-val-accent {
+          color: #38bdf8;
+        }
+
+        &.item-val-gold {
+          color: #fbbf24;
+        }
+      }
+
+      .item-header-action {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .btn-mini-copy {
+        background: transparent;
+        border: none;
+        color: #64748b;
+        font-size: 0.65rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        cursor: pointer;
+        padding: 0;
+
+        &:hover {
+          color: #38bdf8;
+        }
+
+        mat-icon {
+          font-size: 13px;
+          width: 13px;
+          height: 13px;
+        }
+      }
+    }
+  }
+
+  /* Empresa Info */
+  .company-info-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+
+    .company-name-box {
+      .company-lbl {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+        color: #94a3b8;
+        display: block;
+      }
+
+      .company-name {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0.2rem 0 0 0;
+        line-height: 1.25;
+      }
+    }
+
+    .company-sub-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+
+      .sub-item {
+        background: #090e1a;
+        border: 1px solid rgba(51, 65, 85, 0.5);
+        border-radius: 0.6rem;
+        padding: 0.65rem 0.85rem;
+
+        .sub-lbl {
+          font-size: 0.65rem;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: #94a3b8;
+          display: block;
+        }
+
+        .sub-val {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #ffffff;
+          margin-top: 2px;
+          display: block;
+
+          &.val-ruc {
+            font-family: 'JetBrains Mono', monospace;
+            color: #38bdf8;
+          }
+
+          &.val-resolucion {
+            color: #34d399;
+          }
+        }
+      }
+    }
+
+    .resolution-card-inner {
+      background: #090e1a;
+      border: 1px solid rgba(51, 65, 85, 0.6);
+      border-radius: 0.6rem;
+      padding: 0.75rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      .res-meta {
+        font-size: 0.72rem;
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+
+        mat-icon {
+          font-size: 15px;
+          width: 15px;
+          height: 15px;
+          color: #fbbf24;
+        }
+      }
+    }
+  }
+
+  /* Rutas Table / Cards */
+  .routes-wrapper {
+    .empty-routes {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-style: italic;
+      padding: 1rem 0;
+      text-align: center;
+    }
+
+    .route-table-container {
+      overflow-x: auto;
+
+      .route-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+        text-align: left;
+
+        thead {
+          tr {
+            border-bottom: 1px solid #334155;
+
+            th {
+              padding: 0.5rem 0.75rem;
+              font-size: 0.68rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              font-weight: 700;
+              color: #94a3b8;
+            }
+          }
+        }
+
+        tbody {
+          tr {
+            border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+            transition: background 0.15s ease;
+
+            &:hover {
+              background: rgba(30, 41, 59, 0.5);
+            }
+
+            td {
+              padding: 0.75rem;
+              vertical-align: middle;
+
+              &.td-code {
+                font-family: 'JetBrains Mono', monospace;
+                font-weight: 800;
+                color: #fbbf24;
+              }
+
+              &.td-corridor {
+                font-weight: 700;
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+
+                mat-icon {
+                  font-size: 14px;
+                  width: 14px;
+                  height: 14px;
+                  color: #38bdf8;
+                }
+              }
+
+              &.td-itinerary {
+                color: #cbd5e1;
+                font-size: 0.75rem;
+              }
+
+              &.td-freq {
+                color: #94a3b8;
+                font-weight: 600;
+                font-size: 0.75rem;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* Certificaciones Obligatorias / Garantías (SOAT, CITV) */
+  .security-guarantees-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #1e293b;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+
+    .guarantee-box {
+      background: #090e1a;
+      border: 1px solid #334155;
+      border-radius: 0.6rem;
+      padding: 0.75rem 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+
+      .guarantee-left {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+
+        .guarantee-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: rgba(16, 185, 129, 0.15);
+          color: #34d399;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+          }
+        }
+
+        .guarantee-title {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        .guarantee-sub {
+          font-size: 0.68rem;
+          color: #94a3b8;
+          font-family: 'JetBrains Mono', monospace;
+        }
+      }
+
+      .guarantee-badge {
+        font-size: 0.68rem;
+        font-weight: 800;
+        font-family: 'JetBrains Mono', monospace;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   VALIDACIÓN CRIPTOGRÁFICA Y HASH SHA-256
+   -------------------------------------------------------------------------- */
+.cryptographic-card {
+  background: #0a0f1d;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+
+  .crypto-watermark-stamp {
+    position: absolute;
+    right: -10px;
+    bottom: -15px;
+    opacity: 0.04;
+    pointer-events: none;
+    transform: rotate(-12deg);
+    border: 3px dashed #ffffff;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    font-size: 1.5rem;
+    font-weight: 900;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+
+  .crypto-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #1e293b;
+
+    .crypto-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      mat-icon {
+        color: #34d399;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .pki-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: #1e293b;
+      color: #94a3b8;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #334155;
+    }
+  }
+
+  .crypto-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    .crypto-cert-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 0.6rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.78rem;
+
+      .cert-info {
+        .cert-authority {
+          font-weight: 700;
+          color: #f1f5f9;
+        }
+        .cert-sync {
+          font-size: 0.7rem;
+          color: #94a3b8;
+          margin-top: 2px;
+        }
+      }
+
+      .cert-shield-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: #34d399;
+        font-size: 0.72rem;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+
+    .hash-container {
+      background: #060913;
+      border: 1px solid #1e293b;
+      border-radius: 0.6rem;
+      padding: 0.75rem 1rem;
+
+      .hash-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.4rem;
+
+        .hash-lbl {
+          font-size: 0.65rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-weight: 700;
+          color: #94a3b8;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+
+          mat-icon {
+            font-size: 13px;
+            width: 13px;
+            height: 13px;
+            color: #38bdf8;
+          }
+        }
+
+        .btn-copy-hash {
+          background: transparent;
+          border: none;
+          color: #38bdf8;
+          font-size: 0.7rem;
+          font-weight: 700;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          padding: 0;
+
+          &:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+          }
+
+          mat-icon {
+            font-size: 13px;
+            width: 13px;
+            height: 13px;
+          }
+        }
+      }
+
+      .hash-string {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        color: #34d399;
+        word-break: break-all;
+        background: #090e1a;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        border: 1px solid rgba(51, 65, 85, 0.5);
+        user-select: all;
+        line-height: 1.35;
+      }
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   BARRA DE ACCIONES TÁCTICAS
+   -------------------------------------------------------------------------- */
+.action-buttons-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+
+  .btn-print-action {
+    width: 100%;
+    background: linear-gradient(135deg, #1e3a8a, #0f172a);
+    color: #ffffff;
+    border: 1px solid #3b82f6;
+    padding: 0.85rem 1.5rem;
+    border-radius: 0.75rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: linear-gradient(135deg, #2563eb, #1e3a8a);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .action-secondary-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+
+    .btn-secondary-action {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      padding: 0.7rem 1rem;
+      border-radius: 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #1e293b;
+        color: #ffffff;
+        border-color: #475569;
+      }
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #94a3b8;
+      }
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   PIE DE PÁGINA INSTITUCIONAL
+   -------------------------------------------------------------------------- */
+.portal-footer {
+  background: #080d1a;
+  border-top: 1px solid #1e293b;
+  padding: 2rem 1.25rem 3rem 1.25rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.78rem;
+
+  .footer-container {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+
+    .footer-gov-name {
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #94a3b8;
+      font-size: 0.82rem;
+    }
+
+    .footer-norma {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin: 0;
+      max-width: 600px;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 0.5rem;
+      font-size: 0.72rem;
+
+      a {
+        color: #38bdf8;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+
+      .sep {
+        color: #334155;
+      }
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   ANIMACIONES
+   -------------------------------------------------------------------------- */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   ESTILOS DE IMPRESIÓN (PRINT OPTIMIZATION)
+   -------------------------------------------------------------------------- */
+@media print {
+  :host {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .peru-ribbon,
+  .telemetry-strip,
+  .action-buttons-group,
+  .btn-mini-copy,
+  .btn-copy-plate,
+  .btn-copy-hash,
+  .portal-footer .footer-links {
+    display: none !important;
+  }
+
+  .portal-header {
+    background: #ffffff !important;
+    border-bottom: 2px solid #000000 !important;
+    position: static !important;
+    box-shadow: none !important;
+
+    .brand-title {
+      color: #000000 !important;
+      .brand-puno { color: #d91023 !important; }
+    }
+    .brand-dept, .brand-subtitle-gov {
+      color: #333333 !important;
+    }
+    .header-badge-status {
+      border: 1px solid #000000 !important;
+      background: #f1f5f9 !important;
+      .badge-label { color: #000000 !important; }
+    }
+  }
+
+  .portal-main {
+    padding: 0.5cm !important;
+    max-width: 100% !important;
+  }
+
+  .status-banner {
+    background: #ffffff !important;
+    border: 2px solid #000000 !important;
+    box-shadow: none !important;
+    color: #000000 !important;
+
+    .status-headline { color: #000000 !important; }
+    .status-subtitle, .meta-lbl { color: #444444 !important; }
+    .meta-data { color: #000000 !important; }
+    .banner-dates-badge {
+      background: #f1f5f9 !important;
+      border: 1px solid #000000 !important;
+      .date-val { color: #000000 !important; }
+    }
+  }
+
+  .plate-showcase-section .plate-frame {
+    box-shadow: none !important;
+    border: 3px solid #000000 !important;
+  }
+
+  .official-card,
+  .cryptographic-card {
+    background: #ffffff !important;
+    border: 1px solid #999999 !important;
+    box-shadow: none !important;
+    color: #000000 !important;
+    page-break-inside: avoid;
+
+    .card-title { color: #000000 !important; }
+    .tech-item, .sub-item, .resolution-card-inner, .guarantee-box, .crypto-cert-strip, .hash-container {
+      background: #fafafa !important;
+      border: 1px solid #cccccc !important;
+      color: #000000 !important;
+    }
+    .item-value, .sub-val, .company-name { color: #000000 !important; }
+    .item-label, .sub-lbl, .company-lbl { color: #555555 !important; }
+  }
+
+  .route-table {
+    thead th { color: #000000 !important; border-bottom: 2px solid #000000 !important; }
+    tbody td {
+      color: #000000 !important;
+      border-bottom: 1px solid #cccccc !important;
+      &.td-code { color: #000000 !important; font-weight: bold; }
+      &.td-corridor { color: #000000 !important; }
+    }
+  }
+
+  .hash-string {
+    background: #f1f5f9 !important;
+    color: #000000 !important;
+    border: 1px solid #999999 !important;
+  }
+}

@@ -11,11 +11,12 @@ import {
 import { ThemeService } from '../../services/theme.service';
 import Chart from 'chart.js/auto';
 import * as XLSX from 'xlsx';
+import { FechaLatinaPipe } from '../../pipes/fecha-latina.pipe';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FechaLatinaPipe],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })

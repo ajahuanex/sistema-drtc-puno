@@ -17,6 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TucService } from '../../services/tuc.service';
 import { Tuc, TipoEmisionTuc, EstadoTuc, TucEstadisticas } from '../../models/tuc.model';
 import { TucKardexModalComponent } from './tuc-kardex-modal.component';
+import { formatoFechaLatina } from '../../pipes/fecha-latina.pipe';
 
 @Component({
   selector: 'app-tuc-catalogo',
@@ -123,10 +124,10 @@ import { TucKardexModalComponent } from './tuc-kardex-modal.component';
 
         <div class="kpi-card border-kpi-rose">
           <div class="kpi-header">
-            <span>Anuladas / Bajas</span>
+            <span>Anuladas / Inhabilitadas</span>
             <mat-icon class="kpi-icon text-rose">block</mat-icon>
           </div>
-          <div class="kpi-value text-rose">{{ (estadisticas()?.anuladas || 0) + (estadisticas()?.reemplazadas || 0) }}</div>
+          <div class="kpi-value text-rose">{{ (estadisticas()?.anuladas || 0) + (estadisticas()?.reemplazadas || 0) + (estadisticas()?.inhabilitadas || 0) }}</div>
         </div>
 
         <div class="kpi-card border-kpi-purple">
@@ -175,6 +176,8 @@ import { TucKardexModalComponent } from './tuc-kardex-modal.component';
             <select [(ngModel)]="filtroEstado" (change)="buscar()" class="filter-select">
               <option value="">-- Todos los Estados --</option>
               <option value="VIGENTE">VIGENTE</option>
+              <option value="INHABILITADA">INHABILITADA</option>
+              <option value="VENCIDA">VENCIDA</option>
               <option value="ANULADA">ANULADA</option>
               <option value="REEMPLAZADA">REEMPLAZADA</option>
               <option value="ANULADA_POR_DUPLICADO">ANULADA POR DUPLICADO</option>
@@ -306,8 +309,8 @@ import { TucKardexModalComponent } from './tuc-kardex-modal.component';
 
                     <!-- Vigencia Desde - Hasta -->
                     <td class="whitespace-nowrap">
-                      <div class="fecha-main">{{ tuc.fechaEmision }}</div>
-                      <div class="fecha-sub">Al {{ tuc.fechaVencimiento || 'INDEFINIDO' }}</div>
+                      <div class="fecha-main">{{ formatearFecha(tuc.fechaEmision) }}</div>
+                      <div class="fecha-sub">Al {{ formatearFecha(tuc.fechaVencimiento) || 'INDEFINIDO' }}</div>
                     </td>
 
                     <!-- Estado -->
@@ -315,6 +318,8 @@ import { TucKardexModalComponent } from './tuc-kardex-modal.component';
                       <span class="status-pill"
                             [ngClass]="{
                               'status-vigente': tuc.estado === 'VIGENTE',
+                              'status-inhabilitada': tuc.estado === 'INHABILITADA',
+                              'status-vencida': tuc.estado === 'VENCIDA',
                               'status-anulada': tuc.estado === 'ANULADA' || tuc.estado === 'ANULADA_POR_DUPLICADO',
                               'status-reemplazada': tuc.estado === 'REEMPLAZADA'
                             }">
@@ -834,6 +839,18 @@ import { TucKardexModalComponent } from './tuc-kardex-modal.component';
       border: 1px solid #a7f3d0;
     }
 
+    .status-inhabilitada {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+    }
+
+    .status-vencida {
+      background: #fff7ed;
+      color: #c2410c;
+      border: 1px solid #fed7aa;
+    }
+
     .status-anulada {
       background: #fef2f2;
       color: #b91c1c;
@@ -1091,6 +1108,18 @@ import { TucKardexModalComponent } from './tuc-kardex-modal.component';
         background: rgba(16, 185, 129, 0.15) !important;
         color: #34d399 !important;
         border-color: rgba(16, 185, 129, 0.3) !important;
+      }
+
+      .status-inhabilitada {
+        background: rgba(239, 68, 68, 0.2) !important;
+        color: #f87171 !important;
+        border-color: rgba(239, 68, 68, 0.4) !important;
+      }
+
+      .status-vencida {
+        background: rgba(249, 115, 22, 0.15) !important;
+        color: #fb923c !important;
+        border-color: rgba(249, 115, 22, 0.3) !important;
       }
 
       .status-anulada {
@@ -1371,5 +1400,9 @@ export class TucCatalogoComponent implements OnInit {
         this.snackBar.open(`Error al sincronizar con flota: ${err?.error?.detail || err.message}`, 'Cerrar', { duration: 4000 });
       }
     });
+  }
+
+  formatearFecha(fechaStr: string | null | undefined): string {
+    return formatoFechaLatina(fechaStr);
   }
 }

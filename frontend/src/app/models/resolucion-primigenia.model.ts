@@ -18,6 +18,7 @@ export interface ModificacionHistorial {
 export interface ResolucionPrimigenia {
   id: string;
   ruc_empresa: string;
+  razon_social?: string;
   nro_resolucion: string;
   siglas?: string;
   fecha_resolucion: Date | string;

@@ -437,6 +437,10 @@ class FlotaEmpresaService:
     async def _sincronizar_tuc_registro(self, doc_veh: dict):
         """
         Sincroniza automáticamente un vehículo con número de TUC hacia la colección 'tucs'.
+        Aplica reglas de negocio MTC / DRTC Puno:
+        - Inicio de vigencia: fecha de expedición o fecha de emisión de la resolución hija (o trámite/expediente).
+        - Fin de vigencia: fecha de fin de vigencia de la primigenia, sujeta al régimen de permanencia del vehículo.
+        - Estado: depende directamente de si el vehículo sigue habilitado o no en la flota.
         """
         try:
             raw_tuc = str(doc_veh.get("numero_tuc") or doc_veh.get("tuc") or "").strip().upper()
@@ -447,13 +451,45 @@ class FlotaEmpresaService:
             ruc = str(doc_veh.get("ruc") or "").strip()
             razon_social = str(doc_veh.get("razon_social") or ruc).strip()
             nro_res = str(doc_veh.get("nro_resolucion_hija") or doc_veh.get("nro_resolucion_primigenia") or "").strip().upper()
+            nro_prim_raw = str(doc_veh.get("nro_resolucion_primigenia") or "").strip().upper()
+            nro_hija_raw = str(doc_veh.get("nro_resolucion_hija") or "").strip().upper()
 
             tipo_emision = "ELECTRONICA" if raw_tuc.startswith("TE-") or "E-" in raw_tuc else "FISICA"
-            estado_tuc = "VIGENTE" if doc_veh.get("estado") == "HABILITADO" else "ANULADA"
+
+            # Buscar primigenia en resoluciones_primigenias para garantizar datos de fin de vigencia
+            prim_doc = None
+            if nro_prim_raw:
+                norm_p = _normalizar_codigo_resolucion(nro_prim_raw) or nro_prim_raw
+                prim_doc = await self.db["resoluciones_primigenias"].find_one({
+                    "$or": [
+                        {"nro_resolucion": nro_prim_raw},
+                        {"nro_resolucion": norm_p},
+                        {"nro_resolucion": re.compile(f"^{re.escape(nro_prim_raw)}$", re.I)},
+                        {"nro_resolucion": re.compile(f"^{re.escape(norm_p)}$", re.I)},
+                        {"nroResolucion": re.compile(f"^{re.escape(nro_prim_raw)}$", re.I)}
+                    ]
+                })
 
             f_emision_raw = doc_veh.get("fecha_emision_resolucion") or doc_veh.get("fecha_cronologica") or doc_veh.get("fecha_expediente")
-            f_emision = str(f_emision_raw)[:10] if f_emision_raw else datetime.utcnow().date().isoformat()
-            f_venc = str(doc_veh.get("fecha_vigencia_hasta"))[:10] if doc_veh.get("fecha_vigencia_hasta") else None
+            f_venc_raw = doc_veh.get("fecha_vigencia_hasta")
+
+            from app.utils.tuc_vigencia_utils import calcular_vigencia_tuc, determinar_estado_tuc
+            vig = calcular_vigencia_tuc(
+                fecha_hija=f_emision_raw if nro_hija_raw else None,
+                fecha_primigenia_inicio=prim_doc.get("fecha_inicio_vigencia") or prim_doc.get("fecha_resolucion") if prim_doc else f_emision_raw,
+                fecha_primigenia_fin=f_venc_raw or (prim_doc.get("fecha_fin_vigencia") or prim_doc.get("fecha_vigencia_hasta") if prim_doc else None),
+                anio_fabricacion=doc_veh.get("anio_fabricacion"),
+                anio_modelo=doc_veh.get("anio_modelo"),
+                fecha_actual=datetime.utcnow().date()
+            )
+
+            f_emision = vig["fecha_inicio"]
+            f_venc = vig["fecha_fin"]
+            estado_tuc = determinar_estado_tuc(
+                estado_vehiculo_flota=doc_veh.get("estado"),
+                fecha_fin_vigencia=f_venc,
+                fecha_actual=datetime.utcnow().date()
+            )
 
             from app.services.tuc_service import generar_hash_tuc
             hash_seg = generar_hash_tuc(raw_tuc, placa, ruc, f_emision)
@@ -481,14 +517,16 @@ class FlotaEmpresaService:
 
             datos_resolucion = {
                 "nroResolucion": nro_res,
-                "fechaEmision": f_emision
+                "nroResolucionPrimigenia": nro_prim_raw,
+                "fechaEmision": f_emision,
+                "fechaInicioVigencia": f_emision,
+                "fechaFinVigencia": f_venc,
+                "influyePermanencia": vig.get("influye_permanencia", False),
+                "fechaLimitePermanencia": vig.get("fecha_limite_permanencia")
             }
 
             # Validar tipo de resolución hija contra el módulo 'resoluciones_hijas'
-            nro_hija_raw = str(doc_veh.get("nro_resolucion_hija") or "").strip().upper()
-            nro_prim_raw = str(doc_veh.get("nro_resolucion_primigenia") or "").strip().upper()
             tipo_hija_val = doc_veh.get("tipo_resolucion_hija")
-
             if not tipo_hija_val and nro_hija_raw:
                 h_doc = await self.db["resoluciones_hijas"].find_one({
                     "$or": [
@@ -573,6 +611,19 @@ class FlotaEmpresaService:
                 },
                 upsert=True
             )
+
+            # Si el documento de flota no tenía fecha_vigencia_hasta, sincronizarlo
+            if doc_veh.get("_id") and (not doc_veh.get("fecha_vigencia_hasta") or not doc_veh.get("fecha_inicio_vigencia")):
+                update_flota = {}
+                if not doc_veh.get("fecha_vigencia_hasta") and f_venc:
+                    update_flota["fecha_vigencia_hasta"] = f_venc
+                if not doc_veh.get("fecha_inicio_vigencia") and f_emision:
+                    update_flota["fecha_inicio_vigencia"] = f_emision
+                if update_flota:
+                    await self.collection.update_one(
+                        {"_id": doc_veh["_id"]},
+                        {"$set": update_flota}
+                    )
         except Exception as err:
             logger.warning(f"Error sincronizando TUC automática: {err}")
 
@@ -593,14 +644,27 @@ class FlotaEmpresaService:
             prim_doc = await self.db["resoluciones_primigenias"].find_one({
                 "$or": [
                     {"nro_resolucion": doc["nro_resolucion_primigenia"]},
-                    {"nro_resolucion": re.compile(f"^{re.escape(doc['nro_resolucion_primigenia'])}$", re.I)}
+                    {"nro_resolucion": re.compile(f"^{re.escape(doc['nro_resolucion_primigenia'])}$", re.I)},
+                    {"nroResolucion": re.compile(f"^{re.escape(doc['nro_resolucion_primigenia'])}$", re.I)}
                 ]
             })
             if prim_doc:
                 if prim_doc.get("estado"):
                     doc["estado_primigenia"] = prim_doc.get("estado")
-                if prim_doc.get("fecha_vigencia_hasta"):
-                    doc["fecha_vigencia_hasta"] = prim_doc.get("fecha_vigencia_hasta")
+                from app.utils.tuc_vigencia_utils import calcular_vigencia_tuc
+                vig = calcular_vigencia_tuc(
+                    fecha_hija=doc.get("fecha_resolucion_hija") or doc.get("fecha_emision_resolucion") or doc.get("fecha_expediente"),
+                    fecha_primigenia_inicio=prim_doc.get("fecha_inicio_vigencia") or prim_doc.get("fecha_resolucion"),
+                    fecha_primigenia_fin=prim_doc.get("fecha_fin_vigencia") or prim_doc.get("fecha_vigencia_hasta"),
+                    anio_fabricacion=doc.get("anio_fabricacion"),
+                    anio_modelo=doc.get("anio_modelo")
+                )
+                if vig.get("fecha_fin"):
+                    doc["fecha_vigencia_hasta"] = vig["fecha_fin"]
+                if vig.get("fecha_inicio") and not doc.get("fecha_inicio_vigencia"):
+                    doc["fecha_inicio_vigencia"] = vig["fecha_inicio"]
+                doc["limite_permanencia_aplicado"] = vig.get("influye_permanencia", False)
+                doc["fecha_limite_permanencia"] = vig.get("fecha_limite_permanencia")
 
         # Validar tipo de resolución hija desde 'resoluciones_hijas' si no viene asignado
         if doc.get("nro_resolucion_hija") and not doc.get("tipo_resolucion_hija"):
@@ -656,14 +720,33 @@ class FlotaEmpresaService:
             prim_doc = await self.db["resoluciones_primigenias"].find_one({
                 "$or": [
                     {"nro_resolucion": updates["nro_resolucion_primigenia"]},
-                    {"nro_resolucion": re.compile(f"^{re.escape(updates['nro_resolucion_primigenia'])}$", re.I)}
+                    {"nro_resolucion": re.compile(f"^{re.escape(updates['nro_resolucion_primigenia'])}$", re.I)},
+                    {"nroResolucion": re.compile(f"^{re.escape(updates['nro_resolucion_primigenia'])}$", re.I)}
                 ]
             })
             if prim_doc:
                 if prim_doc.get("estado"):
                     updates["estado_primigenia"] = prim_doc.get("estado")
-                if prim_doc.get("fecha_vigencia_hasta"):
-                    updates["fecha_vigencia_hasta"] = prim_doc.get("fecha_vigencia_hasta")
+                
+                prev_doc = await self.collection.find_one({"_id": ObjectId(doc_id)})
+                anio_f = updates.get("anio_fabricacion") or (prev_doc.get("anio_fabricacion") if prev_doc else None)
+                anio_m = updates.get("anio_modelo") or (prev_doc.get("anio_modelo") if prev_doc else None)
+                f_hija_val = updates.get("fecha_resolucion_hija") or updates.get("fecha_emision_resolucion") or (prev_doc.get("fecha_emision_resolucion") if prev_doc else None)
+                
+                from app.utils.tuc_vigencia_utils import calcular_vigencia_tuc
+                vig = calcular_vigencia_tuc(
+                    fecha_hija=f_hija_val,
+                    fecha_primigenia_inicio=prim_doc.get("fecha_inicio_vigencia") or prim_doc.get("fecha_resolucion"),
+                    fecha_primigenia_fin=prim_doc.get("fecha_fin_vigencia") or prim_doc.get("fecha_vigencia_hasta"),
+                    anio_fabricacion=anio_f,
+                    anio_modelo=anio_m
+                )
+                if vig.get("fecha_fin"):
+                    updates["fecha_vigencia_hasta"] = vig["fecha_fin"]
+                if vig.get("fecha_inicio") and not updates.get("fecha_inicio_vigencia"):
+                    updates["fecha_inicio_vigencia"] = vig["fecha_inicio"]
+                updates["limite_permanencia_aplicado"] = vig.get("influye_permanencia", False)
+                updates["fecha_limite_permanencia"] = vig.get("fecha_limite_permanencia")
 
         if "nro_resolucion_hija" in updates and updates["nro_resolucion_hija"]:
             updates["nro_resolucion_hija"] = _normalizar_codigo_resolucion(updates["nro_resolucion_hija"])
@@ -746,6 +829,8 @@ class FlotaEmpresaService:
         actualizados = 0
         bajas_sustitucion = 0
         bajas_renovacion = 0
+        bajas_desafectacion = 0
+        bajas_previas_info = []
 
         res_target = req.nro_resolucion_primigenia
         dt_inicio = None
@@ -1123,6 +1208,42 @@ class FlotaEmpresaService:
         # -------------------------------------------------------------
         # 3. PROCESAR CADA VEHÍCULO EN EL TRÁMITE (BAJAS, INCREMENTO, SUSTITUCION, DUPLICADO, CANJE)
         # -------------------------------------------------------------
+        # Obtener resolución primigenia de referencia para fecha límite oficial
+        res_prim_doc = None
+        if res_target:
+            clean_res = res_target.strip().upper()
+            sin_p = clean_res[2:] if clean_res.startswith("R-") else clean_res
+            res_prim_doc = await self.db.resoluciones_primigenias.find_one({
+                "ruc_empresa": ruc,
+                "$or": [
+                    {"nro_resolucion": clean_res},
+                    {"nro_resolucion": f"R-{sin_p}"},
+                    {"nro_resolucion": sin_p},
+                    {"nroResolucion": clean_res},
+                    {"nroResolucion": f"R-{sin_p}"},
+                    {"nroResolucion": sin_p}
+                ]
+            })
+            if not res_prim_doc:
+                res_prim_doc = await self.db.resoluciones_primigenias.find_one({
+                    "$or": [
+                        {"nro_resolucion": clean_res},
+                        {"nro_resolucion": f"R-{sin_p}"},
+                        {"nro_resolucion": sin_p},
+                        {"nroResolucion": clean_res},
+                        {"nroResolucion": f"R-{sin_p}"},
+                        {"nroResolucion": sin_p}
+                    ]
+                })
+
+        # Validación previa para SUSTITUCION: No permitir placas salientes duplicadas en el lote
+        if req.tipo_tramite == "SUSTITUCION":
+            placas_sal_req = [it.placa_saliente.strip().upper() for it in req.vehiculos if getattr(it, "placa_saliente", None)]
+            if len(placas_sal_req) != len(set(placas_sal_req)):
+                from collections import Counter
+                dups = [p for p, c in Counter(placas_sal_req).items() if c > 1]
+                raise ValueError(f"Operación Denegada: La placa saliente {', '.join(dups)} está repetida en el trámite. Un vehículo no puede ser sustituido más de una vez.")
+
         bajas_oficio = 0
         for item in req.vehiculos:
             placa_in = item.placa.strip().upper()
@@ -1147,19 +1268,23 @@ class FlotaEmpresaService:
                             "$push": {"observaciones_historial": nueva_obs_sal}
                         }
                     )
-                    # Invalidar TUC en el padrón oficial
+                    # Inhabilitar TUC en el padrón oficial (su vigencia depende de la habilitación del vehículo)
                     await self.db.tucs.update_many(
-                        {"placa": placa_in, "estado": "VIGENTE"},
+                        {
+                            "$or": [{"ruc": ruc}, {"rucEmpresa": ruc}],
+                            "placa": placa_in,
+                            "estado": {"$in": ["VIGENTE", "PENDIENTE_IMPRESION"]}
+                        },
                         {
                             "$set": {
-                                "estado": "ANULADA",
+                                "estado": "INHABILITADA",
                                 "motivoAnulacion": f"BAJA SEGUN RESOLUCION {res_ref} / {origen_texto}",
                                 "fechaActualizacion": now.isoformat()
                             },
                             "$push": {
                                 "historialCambios": {
                                     "fecha": now.isoformat(),
-                                    "accion": "ANULADA_POR_BAJA",
+                                    "accion": "INHABILITADA_POR_BAJA",
                                     "usuario": "CENTRO_TRAMITES",
                                     "detalle": f"Baja vehicular procesada en Centro de Trámites ({res_ref})"
                                 }
@@ -1216,6 +1341,30 @@ class FlotaEmpresaService:
                 except Exception as tuc_gen_err:
                     logger.warning(f"No se pudo autogenerar TUC para {placa_in}: {tuc_gen_err}")
 
+            # Calcular vigencia legal oficial de la TUC según marco normativo DRTC Puno / MTC:
+            # - Inicio: Fecha de expedición/emisión de la resolución hija (o trámite)
+            # - Fin: Fecha de fin de vigencia de la primigenia, salvo límite de permanencia
+            from app.utils.tuc_vigencia_utils import calcular_vigencia_tuc
+            f_hija_input = req.fecha_emision_resolucion or req.nueva_fecha_emision or req.fecha_expediente
+            f_prim_ini = dt_inicio if (req.tipo_tramite == "RENOVACION" or req.es_renovacion) else (
+                res_prim_doc.get("fecha_inicio_vigencia") or res_prim_doc.get("fecha_resolucion") or res_prim_doc.get("fecha_emision") if res_prim_doc else None
+            )
+            f_prim_fin = dt_fin if (req.tipo_tramite == "RENOVACION" or req.es_renovacion) else (
+                res_prim_doc.get("fecha_fin_vigencia") or res_prim_doc.get("fecha_vigencia_hasta") if res_prim_doc else None
+            )
+
+            vig_veh = calcular_vigencia_tuc(
+                fecha_hija=f_hija_input,
+                fecha_primigenia_inicio=f_prim_ini,
+                fecha_primigenia_fin=f_prim_fin,
+                anio_fabricacion=datos_tech.get("anio_fabricacion"),
+                anio_modelo=datos_tech.get("anio_modelo"),
+                fecha_actual=now.date()
+            )
+
+            f_inicio_calc = vig_veh.get("fecha_inicio") or (f_hija_input.isoformat()[:10] if isinstance(f_hija_input, (datetime, date)) else str(f_hija_input)[:10] if f_hija_input else None)
+            f_fin_calc = vig_veh.get("fecha_fin")
+
             # Construir objeto base del vehículo
             doc_veh = {
                 "ruc": ruc,
@@ -1225,9 +1374,11 @@ class FlotaEmpresaService:
                 "resolucion_hija_id": doc_hija_id,
                 "tramite_id": doc_hija_id,
                 "tipo_resolucion_hija": tipo_hija_val,
-                "fecha_emision_resolucion": req.fecha_emision_resolucion or req.nueva_fecha_emision,
-                "fecha_inicio_vigencia": dt_inicio if (req.tipo_tramite == "RENOVACION" or req.es_renovacion) else None,
-                "fecha_vigencia_hasta": dt_fin if (req.tipo_tramite == "RENOVACION" or req.es_renovacion) else None,
+                "fecha_emision_resolucion": f_inicio_calc or req.fecha_emision_resolucion or req.nueva_fecha_emision,
+                "fecha_inicio_vigencia": f_inicio_calc,
+                "fecha_vigencia_hasta": f_fin_calc,
+                "limite_permanencia_aplicado": vig_veh.get("influye_permanencia", False),
+                "fecha_limite_permanencia": vig_veh.get("fecha_limite_permanencia"),
                 "num_expediente": req.num_expediente,
                 "fecha_expediente": req.fecha_expediente,
                 "documento_origen": req.documento_origen,
@@ -1319,67 +1470,269 @@ class FlotaEmpresaService:
                     "fuente": "tramite_sustitucion"
                 })
 
-                # Dar de baja al vehículo saliente
+                # Dar de baja al vehículo saliente (Control estricto: no puede ser sustituido 2 veces)
                 placa_sal = item.placa_saliente.strip().upper()
-                v_saliente = await self.collection.find_one({"ruc": ruc, "placa": placa_sal, "esta_activo": {"$ne": False}})
-                if v_saliente:
-                    res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
-                    nueva_obs_sal = {
+                v_saliente = await self.collection.find_one({"ruc": ruc, "placa": placa_sal})
+                if not v_saliente:
+                    raise ValueError(f"Operación Denegada: El vehículo saliente {placa_sal} no pertenece a la flota registrada de la empresa.")
+                
+                estado_sal = str(v_saliente.get("estado", "")).upper()
+                activo_sal = v_saliente.get("esta_activo", True)
+                if estado_sal in ["SUSTITUIDO", "INHABILITADO", "BAJA"] or activo_sal is False:
+                    raise ValueError(
+                        f"Operación Denegada: El vehículo {placa_sal} ya se encuentra en estado '{estado_sal}' (ya fue sustituido o dado de baja anteriormente). Un vehículo no puede ser sustituido 2 veces."
+                    )
+
+                res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
+                nueva_obs_sal = {
+                    "fecha": now,
+                    "texto": f"BAJA POR SUSTITUCION (REEMPLAZADO POR {placa_in}) SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                    "fuente": "tramite_sustitucion"
+                }
+                await self.collection.update_one(
+                    {"_id": v_saliente["_id"]},
+                    {
+                        "$set": {
+                            "estado": "SUSTITUIDO",
+                            "esta_activo": False,
+                            "fecha_actualizacion": now,
+                            "fecha_baja": now,
+                            "motivo_baja": f"SUSTITUIDO POR {placa_in} SEGUN RESOLUCION {res_ref}"
+                        },
+                        "$push": {"observaciones_historial": nueva_obs_sal}
+                    }
+                )
+                # Inhabilitar TUC anterior por sustitución vehicular
+                await self.db.tucs.update_many(
+                    {
+                        "$or": [{"ruc": ruc}, {"rucEmpresa": ruc}],
+                        "placa": placa_sal,
+                        "estado": {"$in": ["VIGENTE", "PENDIENTE_IMPRESION"]}
+                    },
+                    {
+                        "$set": {
+                            "estado": "INHABILITADA",
+                            "motivoAnulacion": f"REEMPLAZADO POR VEHÍCULO {placa_in} SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                            "fechaActualizacion": now.isoformat()
+                        },
+                        "$push": {
+                            "historialCambios": {
+                                "fecha": now.isoformat(),
+                                "accion": "INHABILITADA_POR_SUSTITUCION",
+                                "usuario": "CENTRO_TRAMITES",
+                                "detalle": f"Sustituido por placa {placa_in} en trámite {res_ref}"
+                            }
+                        }
+                    }
+                )
+                bajas_sustitucion += 1
+
+            # ------------------------------------------------------------------
+            # VERIFICACIÓN Y APLICACIÓN DE BAJAS PREVIAS Y CONTROL DE DOBLE HABILITACIÓN
+            # Regla de negocio: UN VEHÍCULO NO PUEDE TENER DOBLE HABILITACIÓN
+            # ------------------------------------------------------------------
+            # 0. Verificación en la MISMA empresa (Evitar doble habilitación):
+            flota_misma_empresa = await self.collection.find({
+                "ruc": ruc,
+                "placa": placa_in,
+                "estado": "HABILITADO",
+                "esta_activo": {"$ne": False}
+            }).to_list(length=10)
+
+            if flota_misma_empresa and req.tipo_tramite in ["INCREMENTO", "SUSTITUCION", "RENOVACION"]:
+                dar_baja_misma = getattr(item, "dar_de_baja_misma_empresa", False)
+                v_misma_first = flota_misma_empresa[0]
+                res_existente = v_misma_first.get("nro_resolucion_hija") or v_misma_first.get("nro_resolucion_primigenia") or "Resolución Previa"
+                tuc_existente = v_misma_first.get("numero_tuc") or "S/TUC"
+                
+                if not dar_baja_misma:
+                    raise ValueError(
+                        f"Doble Habilitación Prohibida: El vehículo {placa_in} ya se encuentra HABILITADO en esta misma empresa "
+                        f"(Resolución: {res_existente}, TUC: {tuc_existente}). Un vehículo no puede tener doble habilitación; "
+                        f"debe disponer la baja de la habilitación anterior o retirar la unidad del trámite."
+                    )
+                else:
+                    # Inhabilitar formalmente la habilitación anterior en esta misma empresa
+                    for v_prev in flota_misma_empresa:
+                        res_prev_val = v_prev.get("nro_resolucion_hija") or v_prev.get("nro_resolucion_primigenia") or "Previa"
+                        tuc_prev_val = v_prev.get("numero_tuc") or ""
+                        obs_misma = {
+                            "fecha": now,
+                            "texto": f"DESAFECTACIÓN / BAJA DE HABILITACIÓN ANTERIOR (Res. {res_prev_val}, TUC {tuc_prev_val}) POR NUEVA HABILITACIÓN EN TRÁMITE {req.tipo_tramite} SEGÚN RESOLUCIÓN {res_ref} / {origen_texto}",
+                            "fuente": "tramite_baja_misma_empresa"
+                        }
+                        await self.collection.update_one(
+                            {"_id": v_prev["_id"]},
+                            {
+                                "$set": {
+                                    "estado": "INHABILITADO",
+                                    "esta_activo": False,
+                                    "fecha_actualizacion": now,
+                                    "fecha_baja": now,
+                                    "motivo_baja": f"REGULARIZADO/NUEVA HABILITACIÓN EN TRÁMITE {req.tipo_tramite} (RES. {res_ref})"
+                                },
+                                "$push": {"observaciones_historial": obs_misma}
+                            }
+                        )
+                        # Invalidar TUC anterior de la misma empresa en la colección de tucs
+                        if tuc_prev_val:
+                            await self.db.tucs.update_many(
+                                {
+                                    "$or": [{"ruc": ruc}, {"rucEmpresa": ruc}],
+                                    "placa": placa_in,
+                                    "nroTuc": tuc_prev_val,
+                                    "estado": {"$in": ["VIGENTE", "PENDIENTE_IMPRESION"]}
+                                },
+                                {
+                                    "$set": {
+                                        "estado": "INHABILITADA",
+                                        "motivoAnulacion": f"Baja por nueva habilitación en trámite {req.tipo_tramite} según Res. {res_ref}",
+                                        "fechaActualizacion": now.isoformat()
+                                    },
+                                    "$push": {
+                                        "historialCambios": {
+                                            "fecha": now.isoformat(),
+                                            "accion": "INHABILITADA_POR_REGULARIZACION",
+                                            "usuario": "CENTRO_TRAMITES",
+                                            "detalle": f"TUC anterior {tuc_prev_val} invalidada por regularización bajo nueva Res. {res_ref}"
+                                        }
+                                    }
+                                }
+                            )
+                        bajas_previas_info.append({
+                            "placa": placa_in,
+                            "tipo_baja": "MISMA_EMPRESA",
+                            "empresa_origen_ruc": ruc,
+                            "empresa_origen_razon": razon_social,
+                            "resolucion_origen": res_prev_val,
+                            "tuc_origen": tuc_prev_val
+                        })
+                        bajas_desafectacion += 1
+                        logger.info(f"Baja de habilitación previa procesada para placa {placa_in} en misma empresa {ruc}")
+
+            # 1. Baja de otra empresa regional DRTC Puno (Baja Interna Art. 68.1):
+            if getattr(item, "dar_de_baja_otra_empresa", False):
+                otra_flota_cursor = self.collection.find({
+                    "ruc": {"$ne": ruc},
+                    "placa": placa_in,
+                    "estado": "HABILITADO",
+                    "esta_activo": {"$ne": False}
+                })
+                async for v_otra in otra_flota_cursor:
+                    otra_emp_ruc = v_otra.get("ruc")
+                    otra_emp_razon = v_otra.get("razon_social") or getattr(item, "otra_empresa_razon", "") or "Empresa Registrada"
+                    otra_res_orig = v_otra.get("nro_resolucion_primigenia")
+                    obs_otra = {
                         "fecha": now,
-                        "texto": f"BAJA POR SUSTITUCION SEGUN RESOLUCION {res_ref} / {origen_texto}",
-                        "fuente": "tramite_sustitucion"
+                        "texto": f"DESAFECTACIÓN / BAJA PREVIA SEGÚN ART. 68.1 D.S. 017-2009-MTC POR INCORPORACIÓN A EMPRESA '{razon_social}' (RUC {ruc}) SEGÚN RESOLUCIÓN {res_ref} / {origen_texto}",
+                        "fuente": "tramite_desafectacion_art68_1"
                     }
                     await self.collection.update_one(
-                        {"_id": v_saliente["_id"]},
+                        {"_id": v_otra["_id"]},
                         {
                             "$set": {"estado": "INHABILITADO", "fecha_actualizacion": now},
-                            "$push": {"observaciones_historial": nueva_obs_sal}
+                            "$push": {"observaciones_historial": obs_otra}
                         }
                     )
-                    # Marcar TUC anterior como REEMPLAZADA por el nuevo vehículo entrante
+                    # Inhabilitar TUC anterior en empresa de origen (Baja Art. 68.1)
                     await self.db.tucs.update_many(
-                        {"placa": placa_sal, "estado": "VIGENTE"},
+                        {
+                            "$or": [{"ruc": otra_emp_ruc}, {"rucEmpresa": otra_emp_ruc}],
+                            "placa": placa_in,
+                            "estado": {"$in": ["VIGENTE", "PENDIENTE_IMPRESION"]}
+                        },
                         {
                             "$set": {
-                                "estado": "REEMPLAZADA",
-                                "motivoAnulacion": f"REEMPLAZADO POR VEHÍCULO {placa_in} SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                                "estado": "INHABILITADA",
+                                "motivoAnulacion": f"Baja según Art. 68.1 por pase a empresa RUC {ruc} mediante Res. {res_ref}",
                                 "fechaActualizacion": now.isoformat()
                             },
                             "$push": {
                                 "historialCambios": {
                                     "fecha": now.isoformat(),
-                                    "accion": "REEMPLAZADA_POR_SUSTITUCION",
+                                    "accion": "INHABILITADA_ART_68_1",
                                     "usuario": "CENTRO_TRAMITES",
-                                    "detalle": f"Sustituido por placa {placa_in} en trámite {res_ref}"
+                                    "detalle": f"Baja previa según Art. 68.1 por pase a empresa RUC {ruc} mediante Res. {res_ref}"
                                 }
                             }
                         }
                     )
-                    bajas_sustitucion += 1
-
-                # Si se solicitó dar de baja en otra empresa donde estuviese previamente habilitado:
-                if getattr(item, "dar_de_baja_otra_empresa", False):
-                    otra_flota_cursor = self.collection.find({
-                        "ruc": {"$ne": ruc},
+                    bajas_previas_info.append({
                         "placa": placa_in,
-                        "estado": "HABILITADO",
-                        "esta_activo": {"$ne": False}
+                        "tipo_baja": "INTERNA",
+                        "empresa_origen_ruc": otra_emp_ruc,
+                        "empresa_origen_razon": otra_emp_razon,
+                        "resolucion_origen": otra_res_orig
                     })
-                    async for v_otra in otra_flota_cursor:
-                        obs_otra = {
-                            "fecha": now,
-                            "texto": f"BAJA POR TRANSFERENCIA / SUSTITUCION A EMPRESA RUC {ruc} SEGUN RESOLUCION {res_ref} / {origen_texto}",
-                            "fuente": "tramite_sustitucion_otra_empresa"
-                        }
-                        await self.collection.update_one(
-                            {"_id": v_otra["_id"]},
-                            {
-                                "$set": {"estado": "INHABILITADO", "fecha_actualizacion": now},
-                                "$push": {"observaciones_historial": obs_otra}
-                            }
-                        )
-                        logger.info(f"Baja automatica procesada para placa {placa_in} en empresa RUC {v_otra.get('ruc')}")
+                    bajas_desafectacion += 1
+                    logger.info(f"Baja previa procesada para placa {placa_in} en empresa RUC {otra_emp_ruc} (Art. 68.1)")
 
+            # 2. Baja Externa Acreditada (MTC Nacional / Otra Región Art. 68.1):
+            baja_ext = getattr(item, "baja_externa", None)
+            if baja_ext and isinstance(baja_ext, dict):
+                emp_ext = baja_ext.get("empresa_origen") or getattr(item, "otra_empresa_razon", "") or "Empresa Externa"
+                res_ext = baja_ext.get("resolucion_baja") or baja_ext.get("documento_baja") or "S/N"
+                ambito_ext = baja_ext.get("ambito") or "NACIONAL_MTC"
+                fecha_ext = baja_ext.get("fecha_baja") or baja_ext.get("fecha_documento")
+
+                ruc_ext = baja_ext.get("ruc_empresa_origen") or baja_ext.get("ruc_empresa") or ""
+                evidencia_b64 = baja_ext.get("evidencia_base64") or baja_ext.get("archivo_evidencia")
+                evidencia_nom = baja_ext.get("evidencia_nombre")
+                evidencia_tipo = baja_ext.get("evidencia_tipo")
+                evidencia_tam = baja_ext.get("evidencia_tamano")
+
+                try:
+                    await self.db["bajas_externas"].update_one(
+                        {"placa": placa_in, "documento_baja": res_ext},
+                        {"$set": {
+                            "placa": placa_in,
+                            "empresa_origen": emp_ext,
+                            "ruc_empresa": ruc_ext,
+                            "razon_social": emp_ext,
+                            "motivo": f"Habilitado en DRTC Puno ({razon_social})",
+                            "documento_baja": res_ext,
+                            "ambito": ambito_ext,
+                            "archivo_evidencia": evidencia_b64,
+                            "evidencia_nombre": evidencia_nom,
+                            "evidencia_tipo": evidencia_tipo,
+                            "evidencia_tamano": evidencia_tam,
+                            "fecha_registro": now,
+                            "estado_notificacion": "PENDIENTE",
+                            "resolucion_drtc_destino": res_ref,
+                            "ruc_nueva_empresa": ruc,
+                            "razon_nueva_empresa": razon_social,
+                            "observaciones": f"Baja externa acreditada según Art. 68.1 D.S. 017-2009-MTC para trámite {req.tipo_tramite}. Notificar a la entidad competente."
+                        }},
+                        upsert=True
+                    )
+                except Exception as err_be:
+                    logger.warning(f"No se pudo guardar en bajas_externas para {placa_in}: {err_be}")
+
+                bajas_previas_info.append({
+                    "placa": placa_in,
+                    "tipo_baja": "EXTERNA",
+                    "empresa_origen_ruc": ruc_ext,
+                    "empresa_origen_razon": emp_ext,
+                    "resolucion_baja_externa": res_ext,
+                    "ambito": ambito_ext,
+                    "evidencia_nombre": evidencia_nom
+                })
+                bajas_desafectacion += 1
+
+            if req.tipo_tramite == "INCREMENTO":
+                detalle_baja = ""
+                if getattr(item, "dar_de_baja_misma_empresa", False):
+                    detalle_baja = " CON BAJA DE HABILITACIÓN PREVIA EN MISMA EMPRESA"
+                elif getattr(item, "dar_de_baja_otra_empresa", False):
+                    detalle_baja = " CON BAJA PREVIA REGIONAL (ART. 68.1)"
+                elif baja_ext:
+                    res_baja_txt = baja_ext.get("resolucion_baja") or "ACREDITADA"
+                    detalle_baja = f" CON BAJA EXTERNA (ART. 68.1: {res_baja_txt})"
+                obs_lista.append({
+                    "fecha": now,
+                    "texto": f"INCREMENTO DE FLOTA VEHICULAR (ART. 68.2 D.S. 017-2009-MTC){detalle_baja} SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                    "fuente": "tramite_incremento"
+                })
             elif req.tipo_tramite == "DUPLICADO":
                 obs_lista.append({
                     "fecha": now,
@@ -1474,6 +1827,56 @@ class FlotaEmpresaService:
                     if tuc_num:
                         tucs_alta.append(tuc_num.strip())
 
+        # Incluir placas de bajas previas (internas o externas) en vehículos salientes/desafectados
+        for bp in bajas_previas_info:
+            p_bp = bp.get("placa")
+            if p_bp and p_bp not in placas_sal:
+                placas_sal.append(p_bp)
+
+        # Construcción formal de la Parte Resolutiva según D.S. N° 017-2009-MTC
+        partes_desafectacion = []
+        if req.tipo_tramite == "SUSTITUCION":
+            placas_sust_sal = [it.placa_saliente.strip().upper() for it in req.vehiculos if it.placa_saliente]
+            if placas_sust_sal:
+                partes_desafectacion.append(
+                    f"Disponer la baja y desafectación de la flota vehicular de la empresa '{razon_social}' de la(s) unidad(es): {', '.join(placas_sust_sal)}"
+                )
+
+        if bajas_previas_info:
+            for bp in bajas_previas_info:
+                if bp.get("tipo_baja") == "MISMA_EMPRESA":
+                    res_orig = bp.get("resolucion_origen") or "precedente"
+                    tuc_txt = f" e invalidar el TUC {bp.get('tuc_origen')}" if bp.get("tuc_origen") else ""
+                    partes_desafectacion.append(
+                        f"Disponer la baja y desafectación de la habilitación precedente en esta empresa de la unidad con placa {bp.get('placa')} (Res. {res_orig}){tuc_txt}, para su incorporación formal bajo la presente resolución"
+                    )
+                elif bp.get("tipo_baja") == "INTERNA":
+                    emp_orig = bp.get("empresa_origen_razon") or "Empresa Registrada"
+                    ruc_orig = bp.get("empresa_origen_ruc") or ""
+                    ruc_txt = f" (RUC: {ruc_orig})" if ruc_orig else ""
+                    partes_desafectacion.append(
+                        f"Disponer la desafectación y baja de la flota de la empresa '{emp_orig}'{ruc_txt} de la unidad con placa {bp.get('placa')}"
+                    )
+                else:
+                    doc_ext = bp.get("resolucion_baja_externa") or "documento correspondiente"
+                    amb_ext = bp.get("ambito") or "MTC Nacional"
+                    partes_desafectacion.append(
+                        f"Tener por acreditada y registrar la baja previa de la unidad con placa {bp.get('placa')} en el ámbito {amb_ext} mediante {doc_ext}"
+                    )
+
+        if req.tipo_tramite == "BAJAS" and placas_sal:
+            partes_desafectacion.append(
+                f"Disponer la baja y desafectación de la flota vehicular de la empresa '{razon_social}' de la(s) unidad(es): {', '.join(placas_sal)}"
+            )
+
+        texto_art_1 = ""
+        if partes_desafectacion:
+            texto_art_1 = "ARTÍCULO PRIMERO (Art. 68.1 del D.S. N° 017-2009-MTC): " + " // ".join(partes_desafectacion) + "."
+
+        texto_art_2 = ""
+        if placas_ing:
+            texto_art_2 = f"ARTÍCULO SEGUNDO (Art. 68.2 del D.S. N° 017-2009-MTC): Disponer la afectación, habilitación e incorporación por concepto de {req.tipo_tramite} a la flota vehicular autorizada de la empresa '{razon_social}' (RUC: {ruc}) de la(s) unidad(es) vehicular(es) con placa(s): {', '.join(placas_ing)}."
+
         # Vinculación con resolución primigenia
         prim_doc = await self.db.resoluciones_primigenias.find_one({
             "ruc_empresa": ruc,
@@ -1504,6 +1907,11 @@ class FlotaEmpresaService:
             "fecha_expediente": fecha_exp,
             "vehiculos_ingresantes": placas_ing,
             "vehiculos_salientes": placas_sal,
+            "bajas_previas": bajas_previas_info,
+            "articulos_resolucion": {
+                "articulo_primero_desafectacion_68_1": texto_art_1,
+                "articulo_segundo_incorporacion_68_2": texto_art_2
+            },
             "rutas_modificadas_ids": req.nuevas_rutas or [],
             "numeros_tuc": tucs_alta,
             "tucs_baja": [],
@@ -1562,6 +1970,12 @@ class FlotaEmpresaService:
             "actualizados": actualizados,
             "bajas_sustitucion": bajas_sustitucion,
             "bajas_renovacion": bajas_renovacion,
+            "bajas_desafectacion": bajas_desafectacion,
+            "bajas_previas": bajas_previas_info,
+            "articulos_resolucion": {
+                "articulo_primero_desafectacion_68_1": texto_art_1,
+                "articulo_segundo_incorporacion_68_2": texto_art_2
+            },
             "bajas_oficio": bajas_oficio,
             "bajas_cancelacion": bajas_cancelacion,
             "vehiculos": vehiculos_procesados_info

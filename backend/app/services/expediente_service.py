@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional
 from datetime import datetime
 import uuid
@@ -55,9 +56,36 @@ class ExpedienteService:
         return None
 
     async def get_expediente_by_numero(self, nro_expediente: str) -> Optional[dict]:
-        """Buscar expediente por número completo (ej: E-0001-2025)"""
-        expediente = await self.collection.find_one({"nro_expediente": nro_expediente})
-        return expediente
+        """Buscar expediente por número completo (ej: E-0001-2025) en expedientes o resoluciones_hijas"""
+        expediente = await self.collection.find_one({
+            "$or": [
+                {"nro_expediente": nro_expediente},
+                {"nro_expediente": {"$regex": f"^{re.escape(nro_expediente)}$", "$options": "i"}}
+            ]
+        })
+        if expediente:
+            return expediente
+
+        # Buscar en resoluciones_hijas si existe algún trámite que haya registrado este expediente
+        doc_hija = await self.db.resoluciones_hijas.find_one({
+            "$or": [
+                {"expediente_numero": nro_expediente},
+                {"expediente_numero": {"$regex": f"^{re.escape(nro_expediente)}$", "$options": "i"}}
+            ],
+            "esta_activo": True
+        })
+        if doc_hija:
+            f_emision = doc_hija.get("fecha_expediente") or doc_hija.get("fecha_resolucion")
+            return {
+                "_id": str(doc_hija.get("_id") or doc_hija.get("id")),
+                "nro_expediente": doc_hija.get("expediente_numero"),
+                "empresa_id": doc_hija.get("razon_social") or doc_hija.get("ruc_empresa"),
+                "estado": "PROCESADO",
+                "fecha_emision": f_emision.isoformat() if hasattr(f_emision, "isoformat") else str(f_emision),
+                "tipo_tramite": doc_hija.get("tipo_acto") or doc_hija.get("tipo_tramite_origen") or "TRÁMITE REGISTRADO"
+            }
+
+        return None
 
     async def create_expediente(self, expediente_in: ExpedienteCreate) -> Expediente:
         expediente_dict = expediente_in.dict(by_alias=True)

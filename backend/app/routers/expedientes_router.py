@@ -91,7 +91,7 @@ async def validar_numero_expediente(
             # Es el mismo expediente que estamos editando, es válido
             return {
                 "valido": True,
-                "mensaje": f"El número de expediente {numero} está disponible para el año {año}"
+                "mensaje": f"El número de expediente {numero} está disponible para el año {anio}"
             }
         else:
             # Es un expediente diferente, es inválido

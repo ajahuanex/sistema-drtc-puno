@@ -39,6 +39,10 @@ export class ResolucionHijaService {
     return this.http.get<ResolucionHija>(`${this.apiUrl}/${id}`);
   }
 
+  getHijaByNumero(nroResolucion: string): Observable<ResolucionHija> {
+    return this.http.get<ResolucionHija>(`${this.apiUrl}/numero/${encodeURIComponent(nroResolucion)}`);
+  }
+
   getHijasByPrimigenia(nroPrimigenia: string): Observable<ResolucionHija[]> {
     return this.http.get<ResolucionHija[]>(`${this.apiUrl}/primigenia/${nroPrimigenia}`);
   }
@@ -73,5 +77,51 @@ export class ResolucionHijaService {
     const formData = new FormData();
     formData.append('archivo', file);
     return this.http.post<any>(`${this.apiUrl}/carga-masiva/procesar`, formData);
+  }
+
+  getVehiculosDetalleTramite(hijaId: string): Observable<{
+    tramite_id: string;
+    nro_resolucion: string;
+    nro_resolucion_primigenia?: string;
+    ruc_empresa: string;
+    razon_social: string;
+    expediente_numero?: string;
+    fecha_resolucion?: string;
+    observaciones?: string;
+    vehiculos: Array<{
+      placa: string;
+      numero_tuc?: string;
+      marca?: string;
+      modelo?: string;
+      anio_fabricacion?: number;
+      categoria?: string;
+      color?: string;
+      rutas?: string[];
+      es_saliente?: boolean;
+      estado?: string;
+    }>;
+  }> {
+    return this.http.get<any>(`${this.apiUrl}/${encodeURIComponent(hijaId)}/vehiculos-detalle`);
+  }
+
+  editarTramiteCompleto(hijaId: string, payload: {
+    nro_resolucion?: string;
+    nro_resolucion_primigenia?: string;
+    expediente_numero?: string;
+    fecha_resolucion?: string;
+    observaciones?: string;
+    vehiculos: Array<{
+      placa: string;
+      numero_tuc?: string;
+      marca?: string;
+      modelo?: string;
+      anio_fabricacion?: number;
+      categoria?: string;
+      color?: string;
+      rutas?: string[];
+      es_saliente?: boolean;
+    }>;
+  }): Observable<{ success: boolean; mensaje: string; tramite: any }> {
+    return this.http.put<any>(`${this.apiUrl}/${encodeURIComponent(hijaId)}/editar-tramite`, payload);
   }
 }

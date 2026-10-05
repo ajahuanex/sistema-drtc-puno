@@ -357,51 +357,73 @@
 }
 
 // =========================================================================
-// RESUMEN EJECUTIVO Y PLACA PERUANA
+// =========================================================================
+// RESUMEN EJECUTIVO Y PLACA PERUANA (ARQUITECTURA COHERENTE STITCH)
 // =========================================================================
 .resumen-ejecutivo-card {
   background: #ffffff;
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   display: flex;
   gap: 28px;
   align-items: stretch;
-  flex-wrap: wrap;
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+
+  @media (max-width: 1080px) {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
-.placa-y-estado-col {
+// Columna 1: Matrícula Oficial e Identificación Operativa
+.placa-identidad-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 14px;
   min-width: 220px;
+  width: 220px;
+  flex-shrink: 0;
+
+  @media (max-width: 1080px) {
+    width: 100%;
+    max-width: 320px;
+  }
 }
 
-// MATRÍCULA PERUANA OFICIAL
+// MATRÍCULA PERUANA OFICIAL (MTC SPEC)
 .placa-peruana {
   width: 210px;
   height: 105px;
   background: #ffffff;
   border: 4px solid #1e293b;
   border-radius: 14px;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15), inset 0 0 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15), inset 0 0 4px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.2), inset 0 0 4px rgba(0, 0, 0, 0.15);
+  }
 
   .placa-top-bar {
-    background: #0284c7; // Azul oficial franja MTC
+    background: #0284c7;
     color: #ffffff;
     text-align: center;
     padding: 3px 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 
     .placa-pais {
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 900;
       letter-spacing: 0.15em;
+      text-transform: uppercase;
     }
   }
 
@@ -410,7 +432,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Arial Black', Impact, sans-serif;
+    font-family: 'JetBrains Mono', Impact, 'Arial Black', monospace;
     font-size: 32px;
     font-weight: 900;
     color: #0f172a;
@@ -431,6 +453,7 @@
     font-weight: 700;
     color: #64748b;
     text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   .mod-pill-group {
@@ -440,6 +463,8 @@
     border-radius: 20px;
     border: 1px solid #e2e8f0;
     gap: 4px;
+    width: 100%;
+    justify-content: center;
   }
 
   .mod-pill-btn {
@@ -448,7 +473,7 @@
     gap: 6px;
     border: none;
     background: transparent;
-    padding: 4px 12px;
+    padding: 5px 12px;
     border-radius: 16px;
     font-size: 11px;
     font-weight: 700;
@@ -486,16 +511,25 @@
   }
 }
 
+.estado-chip-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 .badge-estado-grande {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 6px 16px;
+  padding: 6px 18px;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  width: 100%;
+  max-width: 210px;
 
   .mini-icon {
     font-size: 18px;
@@ -504,159 +538,375 @@
   }
 }
 
-// KPI GRID
-.kpi-grid {
+// Columna 2: Panel de Información y Métricas Normativas
+.resumen-data-panel {
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+  justify-content: space-between;
+}
+
+// TARJETA DESTACADA HORIZONTAL: EMPRESA OPERADORA CONCESIONARIA
+.empresa-destacada-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border: 1px solid #e2e8f0;
+  border-left: 5px solid #2563eb;
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #cbd5e1;
+    border-left-color: #1d4ed8;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
+  }
+
+  .empresa-destacada-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .empresa-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 260px;
+
+    .empresa-icon-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      color: #1d4ed8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+
+      mat-icon {
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
+      }
+    }
+
+    .empresa-titles {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .empresa-kicker {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+
+    .empresa-razon-social {
+      font-size: 17px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.35;
+      margin: 0;
+      word-break: break-word;
+      letter-spacing: -0.01em;
+    }
+  }
+
+  .btn-historial-flotante {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    &:hover {
+      background: #dbeafe;
+      color: #1e40af;
+      box-shadow: 0 2px 6px rgba(29, 78, 216, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .mini-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    .arrow-ico {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .empresa-meta-strip {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #e2e8f0;
+
+    .meta-tag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+
+      .meta-label {
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        font-size: 10.5px;
+        letter-spacing: 0.03em;
+      }
+
+      .meta-val {
+        color: #0f172a;
+        font-weight: 700;
+
+        &.mono {
+          font-family: 'JetBrains Mono', 'Courier New', monospace;
+          font-size: 12.5px;
+          letter-spacing: 0.03em;
+        }
+
+        &.text-accent {
+          color: #2563eb;
+        }
+      }
+    }
+  }
+}
+
+// FILA DE 4 TARJETAS TÉCNICAS SIMÉTRICAS (DISTRIBUCIÓN 4x1 SIN HUECOS)
+.kpi-quad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .kpi-card {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: all 0.2s ease;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     border-color: #cbd5e1;
-  }
-
-  &.kpi-card-interactive {
-    cursor: pointer;
-    user-select: none;
-
-    &:hover {
-      background: #ffffff;
-      border-color: #f59e0b;
-      box-shadow: 0 6px 18px rgba(245, 158, 11, 0.15);
-      transform: translateY(-2px);
-    }
-  }
-
-  &.kpi-border-green {
-    border-left: 5px solid #10b981;
-  }
-
-  &.kpi-border-amber {
-    border-left: 5px solid #f59e0b;
-  }
-
-  &.kpi-border-red {
-    border-left: 5px solid #ef4444;
+    transform: translateY(-2px);
   }
 
   .kpi-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 8px;
 
-    .kpi-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
+    .kpi-icon-wrap {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-      &.icon-empresa { color: #3b82f6; }
-      &.icon-mtc { color: #8b5cf6; }
-      &.icon-tuc { color: #10b981; }
-      &.icon-ruta { color: #f59e0b; }
+      .kpi-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &.icon-tuc-bg {
+        background: #ecfdf5;
+        color: #059669;
+      }
+
+      &.icon-mtc-bg {
+        background: #f5f3ff;
+        color: #7c3aed;
+      }
+
+      &.icon-seguro-bg {
+        background: #eff6ff;
+        color: #2563eb;
+      }
+
+      &.icon-ruta-bg {
+        background: #fffbeb;
+        color: #d97706;
+      }
     }
 
     .kpi-title {
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 11.5px;
+      font-weight: 800;
       text-transform: uppercase;
+      letter-spacing: 0.04em;
       color: #64748b;
     }
   }
 
   .kpi-body {
-    .kpi-primary-text {
-      font-size: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .kpi-primary-val {
+      font-size: 17px;
       font-weight: 800;
       color: #0f172a;
-      line-height: 1.3;
-      margin-bottom: 4px;
+      line-height: 1.25;
+
+      &.mono {
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+        letter-spacing: 0.04em;
+      }
     }
 
     .kpi-secondary-text {
-      font-size: 12px;
+      font-size: 11.5px;
       color: #64748b;
+      line-height: 1.35;
     }
 
-    .kpi-historial-link {
-      margin-top: 8px;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      color: #1d4ed8;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover {
-        background: #dbeafe;
-        color: #1e40af;
-        box-shadow: 0 2px 5px rgba(29, 78, 216, 0.15);
-      }
-
-      .mini-icon {
-        font-size: 15px;
-        width: 15px;
-        height: 15px;
-      }
-    }
-
-    .kpi-rutas-link {
-      margin-top: 8px;
-      display: inline-flex;
+    .kpi-footer-status {
+      display: flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 12px;
-      border-radius: 8px;
-      background: #fef3c7;
-      border: 1px solid #fde68a;
-      color: #92400e;
-      font-size: 11.5px;
-      font-weight: 700;
+      flex-wrap: wrap;
+
+      .kpi-sub-text {
+        font-size: 11.5px;
+        color: #64748b;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // Estilos de bordes y variantes
+  &.kpi-card-tuc {
+    border-top: 3px solid #059669;
+  }
+
+  &.kpi-card-mtc {
+    border-top: 3px solid #7c3aed;
+
+    &.kpi-border-green {
+      border-top-color: #10b981;
+    }
+    &.kpi-border-amber {
+      border-top-color: #f59e0b;
+    }
+    &.kpi-border-red {
+      border-top-color: #ef4444;
+    }
+  }
+
+  &.kpi-card-seguros {
+    border-top: 3px solid #2563eb;
+
+    .kpi-dual-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .dual-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+
+        .dual-lbl {
+          font-weight: 800;
+          color: #64748b;
+          min-width: 38px;
+        }
+
+        .dual-date {
+          color: #64748b;
+          font-size: 11px;
+        }
+      }
+    }
+  }
+
+  &.kpi-card-rutas {
+    border-top: 3px solid #f59e0b;
+
+    &.kpi-card-interactive {
       cursor: pointer;
-      transition: all 0.2s ease;
-      width: fit-content;
 
       &:hover {
-        background: #fde68a;
-        color: #78350f;
-        box-shadow: 0 2px 6px rgba(180, 83, 9, 0.2);
-        transform: translateX(2px);
+        border-color: #f59e0b;
+        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
       }
 
-      .mini-icon {
-        font-size: 15px;
-        width: 15px;
-        height: 15px;
+      .kpi-rutas-action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
         color: #b45309;
-      }
+        font-size: 11px;
+        font-weight: 700;
+        margin-top: 2px;
+        width: fit-content;
+        transition: all 0.2s ease;
 
-      .arrow-mini {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
-        transition: transform 0.2s ease;
-      }
+        .arrow-mini {
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
+          transition: transform 0.2s ease;
+        }
 
-      &:hover .arrow-mini {
-        transform: translateX(3px);
+        &:hover .arrow-mini {
+          transform: translateX(3px);
+        }
       }
     }
   }
@@ -2215,111 +2465,656 @@
 }
 
 /* ========================================================================= */
-/* MODO OSCURO (SIRRETT OFICIAL DRTC PUNO)                                  */
+/* MODO OSCURO INTEGRAL (ESTÁNDAR INSTITUCIONAL STITCH SIRRETT DRTC PUNO)   */
 /* ========================================================================= */
 :host-context([data-theme="dark"]),
+:host-context(body.dark-theme),
 :host-context(.dark-theme) {
+
   .vehiculos-modulo-container {
     color: #f8fafc;
   }
 
-  .resumen-ejecutivo-card,
-  .ficha-card,
-  .timeline-card,
-  .directorio-section,
-  .historial-table-wrapper,
-  .detalle-card {
-    background: #111622 !important;
-    border-color: #1e2433 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    color: #f8fafc !important;
+  // 1. Hero Card & Buscador
+  .hero-busqueda-card {
+    background: linear-gradient(135deg, #0f172a 0%, #080d1a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+    .hero-subtitle {
+      color: #94a3b8;
+    }
   }
 
-  .ficha-header {
-    background: #131722 !important;
-    border-bottom-color: #1e2433 !important;
-    color: #f8fafc !important;
-    .ficha-title { color: #f8fafc !important; }
-  }
+  .search-box {
+    background: #151e32;
+    border: 1px solid #243250;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 
-  .ficha-item {
-    border-bottom-color: #171b26 !important;
-    .ficha-label { color: #94a3b8 !important; }
-    .ficha-value {
-      color: #f8fafc !important;
-      &.code-font {
-        background: #171b26 !important;
-        border-color: #283046 !important;
+    &:focus-within {
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3), 0 4px 20px rgba(0, 0, 0, 0.4);
+      border-color: #38bdf8;
+    }
+
+    .search-icon {
+      color: #94a3b8;
+    }
+
+    .custom-search-input {
+      color: #f8fafc;
+
+      &::placeholder {
+        color: #64748b;
       }
     }
+  }
+
+  .sugerencias-dropdown {
+    background: #131c31;
+    border-color: #243250;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+
+    .sugerencias-header {
+      background: #0f172a;
+      border-bottom-color: #243250;
+      color: #94a3b8;
+    }
+
+    .sugerencia-item {
+      border-bottom-color: rgba(255, 255, 255, 0.05);
+
+      &:hover {
+        background: #1a2640;
+      }
+
+      .sug-placa-badge {
+        background: #1e293b;
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+      }
+
+      .sug-info .sug-empresa {
+        color: #f8fafc;
+      }
+
+      &.item-historico {
+        background: #111827;
+
+        &:hover {
+          background: #182236;
+        }
+
+        .sug-placa-badge {
+          background: #1e293b;
+          color: #94a3b8;
+        }
+      }
+    }
+  }
+
+  .chips-recientes-row {
+    .chips-label {
+      color: #94a3b8;
+    }
+
+    .chip-placa-btn {
+      border-color: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+
+      &:hover {
+        background: rgba(56, 189, 248, 0.15);
+        border-color: #38bdf8;
+        color: #f8fafc;
+      }
+
+      &.active {
+        background: #2563eb;
+        border-color: #38bdf8;
+        color: #ffffff;
+      }
+    }
+  }
+
+  // 2. Loading y Error Cards
+  .loading-state-card,
+  .error-state-card {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+
+    h3 {
+      color: #f8fafc;
+    }
+
+    p {
+      color: #94a3b8;
+    }
+  }
+
+  // 3. Resumen Ejecutivo & Placa
+  .resumen-ejecutivo-card {
+    background: #111827;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  }
+
+  .placa-peruana {
+    background: #0b1329;
+    border-color: #334155;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.1);
+
+    .placa-numero {
+      color: #f8fafc;
+    }
+  }
+
+  .modalidad-switcher-box {
+    .mod-label {
+      color: #94a3b8;
+    }
+
+    .mod-pill-group {
+      background: #162035;
+      border-color: #243250;
+    }
+
+    .mod-pill-btn {
+      color: #94a3b8;
+    }
+  }
+
+  // 4. Tarjeta Destacada de Empresa Operadora
+  .empresa-destacada-card {
+    background: linear-gradient(135deg, #151f35 0%, #11192b 100%);
+    border-color: rgba(255, 255, 255, 0.08);
+    border-left-color: #38bdf8;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      border-left-color: #60a5fa;
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.12);
+    }
+
+    .empresa-icon-avatar {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.3) 0%, rgba(56, 189, 248, 0.2) 100%);
+      color: #38bdf8;
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.2);
+    }
+
+    .empresa-kicker {
+      color: #94a3b8;
+    }
+
+    .empresa-razon-social {
+      color: #f8fafc;
+    }
+
+    .btn-historial-flotante {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.25);
+      color: #38bdf8;
+
+      &:hover {
+        background: rgba(56, 189, 248, 0.22);
+        color: #7dd3fc;
+        box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+      }
+    }
+
+    .empresa-meta-strip {
+      border-top-color: rgba(255, 255, 255, 0.08);
+
+      .meta-tag-pill {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+
+        .meta-label {
+          color: #94a3b8;
+        }
+
+        .meta-val {
+          color: #f8fafc;
+
+          &.text-accent {
+            color: #38bdf8;
+          }
+        }
+      }
+    }
+  }
+
+  // 5. Grilla de 4 Tarjetas KPI Técnicas
+  .kpi-quad-grid .kpi-card {
+    background: #141d30;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      background: #18233a;
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    .kpi-title {
+      color: #94a3b8;
+    }
+
+    .kpi-primary-val {
+      color: #f8fafc;
+    }
+
+    .kpi-secondary-text {
+      color: #cbd5e1;
+    }
+
+    .kpi-footer-status .kpi-sub-text {
+      color: #94a3b8;
+    }
+
+    &.kpi-card-seguros .dual-lbl {
+      color: #94a3b8;
+    }
+
+    &.kpi-card-seguros .dual-date {
+      color: #cbd5e1;
+    }
+
+    &.kpi-card-rutas .kpi-rutas-action-link {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+
+      &:hover {
+        background: rgba(245, 158, 11, 0.25);
+        color: #fde68a;
+      }
+    }
+  }
+
+  // 6. Alertas Normativas
+  .alertas-section {
+    .alerta-peligro {
+      background: rgba(220, 38, 38, 0.15);
+      border-color: rgba(220, 38, 38, 0.3);
+      color: #fca5a5;
+    }
+
+    .alerta-advertencia {
+      background: rgba(217, 119, 6, 0.15);
+      border-color: rgba(217, 119, 6, 0.3);
+      color: #fde68a;
+    }
+
+    .alerta-info {
+      background: rgba(37, 99, 235, 0.15);
+      border-color: rgba(37, 99, 235, 0.3);
+      color: #93c5fd;
+    }
+  }
+
+  // 7. Tabs y Contenedor Principal
+  .tabs-container {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   }
 
   .custom-nav-tabs {
-    background: #111622 !important;
-    border-color: #1e2433 !important;
+    background: #0f172a;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+
     .nav-tab-btn {
-      color: #94a3b8 !important;
-      &.active {
-        background: #1e2433 !important;
-        color: #38bdf8 !important;
-        border-bottom-color: #38bdf8 !important;
-      }
+      color: #94a3b8;
+
       &:hover:not(.active) {
-        background: #171b26 !important;
-        color: #f8fafc !important;
+        background: rgba(255, 255, 255, 0.04);
+        color: #f8fafc;
+      }
+
+      &.active {
+        background: #141d30;
+        color: #38bdf8;
+        border-bottom-color: #38bdf8;
+      }
+
+      .tab-badge {
+        background: #1e293b;
+        color: #cbd5e1;
       }
     }
   }
 
-  .busqueda-input-wrapper {
-    background: #171b26 !important;
-    border-color: #283046 !important;
-    input {
-      color: #ffffff !important;
-      &::placeholder { color: #64748b !important; }
+  .tab-toolbar-row {
+    background: #141d30;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    .tab-toolbar-info {
+      h3 { color: #f8fafc; }
+      p { color: #94a3b8; }
     }
   }
 
-  .table-directorio, .data-table {
+  // 8. Ficha Técnica y Cards de Tab 1
+  .ficha-card {
+    background: #141d30;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    .ficha-card-header {
+      background: #18233a;
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+
+      mat-icon {
+        color: #38bdf8;
+      }
+    }
+
+    .ficha-data-row {
+      border-bottom-color: rgba(255, 255, 255, 0.05);
+
+      .label { color: #94a3b8; }
+      .val {
+        color: #f8fafc;
+
+        &.highlight { color: #38bdf8; }
+        &.code-font {
+          background: #0f172a;
+          border-color: rgba(255, 255, 255, 0.1);
+          color: #38bdf8;
+        }
+      }
+    }
+  }
+
+  .ficha-card-puno {
+    background: #141d30;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    .puno-header {
+      background: #18233a;
+      color: #f8fafc;
+    }
+
+    .puno-resumen-estado {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.25);
+      .puno-estado-texto { color: #fbbf24; }
+      .puno-diagnostico-p { color: #fde68a; }
+    }
+
+    .cronograma-header-box {
+      .cronograma-title { color: #f8fafc; }
+      .cronograma-sub { color: #94a3b8; }
+    }
+
+    .mini-cronograma-table {
+      border-color: rgba(255, 255, 255, 0.08);
+
+      th {
+        background: #0f172a;
+        color: #cbd5e1;
+        border-bottom-color: rgba(255, 255, 255, 0.08);
+      }
+
+      td {
+        border-bottom-color: rgba(255, 255, 255, 0.05);
+        color: #e2e8f0;
+      }
+
+      tr:hover td {
+        background: #18233a;
+      }
+
+      tr.highlight-row td {
+        background: rgba(56, 189, 248, 0.15);
+      }
+    }
+
+    .puno-condicion-nota {
+      background: rgba(37, 99, 235, 0.1);
+      border-color: rgba(37, 99, 235, 0.25);
+      color: #93c5fd;
+    }
+  }
+
+  .ficha-card-compatibilidad {
+    background: #141d30;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    .compat-card-header {
+      background: #18233a;
+      color: #f8fafc;
+    }
+
+    .compat-status-row {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+
+      .compat-text-msg {
+        color: #cbd5e1;
+      }
+    }
+
+    .comp-col {
+      .comp-label { color: #94a3b8; }
+      .comp-val { color: #f8fafc; }
+      .comp-sub { color: #cbd5e1; }
+    }
+  }
+
+  .ficha-card-seguros {
+    background: #141d30;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    .seguros-header {
+      background: linear-gradient(135deg, #064e3b, #065f46) !important;
+    }
+
+    .seguro-subblock {
+      .subblock-title-row .sub-title {
+        color: #f8fafc;
+      }
+    }
+  }
+
+  // 9. Tab 2 Timeline & Historial de Empresas
+  .empresas-historicas-section {
+    .sec-title-group h3 { color: #f8fafc; }
+    .sec-title-group p { color: #94a3b8; }
+  }
+
+  .empresa-card-box {
+    background: #141d30;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    &.is-actual {
+      border-left: 4px solid #10b981;
+      background: #132233;
+    }
+
+    .emp-top-bar {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+
+      .emp-nombre { color: #f8fafc; }
+      .emp-ruc-txt { color: #94a3b8; }
+    }
+
+    .emp-field {
+      .lbl { color: #94a3b8; }
+      .val {
+        color: #f8fafc;
+        &.highlight-tramite { color: #38bdf8; }
+        &.code-val {
+          background: #0f172a;
+          color: #38bdf8;
+        }
+      }
+    }
+
+    .emp-obs-box {
+      background: #0f172a;
+      border-color: rgba(255, 255, 255, 0.08);
+      .obs-title { color: #94a3b8; }
+      .obs-line { color: #cbd5e1; }
+    }
+  }
+
+  .timeline-intro {
+    h3 { color: #f8fafc; }
+    p { color: #94a3b8; }
+  }
+
+  .timeline-tree {
+    .timeline-marker {
+      background: #18233a;
+      border-color: #3b82f6;
+    }
+
+    .timeline-card {
+      background: #141d30;
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+
+      .timeline-title { color: #f8fafc; }
+      .timeline-meta { color: #94a3b8; }
+      .obs-item {
+        background: #0f172a;
+        color: #cbd5e1;
+      }
+    }
+  }
+
+  // 10. Tab 3 y Tab 4: Tablas y Rutas
+  .tucs-table-wrapper {
+    background: #141d30;
+  }
+
+  .modern-table {
+    background: transparent;
+
     th {
-      background-color: #131722 !important;
-      color: #94a3b8 !important;
-      border-bottom-color: #1e2433 !important;
+      background: #0f172a;
+      color: #94a3b8;
+      border-bottom-color: rgba(255, 255, 255, 0.08);
     }
+
     td {
-      color: #cbd5e1 !important;
-      border-bottom-color: #171b26 !important;
+      color: #cbd5e1;
+      border-bottom-color: rgba(255, 255, 255, 0.05);
     }
+
     tr:hover td {
-      background-color: #171b26 !important;
+      background: #18233a;
+    }
+
+    .tuc-code {
+      color: #38bdf8;
     }
   }
 
-  .puno-resumen-estado {
-    background: rgba(245, 158, 11, 0.1) !important;
-    border-color: rgba(245, 158, 11, 0.25) !important;
-    .puno-estado-texto { color: #fbbf24 !important; }
-    .puno-diagnostico-p { color: #fde68a !important; }
+  .empty-table-msg {
+    color: #94a3b8;
   }
 
-  .cronograma-title {
-    color: #f8fafc !important;
+  .concesion-banner-card {
+    background: #141d30;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    .banner-icon-box {
+      background: rgba(37, 99, 235, 0.2);
+      color: #38bdf8;
+    }
+
+    .banner-info h3 {
+      color: #f8fafc;
+      .highlight-res { color: #38bdf8; }
+    }
+
+    .meta-item {
+      color: #94a3b8;
+    }
   }
 
-  .obs-box {
-    background: #171b26 !important;
-    border-color: #283046 !important;
-    .obs-title { color: #94a3b8 !important; }
-    .obs-line { color: #cbd5e1 !important; }
+  .rutas-detalladas-section {
+    .section-sub-header h3 { color: #f8fafc; }
+    .badge-count {
+      background: #1e293b;
+      color: #cbd5e1;
+    }
   }
 
-  .empty-state {
-    color: #64748b !important;
+  .ruta-detail-card {
+    background: #141d30;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      background: #18233a;
+    }
+
+    .ruta-title { color: #f8fafc; }
+
+    .ruta-code-badge {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .ruta-flow-diagram {
+      background: #0f172a;
+      border-color: rgba(255, 255, 255, 0.06);
+
+      .step-city { color: #f8fafc; }
+      .step-dep { color: #94a3b8; }
+      .connector-line { background: #243250; }
+      .itinerario-stops-pill {
+        background: #162035;
+        border-color: #243250;
+        color: #cbd5e1;
+      }
+    }
+
+    .spec-cell {
+      background: #0f172a;
+      border-color: rgba(255, 255, 255, 0.06);
+
+      .spec-name { color: #94a3b8; }
+      .spec-value {
+        color: #f8fafc;
+        &.code-font { color: #38bdf8; }
+      }
+    }
+  }
+
+  // 11. Directorio General
+  .directorio-section {
+    color: #f8fafc;
+
+    .directorio-header-bar {
+      h2 { color: #f8fafc; }
+      p { color: #94a3b8; }
+    }
+
+    .table-container-card {
+      background: #141d30;
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .empresa-cell-title { color: #f8fafc; }
+    .empresa-cell-sub { color: #94a3b8; }
+
+    mat-paginator {
+      background: #0f172a;
+      color: #cbd5e1;
+    }
   }
 }
 
 // =========================================================================
-// NUEVAS MEJORAS: ACCIONES ADMINISTRATIVAS, SOAT/CITV Y EXPORTACIÓN EXCEL
+// ACCIONES ADMINISTRATIVAS Y EXPORTACIÓN EXCEL
 // =========================================================================
 .btn-gestion {
   display: inline-flex;
@@ -2346,37 +3141,6 @@
     font-size: 13.5px;
     font-weight: 500;
     gap: 12px;
-  }
-}
-
-.kpi-card-seguros {
-  border-left: 4px solid #10b981;
-
-  .icon-seguro {
-    color: #10b981;
-  }
-
-  .kpi-doc-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    .kpi-doc-lbl {
-      font-size: 11.5px;
-      font-weight: 700;
-      color: #64748b;
-      min-width: 42px;
-    }
-
-    .kpi-doc-date {
-      font-size: 11.5px;
-      color: #64748b;
-    }
   }
 }
 

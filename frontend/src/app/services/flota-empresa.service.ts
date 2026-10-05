@@ -192,6 +192,20 @@ export interface ItemTramiteVehiculo {
   observacion_custom?: string;
   numero_tuc?: string;
   dar_de_baja_otra_empresa?: boolean;
+  otra_empresa_ruc?: string;
+  otra_empresa_razon?: string;
+  baja_tipo?: 'INTERNA' | 'EXTERNA' | 'NINGUNA';
+  baja_externa?: {
+    empresa_origen?: string;
+    ruc_empresa_origen?: string;
+    resolucion_baja?: string;
+    ambito?: string;
+    fecha_baja?: string;
+    evidencia_nombre?: string;
+    evidencia_tamano?: string;
+    evidencia_tipo?: string;
+    evidencia_base64?: string;
+  };
   orden?: number;
 }
 

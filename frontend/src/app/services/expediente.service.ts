@@ -65,6 +65,13 @@ export class ExpedienteService {
     );
   }
 
+  validarNumeroBackend(numero: string, anio: number): Observable<{ valido: boolean; mensaje: string; expedienteExistente?: any }> {
+    const params = new HttpParams()
+      .set('numero', numero)
+      .set('anio', anio.toString());
+    return this.http.get<{ valido: boolean; mensaje: string; expedienteExistente?: any }>(`${this.apiUrl}/validar/numero`, { params });
+  }
+
   createExpediente(expediente: ExpedienteCreate): Observable<Expediente> {
     // Asegurar que el número de expediente se genere correctamente si no viene
     if (!expediente.nroExpediente) {

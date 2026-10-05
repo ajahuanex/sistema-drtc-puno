@@ -133,9 +133,9 @@ const ESTADOS_RUC: Record<string, string> = {
             
             <div class="ch-right">
                <div class="ch-dates">
-                 <div><span class="lbl">Registrado:</span> {{ emp.fechaRegistro | date:'mediumDate' }}</div>
+                 <div><span class="lbl">Registrado:</span> {{ emp.fechaRegistro | date:'dd/MM/yyyy' }}</div>
                  @if (emp.fechaActualizacion) {
-                   <div><span class="lbl">Actualizado:</span> {{ emp.fechaActualizacion | date:'mediumDate' }}</div>
+                   <div><span class="lbl">Actualizado:</span> {{ emp.fechaActualizacion | date:'dd/MM/yyyy' }}</div>
                  }
                </div>
             </div>

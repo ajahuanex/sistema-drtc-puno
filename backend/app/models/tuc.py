@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -9,6 +9,7 @@ class TipoEmisionTuc(str, Enum):
 
 class EstadoTuc(str, Enum):
     VIGENTE = "VIGENTE"
+    INHABILITADA = "INHABILITADA"
     ANULADA = "ANULADA"
     REEMPLAZADA = "REEMPLAZADA"
     ANULADA_POR_DUPLICADO = "ANULADA_POR_DUPLICADO"
@@ -119,7 +120,7 @@ class TucFiltros(BaseModel):
     nroExpediente: Optional[str] = None
     tipoTramite: Optional[str] = None
     tipoEmision: Optional[TipoEmisionTuc] = None
-    estado: Optional[EstadoTuc] = None
+    estado: Optional[Union[EstadoTuc, str]] = None
     fechaEmisionDesde: Optional[str] = None
     fechaEmisionHasta: Optional[str] = None
 

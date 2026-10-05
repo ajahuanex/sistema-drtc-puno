@@ -145,9 +145,10 @@
   @if (vehiculoData() && !cargando()) {
     <div class="expediente-container" id="imprimible-record">
 
-      <!-- HEADER DE RESUMEN EJECUTIVO -->
+      <!-- HEADER DE RESUMEN EJECUTIVO VEHICULAR (ARQUITECTURA COHERENTE STITCH) -->
       <div class="resumen-ejecutivo-card">
-        <div class="placa-y-estado-col">
+        <!-- Columna 1: Matrícula Oficial e Identificación Operativa -->
+        <div class="placa-identidad-col">
           <!-- Placa estilo Matrícula Oficial Peruana con Franja Dinámica (Naranja / Morada) -->
           <div class="placa-peruana">
             <div class="placa-top-bar" [style.background]="vehiculoData()!.modalidad_placa.color_franja || '#ea580c'">
@@ -158,7 +159,7 @@
 
           <!-- Selector Rápido de Modalidad según Normativa MTC -->
           <div class="modalidad-switcher-box">
-            <span class="mod-label">Modalidad:</span>
+            <span class="mod-label">Modalidad Operativa:</span>
             <div class="mod-pill-group">
               <button
                 type="button"
@@ -179,6 +180,7 @@
             </div>
           </div>
 
+          <!-- Chip de Estado de Habilitación -->
           <div class="estado-chip-wrapper">
             <span class="badge-estado-grande" [ngClass]="getEstadoClass(vehiculoData()!.situacion_actual.estado_habilitacion)">
               <mat-icon class="mini-icon">{{ vehiculoData()!.situacion_actual.estado_habilitacion === 'HABILITADO' ? 'verified' : 'info' }}</mat-icon>
@@ -187,127 +189,176 @@
           </div>
         </div>
 
-        <!-- Tarjetas Métricas Clave -->
-        <div class="kpi-grid">
-          <!-- KPI 1: Empresa Operadora -->
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <mat-icon class="kpi-icon icon-empresa">business</mat-icon>
-              <span class="kpi-title">Empresa Operadora</span>
+        <!-- Columna 2: Panel de Información y Métricas Normativas -->
+        <div class="resumen-data-panel">
+          
+          <!-- TARJETA HORIZONTAL PRINCIPAL: EMPRESA OPERADORA CONCESIONARIA -->
+          <!-- Permite que nombres largos de Razón Social se muestren con holgura y elegancia sin deformarse -->
+          <div class="empresa-destacada-card">
+            <div class="empresa-destacada-header">
+              <div class="empresa-header-left">
+                <div class="empresa-icon-avatar">
+                  <mat-icon>business</mat-icon>
+                </div>
+                <div class="empresa-titles">
+                  <div class="empresa-kicker">Empresa Operadora Concesionaria</div>
+                  <h2 class="empresa-razon-social" [title]="vehiculoData()!.situacion_actual.empresa_actual">
+                    {{ vehiculoData()!.situacion_actual.empresa_actual }}
+                  </h2>
+                </div>
+              </div>
+
+              @if (vehiculoData()!.empresas_historicas.length > 1) {
+                <button
+                  type="button"
+                  class="btn-historial-flotante"
+                  (click)="activeTab.set('timeline')"
+                  matTooltip="Ver historial de empresas concesionarias donde operó esta unidad">
+                  <mat-icon class="mini-icon">history_edu</mat-icon>
+                  <span>Participó en {{ vehiculoData()!.empresas_historicas.length }} empresas (Ver Histórico)</span>
+                  <mat-icon class="arrow-ico">chevron_right</mat-icon>
+                </button>
+              }
             </div>
-            <div class="kpi-body">
-              <div class="kpi-primary-text">{{ vehiculoData()!.situacion_actual.empresa_actual }}</div>
-              <div class="kpi-secondary-text">
-                RUC: {{ vehiculoData()!.situacion_actual.ruc_empresa_actual || 'No registrado' }}
-                @if (vehiculoData()!.situacion_actual.resolucion_primigenia_info) {
-                  • Res: <strong>{{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.nro_resolucion }}</strong>
+
+            <!-- Franja de Metadatos de la Concesión Matriz -->
+            <div class="empresa-meta-strip">
+              <div class="meta-tag-pill">
+                <span class="meta-label">RUC:</span>
+                <span class="meta-val mono">{{ vehiculoData()!.situacion_actual.ruc_empresa_actual || 'No registrado' }}</span>
+              </div>
+
+              @if (vehiculoData()!.situacion_actual.resolucion_primigenia_info) {
+                <div class="meta-tag-pill">
+                  <span class="meta-label">Res. Concesión:</span>
+                  <span class="meta-val font-bold">{{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.nro_resolucion }}</span>
                   <span class="badge-mini-vigencia" [ngClass]="getVigenciaBadgeClass(vehiculoData()!.situacion_actual.resolucion_primigenia_info?.estado_vigencia)">
                     {{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.estado_vigencia }}
                   </span>
-                }
-              </div>
-              @if (vehiculoData()!.empresas_historicas.length > 1) {
-                <div class="kpi-historial-link" (click)="activeTab.set('timeline')" matTooltip="Haga clic para ver el historial de empresas donde operó esta unidad">
-                  <mat-icon class="mini-icon">history_edu</mat-icon>
-                  <span>Participó en {{ vehiculoData()!.empresas_historicas.length }} empresas concesionarias (Ver Histórico)</span>
+                </div>
+              } @else if (vehiculoData()!.situacion_actual.resolucion_primigenia) {
+                <div class="meta-tag-pill">
+                  <span class="meta-label">Res. Primigenia:</span>
+                  <span class="meta-val font-bold">{{ vehiculoData()!.situacion_actual.resolucion_primigenia }}</span>
                 </div>
               }
+
+              <div class="meta-tag-pill">
+                <span class="meta-label">Condición:</span>
+                <span class="meta-val text-accent">Flota Habilitada Oficial</span>
+              </div>
             </div>
           </div>
 
-          <!-- KPI 2: Semáforo Normativo MTC (RNAT & R.M. Puno) -->
-          <div class="kpi-card" [ngClass]="'kpi-border-' + vehiculoData()!.normativa_mtc.badge_color">
-            <div class="kpi-header">
-              <mat-icon class="kpi-icon icon-mtc">speed</mat-icon>
-              <span class="kpi-title">Antigüedad & R.M. Puno</span>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-primary-text">
-                @if (vehiculoData()!.normativa_mtc.antiguedad_anios !== null) {
-                  {{ vehiculoData()!.normativa_mtc.antiguedad_anios }} años 
-                  <span class="kpi-sub-badge" [ngClass]="getAntiguedadBadgeClass(vehiculoData()!.normativa_mtc.dictamen_final)">
-                    {{ vehiculoData()!.normativa_mtc.dictamen_final }}
+          <!-- FILA INFERIOR: 4 TARJETAS TÉCNICAS SIMÉTRICAS (Distribución 4x1 sin espacios vacíos) -->
+          <div class="kpi-quad-grid">
+            
+            <!-- KPI 1: Tarjeta TUC Activa -->
+            <div class="kpi-card kpi-card-tuc">
+              <div class="kpi-header">
+                <div class="kpi-icon-wrap icon-tuc-bg">
+                  <mat-icon class="kpi-icon">credit_card</mat-icon>
+                </div>
+                <span class="kpi-title">Tarjeta TUC Activa</span>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-primary-val mono">
+                  {{ vehiculoData()!.situacion_actual.tuc_actual?.numero_tuc || 'Sin TUC Activa' }}
+                </div>
+                <div class="kpi-footer-status">
+                  <span class="tuc-badge-chip" [ngClass]="getEstadoClass(vehiculoData()!.situacion_actual.tuc_actual?.estado)">
+                    {{ vehiculoData()!.situacion_actual.tuc_actual?.estado || 'NO EMITIDA' }}
                   </span>
-                } @else {
-                  No registrado
-                }
-              </div>
-              <div class="kpi-secondary-text">
-                @if (vehiculoData()!.normativa_mtc.regimen_puno.aplica_cronograma_puno) {
-                  <strong>R.M. 585-2021 (Puno):</strong> Retiro 31/12/{{ vehiculoData()!.normativa_mtc.regimen_puno.fecha_retiro_puno }}
-                } @else {
-                  <strong>Marco Nacional RENAT:</strong> Límite 15 años (Año límite: {{ vehiculoData()!.normativa_mtc.anio_limite_salida_rnat || 'S/D' }})
-                }
+                  @if (vehiculoData()!.situacion_actual.resolucion_primigenia) {
+                    <span class="kpi-sub-text" [title]="'Resolución: ' + vehiculoData()!.situacion_actual.resolucion_primigenia">
+                      Res: {{ vehiculoData()!.situacion_actual.resolucion_primigenia }}
+                    </span>
+                  }
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- KPI 3: Tarjeta TUC Activa -->
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <mat-icon class="kpi-icon icon-tuc">credit_card</mat-icon>
-              <span class="kpi-title">Tarjeta TUC Activa</span>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-primary-text">
-                {{ vehiculoData()!.situacion_actual.tuc_actual?.numero_tuc || 'Sin TUC Activa' }}
+            <!-- KPI 2: Antigüedad & Régimen R.M. Puno -->
+            <div class="kpi-card kpi-card-mtc" [ngClass]="'kpi-border-' + vehiculoData()!.normativa_mtc.badge_color">
+              <div class="kpi-header">
+                <div class="kpi-icon-wrap icon-mtc-bg">
+                  <mat-icon class="kpi-icon">speed</mat-icon>
+                </div>
+                <span class="kpi-title">Antigüedad & R.M. Puno</span>
               </div>
-              <div class="kpi-secondary-text">
-                Estado: 
-                <span class="tuc-badge-chip" [ngClass]="getEstadoClass(vehiculoData()!.situacion_actual.tuc_actual?.estado)">
-                  {{ vehiculoData()!.situacion_actual.tuc_actual?.estado || 'NO_EMITIDA' }}
-                </span>
-                @if (vehiculoData()!.situacion_actual.resolucion_primigenia) {
-                  • Res: {{ vehiculoData()!.situacion_actual.resolucion_primigenia }}
-                }
+              <div class="kpi-body">
+                <div class="kpi-primary-val">
+                  @if (vehiculoData()!.normativa_mtc.antiguedad_anios !== null) {
+                    {{ vehiculoData()!.normativa_mtc.antiguedad_anios }} años 
+                    <span class="kpi-sub-badge" [ngClass]="getAntiguedadBadgeClass(vehiculoData()!.normativa_mtc.dictamen_final)">
+                      {{ vehiculoData()!.normativa_mtc.dictamen_final }}
+                    </span>
+                  } @else {
+                    No registrado
+                  }
+                </div>
+                <div class="kpi-secondary-text">
+                  @if (vehiculoData()!.normativa_mtc.regimen_puno.aplica_cronograma_puno) {
+                    <span><strong>R.M. 585-2021:</strong> Retiro 31/12/{{ vehiculoData()!.normativa_mtc.regimen_puno.fecha_retiro_puno }}</span>
+                  } @else {
+                    <span><strong>Marco RENAT:</strong> Límite {{ vehiculoData()!.normativa_mtc.anio_limite_salida_rnat || '15 años' }}</span>
+                  }
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- KPI 4: Rutas e Itinerarios -->
-          <div class="kpi-card kpi-card-interactive" (click)="abrirModalRutas()" role="button" tabindex="0" title="Haga clic para ver las rutas completas asignadas a este vehículo">
-            <div class="kpi-header">
-              <mat-icon class="kpi-icon icon-ruta">alt_route</mat-icon>
-              <span class="kpi-title">Rutas Asignadas</span>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-primary-text">
-                {{ vehiculoData()!.situacion_actual.rutas_detalladas?.length || vehiculoData()!.situacion_actual.rutas_autorizadas.length }} Rutas
+            <!-- KPI 3: Póliza SOAT & Certificado CITV -->
+            <div class="kpi-card kpi-card-seguros">
+              <div class="kpi-header">
+                <div class="kpi-icon-wrap icon-seguro-bg">
+                  <mat-icon class="kpi-icon">health_and_safety</mat-icon>
+                </div>
+                <span class="kpi-title">Póliza SOAT & CITV</span>
               </div>
-              <div class="kpi-rutas-link">
-                <mat-icon class="mini-icon">visibility</mat-icon>
-                <span>Ver rutas autorizadas</span>
-                <mat-icon class="arrow-mini">chevron_right</mat-icon>
+              <div class="kpi-body">
+                <div class="kpi-dual-row">
+                  <div class="dual-item">
+                    <span class="dual-lbl">SOAT:</span>
+                    <span class="badge-mini-vigencia" [ngClass]="getSoatBadgeClass(vehiculoData()!.soat?.estado)">
+                      {{ vehiculoData()!.soat?.estado || 'NO_REGISTRADO' }}
+                    </span>
+                    @if (vehiculoData()!.soat?.fecha_vencimiento) {
+                      <span class="dual-date">{{ vehiculoData()!.soat?.fecha_vencimiento | date:'dd/MM/yy' }}</span>
+                    }
+                  </div>
+                  <div class="dual-item">
+                    <span class="dual-lbl">CITV:</span>
+                    <span class="badge-mini-vigencia" [ngClass]="getCitvBadgeClass(vehiculoData()!.citv?.estado)">
+                      {{ vehiculoData()!.citv?.estado || 'PENDIENTE' }}
+                    </span>
+                    @if (vehiculoData()!.citv?.fecha_vencimiento) {
+                      <span class="dual-date">{{ vehiculoData()!.citv?.fecha_vencimiento | date:'dd/MM/yy' }}</span>
+                    }
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- KPI 5: Póliza SOAT & Certificado CITV -->
-          <div class="kpi-card kpi-card-seguros">
-            <div class="kpi-header">
-              <mat-icon class="kpi-icon icon-seguro">health_and_safety</mat-icon>
-              <span class="kpi-title">Póliza SOAT & CITV</span>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-doc-row">
-                <span class="kpi-doc-lbl">SOAT:</span>
-                <span class="badge-mini-vigencia" [ngClass]="getSoatBadgeClass(vehiculoData()!.soat?.estado)">
-                  {{ vehiculoData()!.soat?.estado || 'NO_REGISTRADO' }}
-                </span>
-                @if (vehiculoData()!.soat?.fecha_vencimiento) {
-                  <span class="kpi-doc-date">{{ vehiculoData()!.soat?.fecha_vencimiento | date:'dd/MM/yy' }}</span>
-                }
+            <!-- KPI 4: Rutas Asignadas e Itinerarios -->
+            <div class="kpi-card kpi-card-rutas kpi-card-interactive" (click)="abrirModalRutas()" role="button" tabindex="0" title="Haga clic para ver las rutas completas autorizadas para este vehículo">
+              <div class="kpi-header">
+                <div class="kpi-icon-wrap icon-ruta-bg">
+                  <mat-icon class="kpi-icon">alt_route</mat-icon>
+                </div>
+                <span class="kpi-title">Rutas Asignadas</span>
               </div>
-              <div class="kpi-doc-row">
-                <span class="kpi-doc-lbl">CITV:</span>
-                <span class="badge-mini-vigencia" [ngClass]="getCitvBadgeClass(vehiculoData()!.citv?.estado)">
-                  {{ vehiculoData()!.citv?.estado || 'PENDIENTE' }}
-                </span>
-                @if (vehiculoData()!.citv?.fecha_vencimiento) {
-                  <span class="kpi-doc-date">{{ vehiculoData()!.citv?.fecha_vencimiento | date:'dd/MM/yy' }}</span>
-                }
+              <div class="kpi-body">
+                <div class="kpi-primary-val">
+                  {{ vehiculoData()!.situacion_actual.rutas_detalladas?.length || vehiculoData()!.situacion_actual.rutas_autorizadas.length }} Rutas
+                </div>
+                <div class="kpi-rutas-action-link">
+                  <mat-icon class="mini-icon">visibility</mat-icon>
+                  <span>Ver rutas autorizadas</span>
+                  <mat-icon class="arrow-mini">chevron_right</mat-icon>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>

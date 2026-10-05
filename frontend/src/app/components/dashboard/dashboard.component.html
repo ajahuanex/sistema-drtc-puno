@@ -230,7 +230,7 @@
                     <td class="font-mono font-bold text-primary">{{ item.nroResolucion }}</td>
                     <td><strong class="emp-razon">{{ item.razonSocial }}</strong></td>
                     <td class="font-mono text-muted">{{ item.ruc }}</td>
-                    <td class="text-center font-bold">{{ item.fechaFinVigencia }}</td>
+                    <td class="text-center font-bold">{{ item.fechaFinVigencia | fechaLatina }}</td>
                     <td class="text-center">
                       <span class="badge-dias-vencer" [class.badge-critico]="item.diasRestantes <= 30" [class.badge-alerta]="item.diasRestantes > 30">
                         {{ item.diasRestantes === 0 ? '¡VENCE HOY!' : item.diasRestantes + ' días' }}
@@ -1767,7 +1767,7 @@
                       <td class="font-mono font-bold text-primary">{{ item.nroResolucion }}</td>
                       <td><strong class="emp-razon font-bold">{{ item.razonSocial }}</strong></td>
                       <td class="font-mono text-muted">{{ item.ruc }}</td>
-                      <td class="text-center font-bold">{{ item.fechaFinVigencia }}</td>
+                      <td class="text-center font-bold">{{ item.fechaFinVigencia | fechaLatina }}</td>
                       <td class="text-center">
                         <span class="badge-dias-vencer font-bold" [class.badge-critico]="item.diasRestantes <= 30" [class.badge-alerta]="item.diasRestantes > 30">
                           {{ item.diasRestantes === 0 ? '¡VENCE HOY!' : item.diasRestantes + ' días' }}
@@ -1987,9 +1987,9 @@
                         </td>
                         <td class="text-center">
                           <span class="pill-categoria" 
-                                [class.cat-m1]="v.categoria?.includes('M1')"
-                                [class.cat-m2]="v.categoria?.includes('M2')" 
-                                [class.cat-m3]="v.categoria?.includes('M3')">
+                                [class.cat-m1]="v.categoria.includes('M1')"
+                                [class.cat-m2]="v.categoria.includes('M2')" 
+                                [class.cat-m3]="v.categoria.includes('M3')">
                             {{ v.categoria }}
                           </span>
                         </td>
