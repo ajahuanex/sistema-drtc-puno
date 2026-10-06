@@ -178,21 +178,41 @@ const ESTADOS_RUC: Record<string, string> = {
                           <span class="d-label">4. Partida Registral (SUNARP)</span>
                           <span class="d-value fw-600" style="font-family:monospace;color:#2563eb;">{{ emp.partidaRegistral || 'Sin registrar' }}</span>
                         </div>
-                        <div class="detail-item">
-                          <span class="d-label">5. Casilla Electrónica MTC</span>
-                          <span class="d-value">
-                            @if (emp.tieneCasillaElectronica || emp.casillaElectronica) {
-                              <span style="display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">
-                                <mat-icon style="font-size:14px;width:14px;height:14px;color:#059669;">mark_email_read</mat-icon>
-                                <span>{{ emp.casillaElectronica && emp.casillaElectronica !== 'HABILITADA' ? emp.casillaElectronica : 'HABILITADA' }}</span>
+                        <div class="detail-item full-width highlight-item" style="background:#f8fafc;padding:0.75rem 1rem;border-radius:8px;border:1px solid #e2e8f0;margin-top:0.25rem;">
+                          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+                            <div>
+                              <span class="d-label" style="margin-bottom:0.35rem;font-weight:700;color:#334155;">5. Casilla Electrónica MTC (D.S. 001-2021-MTC / Ley 27444)</span>
+                              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                @if (emp.tieneCasillaElectronica || emp.casillaElectronica) {
+                                  <span style="display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;">
+                                    <mat-icon style="font-size:16px;width:16px;height:16px;color:#059669;">mark_email_read</mat-icon>
+                                    <span>{{ emp.casillaElectronica && emp.casillaElectronica !== 'HABILITADA' ? emp.casillaElectronica : 'CASILLA HABILITADA' }}</span>
+                                  </span>
+                                } @else {
+                                  <span style="display:inline-flex;align-items:center;gap:4px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;">
+                                    <mat-icon style="font-size:16px;width:16px;height:16px;color:#dc2626;">unsubscribe</mat-icon>
+                                    <span>SIN CASILLA MTC</span>
+                                  </span>
+                                }
+                                @if (emp.ultimaValidacionCasilla) {
+                                  <span style="font-size:11px;color:#64748b;display:inline-flex;align-items:center;gap:4px;">
+                                    <mat-icon style="font-size:14px;width:14px;height:14px;color:#94a3b8;">event</mat-icon>
+                                    Validado MTC: {{ emp.ultimaValidacionCasilla | date:'dd/MM/yyyy HH:mm' }}
+                                  </span>
+                                }
+                              </div>
+                            </div>
+                            <div style="display:inline-flex;align-items:center;gap:8px;">
+                              <span style="font-size:11px;font-weight:600;color:#0d9488;background:#f0fdfa;border:1px solid #ccfbf1;padding:4px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">
+                                <mat-icon style="font-size:15px;width:15px;height:15px;color:#0d9488;">cloud_done</mat-icon>
+                                Sincronizado automáticamente
                               </span>
-                            } @else {
-                              <span style="display:inline-flex;align-items:center;gap:4px;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">
-                                <mat-icon style="font-size:14px;width:14px;height:14px;color:#94a3b8;">unsubscribe</mat-icon>
-                                <span>NO REGISTRADA</span>
-                              </span>
-                            }
-                          </span>
+                              <button mat-stroked-button (click)="irACasillas()" style="color:#0284c7;font-size:12px;height:32px;line-height:30px;padding:0 10px;border-color:#bae6fd;" matTooltip="Ver historial y verificación en el Módulo de Casillas">
+                                <mat-icon style="font-size:15px;width:15px;height:15px;margin-right:2px;color:#0284c7;">open_in_new</mat-icon>
+                                Módulo Casillas
+                              </button>
+                            </div>
+                          </div>
                         </div>
                         <div class="detail-item full-width">
                           <span class="d-label">Observaciones y Registro</span>
@@ -1863,6 +1883,14 @@ const ESTADOS_RUC: Record<string, string> = {
         border-color: #334155;
         color: #94a3b8;
       }
+
+      .spin-icon {
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
     }
   `]
 })
@@ -1965,6 +1993,10 @@ export class EmpresaDetailComponent implements OnInit {
         });
       }
     });
+  }
+
+  irACasillas(): void {
+    this.router.navigate(['/casilla-electronica']);
   }
 
   copiarTexto(texto: string, label: string): void {

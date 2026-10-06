@@ -26,7 +26,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
-import { Empresa, EmpresaCreate, TipoSocio, TipoServicio, SunatData, SunatCronStatus } from '../../models/empresa.model';
+import { Empresa, EmpresaCreate, TipoSocio, TipoServicio, SunatData, SunatCronStatus, CasillaSyncStatus } from '../../models/empresa.model';
 import { DialogSunatSyncComponent } from './dialog-sunat-sync.component';
 
 const ESTADOS_RUC: Record<string, string> = {
@@ -80,6 +80,7 @@ export class EmpresasComponent implements OnInit {
   searchTerm = signal('');
   estadoFilter = signal('');
   servicioFilter = signal<string>('');
+  casillaFilter = signal<string>('');
   showMobileFilters = signal<boolean>(false);
   empresaSeleccionadaMenu = signal<Empresa | null>(null);
 
@@ -189,6 +190,36 @@ export class EmpresasComponent implements OnInit {
   cronSunatStatus = signal<SunatCronStatus | null>(null);
   esAdmin = computed(() => this.authService.isAdmin());
 
+  // Signals Casilla Electrónica MTC (Sincronización Automática con Módulo de Casillas)
+  casillaSyncStatus = signal<CasillaSyncStatus | null>(null);
+
+  // Casilla Electrónica Computed Metrics (vinculadas automáticamente a la base de datos)
+  casillasHabilitadasCount = computed(() => {
+    return this.empresas().filter(e => {
+      const ce = e.casillaElectronica;
+      if (ce && typeof ce === 'object') return ce.habilitada === true;
+      return Boolean(e.tieneCasillaElectronica || ce === 'HABILITADA');
+    }).length;
+  });
+
+  casillasSinCasillaCount = computed(() => {
+    return this.empresas().filter(e => {
+      const ce = e.casillaElectronica;
+      if (ce && typeof ce === 'object') return ce.habilitada !== true;
+      return !e.tieneCasillaElectronica && (!ce || ce === 'NO REGISTRA');
+    }).length;
+  });
+
+  pctCasillasConformes = computed(() => {
+    const st = this.casillaSyncStatus();
+    if (st && st.porcentajeConCasilla !== undefined && st.totalEmpresas > 0) {
+      return st.porcentajeConCasilla.toFixed(1);
+    }
+    const total = this.empresas().length;
+    if (total === 0) return '0';
+    return ((this.casillasHabilitadasCount() / total) * 100).toFixed(1);
+  });
+
   // Expose ESTADOS_RUC for template use
   readonly ESTADOS_RUC = ESTADOS_RUC;
 
@@ -253,6 +284,7 @@ export class EmpresasComponent implements OnInit {
     const search = this.searchTerm().toLowerCase().trim();
     const estado = this.estadoFilter();
     const servicio = this.servicioFilter();
+    const casilla = this.casillaFilter();
 
     const filtered = this.empresas().filter(e => {
       const rep = this.getRepresentanteLegal(e);
@@ -270,7 +302,12 @@ export class EmpresasComponent implements OnInit {
       const matchEstado = !estado || e.estado === estado;
       const matchServicio = !servicio || (e.tiposServicio && e.tiposServicio.includes(servicio as TipoServicio));
 
-      return matchSearch && matchEstado && matchServicio;
+      const tieneCasilla = Boolean(e.casillaElectronica?.habilitada || e.tieneCasillaElectronica);
+      const matchCasilla = !casilla ||
+        (casilla === 'CON_CASILLA' && tieneCasilla) ||
+        (casilla === 'SIN_CASILLA' && !tieneCasilla);
+
+      return matchSearch && matchEstado && matchServicio && matchCasilla;
     });
 
     const field = this.sortField();
@@ -316,10 +353,10 @@ export class EmpresasComponent implements OnInit {
           valB = b.telefonoContacto || '';
           break;
         case 'casillaElectronica': {
-          const cA = (a.tieneCasillaElectronica || a.casillaElectronica) ? '1' : '0';
-          const cB = (b.tieneCasillaElectronica || b.casillaElectronica) ? '1' : '0';
-          valA = `${cA}_${a.casillaElectronica || ''}`;
-          valB = `${cB}_${b.casillaElectronica || ''}`;
+          const cA = (a.casillaElectronica?.habilitada || a.tieneCasillaElectronica) ? '1' : '0';
+          const cB = (b.casillaElectronica?.habilitada || b.tieneCasillaElectronica) ? '1' : '0';
+          valA = cA;
+          valB = cB;
           break;
         }
         case 'observaciones':
@@ -407,6 +444,35 @@ export class EmpresasComponent implements OnInit {
     }
     this.cargarEmpresas();
     this.cargarEstadoCronSunat();
+    this.cargarEstadoCasillasAutomatico();
+  }
+
+  cargarEstadoCasillasAutomatico(): void {
+    this.empresaService.getEstadoCasillas().subscribe({
+      next: (st) => {
+        this.casillaSyncStatus.set(st);
+        if (st?.enEjecucion) {
+          this.escucharProgresoCasillas();
+        }
+      },
+      error: (err) => console.warn('No se pudo obtener estado de casillas:', err)
+    });
+  }
+
+  private escucharProgresoCasillas(): void {
+    const timer = setInterval(() => {
+      this.empresaService.getEstadoCasillas().subscribe({
+        next: (st) => {
+          this.casillaSyncStatus.set(st);
+          if (!st?.enEjecucion) {
+            clearInterval(timer);
+            // Sincronización finalizada en módulo de casillas: recargar automáticamente
+            this.cargarEmpresas();
+          }
+        },
+        error: () => clearInterval(timer)
+      });
+    }, 3000);
   }
 
   cargarEstadoCronSunat(): void {
@@ -467,6 +533,16 @@ export class EmpresasComponent implements OnInit {
     this.searchControl.setValue('');
     this.estadoControl.setValue('');
     this.servicioFilter.set('');
+    this.casillaFilter.set('');
+    this.currentPage.set(0);
+  }
+
+  filtrarPorCasilla(tipo: 'CON_CASILLA' | 'SIN_CASILLA'): void {
+    if (this.casillaFilter() === tipo) {
+      this.casillaFilter.set('');
+    } else {
+      this.casillaFilter.set(tipo);
+    }
     this.currentPage.set(0);
   }
 
@@ -821,8 +897,20 @@ export class EmpresasComponent implements OnInit {
     this.ejecutarExportacionExcel(this.empresas(), 'empresas-todas');
   }
 
+  exportarExcelCasilla(conCasilla: boolean): void {
+    const filtradas = this.empresas().filter(e => {
+      const tiene = Boolean(e.casillaElectronica?.habilitada || e.tieneCasillaElectronica);
+      return conCasilla ? tiene : !tiene;
+    });
+    const prefijo = conCasilla ? 'empresas-con-casilla-habilitada' : 'empresas-sin-casilla-electronica';
+    this.ejecutarExportacionExcel(filtradas, prefijo);
+  }
+
   async exportarExcel(): Promise<void> {
-    this.ejecutarExportacionExcel(this.empresasFiltradas(), 'empresas-filtradas');
+    let prefijo = 'empresas-filtradas';
+    if (this.casillaFilter() === 'CON_CASILLA') prefijo = 'empresas-con-casilla';
+    else if (this.casillaFilter() === 'SIN_CASILLA') prefijo = 'empresas-sin-casilla';
+    this.ejecutarExportacionExcel(this.empresasFiltradas(), prefijo);
   }
 
   private async ejecutarExportacionExcel(lista: Empresa[], filenamePrefix: string): Promise<void> {
@@ -847,9 +935,12 @@ export class EmpresasComponent implements OnInit {
           ?.filter(s => s.tipoSocio === 'REPRESENTANTE_LEGAL')
           .map(s => s.dni)
           .join('; ') || '',
-        'Casilla Electrónica': (empresa.tieneCasillaElectronica || empresa.casillaElectronica)
-          ? (empresa.casillaElectronica || 'HABILITADA')
+        'Casilla Electrónica': (empresa.casillaElectronica?.habilitada || empresa.tieneCasillaElectronica)
+          ? 'HABILITADA'
           : 'NO REGISTRADA',
+        'Fecha Validación Casilla': empresa.casillaElectronica?.fechaValidacion
+          ? new Date(empresa.casillaElectronica.fechaValidacion).toLocaleDateString('es-PE')
+          : '',
         'Observaciones': empresa.observaciones || ''
       }));
 

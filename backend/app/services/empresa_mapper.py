@@ -168,6 +168,8 @@ class EmpresaMapper:
             "sitioWeb": doc.get("sitioWeb"),
             "tieneCasillaElectronica": bool(doc.get("tieneCasillaElectronica") or doc.get("casillaElectronica")),
             "casillaElectronica": doc.get("casillaElectronica"),
+            "datosCasilla": doc.get("datosCasilla"),
+            "ultimaValidacionCasilla": doc.get("ultimaValidacionCasilla"),
             
             # Campos complejos con valores por defecto
             "documentos": doc.get("documentos", []),

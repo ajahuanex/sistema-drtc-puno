@@ -66,9 +66,20 @@ def create_empresa_response(empresa) -> EmpresaResponse:
             ultimaValidacionSunat=empresa.get('ultimaValidacionSunat'),
             scoreRiesgo=empresa.get('scoreRiesgo'),
             observaciones=empresa.get('observaciones'),
-            socios=empresa.get('socios', [])
+            socios=empresa.get('socios', []),
+            casillaElectronica=empresa.get('casillaElectronica') if isinstance(empresa.get('casillaElectronica'), dict) else (
+                {"habilitada": bool(empresa.get('tieneCasillaElectronica') is True or empresa.get('casillaElectronica') == "HABILITADA"), "fechaValidacion": empresa.get('ultimaValidacionCasilla')}
+            ),
+            tieneCasillaElectronica=bool(
+                (empresa.get('casillaElectronica', {}).get('habilitada') is True) if isinstance(empresa.get('casillaElectronica'), dict)
+                else (empresa.get('tieneCasillaElectronica') is True or empresa.get('casillaElectronica') == "HABILITADA")
+            )
         )
     else:
+        ce_obj = getattr(empresa, 'casillaElectronica', None)
+        if not isinstance(ce_obj, dict):
+            hab = bool(getattr(empresa, 'tieneCasillaElectronica', False) is True or ce_obj == "HABILITADA")
+            ce_obj = {"habilitada": hab, "fechaValidacion": getattr(empresa, 'ultimaValidacionCasilla', None)}
         return EmpresaResponse(
             id=empresa.id,
             ruc=empresa.ruc,
@@ -97,7 +108,9 @@ def create_empresa_response(empresa) -> EmpresaResponse:
             ultimaValidacionSunat=getattr(empresa, 'ultimaValidacionSunat', None),
             scoreRiesgo=getattr(empresa, 'scoreRiesgo', None),
             observaciones=empresa.observaciones,
-            socios=getattr(empresa, 'socios', [])
+            socios=getattr(empresa, 'socios', []),
+            casillaElectronica=ce_obj,
+            tieneCasillaElectronica=bool(ce_obj.get("habilitada") is True if isinstance(ce_obj, dict) else False)
         )
 
 @router.post("/", response_model=EmpresaResponse, status_code=201)
@@ -1897,5 +1910,112 @@ async def configurar_cron_sunat(
         "mensaje": f"Configuración de sincronización SUNAT actualizada exitosamente a las {nuevo_estado.get('horario_programado')}",
         "estado": nuevo_estado
     }
+
+
+# ========================================
+# SINCRONIZACIÓN DE CASILLA ELECTRÓNICA (DESDE BASE DE DATOS)
+# ========================================
+
+@router.post("/{empresa_id}/sincronizar-casilla")
+async def sincronizar_casilla_empresa(
+    empresa_id: str,
+    db = Depends(get_database),
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """
+    Sincroniza el estado de casilla electrónica de una empresa trayendo los datos
+    directamente desde la base de datos MongoDB (actualizados por el módulo de casillas),
+    sin duplicar peticiones externas al servicio del MTC.
+    """
+    empresa = await empresa_service.get_empresa_by_id(empresa_id)
+    if not empresa:
+        empresa = await empresa_service.get_empresa_by_ruc(empresa_id)
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    ruc = empresa.ruc if hasattr(empresa, "ruc") else empresa.get("ruc")
+
+    # Consultar datos actuales persistidos en la colección empresas
+    emp_doc = await db["empresas"].find_one({"ruc": str(ruc).strip()})
+    if not emp_doc:
+        emp_doc = await db["empresas"].find_one({"_id": getattr(empresa, "id", None) or empresa.get("_id")})
+
+    tiene_casilla = bool(emp_doc.get("tieneCasillaElectronica", False)) if emp_doc else False
+    casilla = emp_doc.get("casillaElectronica") if emp_doc else None
+    if not casilla:
+        casilla = "HABILITADA" if tiene_casilla else "NO REGISTRA"
+        if emp_doc:
+            await db["empresas"].update_one(
+                {"_id": emp_doc["_id"]},
+                {"$set": {"casillaElectronica": casilla}}
+            )
+
+    emp_ident = str(empresa.id if hasattr(empresa, "id") and empresa.id else (empresa.get("id") or empresa.get("_id") or ruc))
+    empresa_actualizada = await empresa_service.get_empresa_by_id(emp_ident)
+    if not empresa_actualizada:
+        empresa_actualizada = await empresa_service.get_empresa_by_ruc(ruc)
+
+    return {
+        "mensaje": f"Estado de casilla sincronizado desde la base de datos: {casilla}",
+        "tieneCasillaElectronica": tiene_casilla,
+        "casillaElectronica": casilla,
+        "ultimaValidacionCasilla": emp_doc.get("ultimaValidacionCasilla") if emp_doc else None,
+        "empresa": empresa_actualizada
+    }
+
+
+@router.post("/sincronizar-casillas")
+async def sincronizar_todas_casillas(
+    db = Depends(get_database)
+):
+    """
+    Sincroniza y consolida el estado de casilla electrónica de todas las empresas
+    directamente desde la base de datos MongoDB (generada por el módulo de casillas),
+    sin realizar peticiones duplicadas a la API externa del MTC.
+    """
+    from app.services.casilla_service import obtener_resumen_empresas_casilla
+
+    # Normalizar valores por defecto en MongoDB si faltaran
+    empresas_col = db["empresas"]
+    await empresas_col.update_many(
+        {"tieneCasillaElectronica": True, "casillaElectronica": {"$in": [None, ""]}},
+        {"$set": {"casillaElectronica": "HABILITADA"}}
+    )
+    await empresas_col.update_many(
+        {"tieneCasillaElectronica": False, "casillaElectronica": {"$in": [None, ""]}},
+        {"$set": {"casillaElectronica": "NO REGISTRA"}}
+    )
+
+    resumen = await obtener_resumen_empresas_casilla(db)
+    return {
+        "status": "completado",
+        "mensaje": f"Sincronizado con la base de datos: {resumen.get('conCasilla', 0)} empresas con casilla habilitada de {resumen.get('totalEmpresas', 0)}.",
+        "totalEmpresas": resumen.get("totalEmpresas", 0),
+        "conCasilla": resumen.get("conCasilla", 0),
+        "sinCasilla": resumen.get("sinCasilla", 0),
+        "porcentajeConCasilla": resumen.get("porcentajeConCasilla", 0.0),
+        "ultimaVerificacion": resumen.get("ultimaVerificacion")
+    }
+
+
+@router.get("/estado-casillas")
+async def obtener_estado_casillas(db = Depends(get_database)):
+    """
+    Retorna el estado de sincronización automática y las estadísticas consolidadas
+    de casillas provenientes del módulo de casillas en MongoDB.
+    """
+    from app.services.casilla_service import casilla_sync_state, obtener_resumen_empresas_casilla
+    resumen = await obtener_resumen_empresas_casilla(db)
+    return {
+        "enEjecucion": bool(casilla_sync_state.get("en_ejecucion", False)),
+        "porcentajeProgreso": casilla_sync_state.get("porcentaje", 0.0),
+        "totalEmpresas": resumen.get("totalEmpresas", 0),
+        "conCasilla": resumen.get("conCasilla", 0),
+        "sinCasilla": resumen.get("sinCasilla", 0),
+        "porcentajeConCasilla": resumen.get("porcentajeConCasilla", 0.0),
+        "ultimaVerificacion": resumen.get("ultimaVerificacion"),
+        "proceso": casilla_sync_state
+    }
+
 
 

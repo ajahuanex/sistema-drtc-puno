@@ -784,6 +784,214 @@
 }
 
 /* ========================================================================= */
+/* BANNER DE CASILLA ELECTRÓNICA EN DASHBOARD                               */
+/* ========================================================================= */
+.casilla-dashboard-banner {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdfa 100%);
+  border: 1px solid #a7f3d0;
+  border-left: 5px solid #059669;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.08);
+}
+
+.casilla-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.casilla-banner-title-box {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.casilla-icon-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.85rem;
+  height: 2.85rem;
+  background-color: #d1fae5;
+  color: #059669;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+}
+
+.casilla-icon-circle i {
+  font-size: 1.6rem;
+}
+
+.casilla-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(5, 150, 105, 0.12);
+  color: #047857;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.live-dot-cyan {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.casilla-banner-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #065f46;
+  margin: 0 0 0.2rem 0;
+}
+
+.casilla-banner-desc {
+  font-size: 0.825rem;
+  color: #047857;
+  margin: 0;
+}
+
+.btn-ir-casilla {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 8px rgba(5, 150, 105, 0.25);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(5, 150, 105, 0.35);
+    background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  }
+}
+
+.casilla-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.casilla-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.casilla-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  background: #f1f5f9;
+  color: #475569;
+  flex-shrink: 0;
+
+  &.icon-emerald { background: #d1fae5; color: #059669; }
+  &.icon-amber { background: #fef3c7; color: #d97706; }
+  &.icon-cyan { background: #cffafe; color: #0891b2; }
+
+  i { font-size: 1.45rem; }
+}
+
+.casilla-stat-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.casilla-stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.casilla-stat-number {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  margin: 2px 0;
+
+  &.text-emerald { color: #059669; }
+  &.text-amber { color: #d97706; }
+  &.text-cyan { color: #0891b2; }
+}
+
+.casilla-stat-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.text-emerald-light { color: #047857; font-weight: 600; }
+  &.text-amber-light { color: #b45309; font-weight: 600; }
+}
+
+.cobertura-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.cobertura-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0891b2 0%, #10b981 100%);
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.casilla-footer-sync {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #065f46;
+  padding-top: 0.5rem;
+  border-top: 1px dashed rgba(5, 150, 105, 0.2);
+}
+
+/* ========================================================================= */
 /* BANNER DE ALERTA: RESOLUCIONES PRÓXIMAS A VENCER                          */
 /* ========================================================================= */
 .alert-banner-vencimiento {
@@ -1253,6 +1461,41 @@
 
   .progress-bar-container {
     background-color: #1e2433;
+  }
+
+  /* Casilla Electrónica Banner Dark Theme */
+  .casilla-dashboard-banner {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.25) 0%, rgba(4, 120, 87, 0.15) 100%);
+    border-color: rgba(16, 185, 129, 0.3);
+    border-left-color: #10b981;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  .casilla-banner-title {
+    color: #34d399;
+  }
+
+  .casilla-banner-desc {
+    color: #a7f3d0;
+  }
+
+  .casilla-stat-card {
+    background: #111622;
+    border-color: #1e2433;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .casilla-stat-number {
+    color: #f8fafc;
+  }
+
+  .casilla-stat-label {
+    color: #94a3b8;
+  }
+
+  .casilla-footer-sync {
+    color: #6ee7b7;
+    border-top-color: rgba(16, 185, 129, 0.2);
   }
 
   /* Alerta vencimiento */

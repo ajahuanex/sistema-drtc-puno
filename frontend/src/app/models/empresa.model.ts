@@ -77,11 +77,16 @@ export interface Empresa {
   sitioWeb?: string;
   observaciones?: string;
   partidaRegistral?: string;
+  casillaElectronica?: CasillaElectronicaInfo;
   tieneCasillaElectronica?: boolean;
-  casillaElectronica?: string;
   // Datos SUNAT persistidos
   datosSunat?: SunatData;
   ultimaValidacionSunat?: Date;
+}
+
+export interface CasillaElectronicaInfo {
+  habilitada: boolean;
+  fechaValidacion?: Date | string;
 }
 
 export interface SunatData {
@@ -113,6 +118,17 @@ export interface SunatCronStatus {
     porcentaje: number;
     ruc_actual?: string | null;
   };
+}
+
+export interface CasillaSyncStatus {
+  enEjecucion: boolean;
+  porcentajeProgreso: number;
+  totalEmpresas: number;
+  conCasilla: number;
+  sinCasilla: number;
+  porcentajeConCasilla: number;
+  ultimaVerificacion?: string | null;
+  proceso?: any;
 }
 
 // ========================================

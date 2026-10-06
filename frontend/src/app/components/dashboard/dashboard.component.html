@@ -159,6 +159,91 @@
       
     </div>
 
+    <!-- BANNER Y ESTADÍSTICAS: CASILLA ELECTRÓNICA DE EMPRESAS (MTC / DRTC PUNO) -->
+    @if (stats.estadisticasCasilla; as casilla) {
+      <div class="casilla-dashboard-banner">
+        <div class="casilla-banner-header">
+          <div class="casilla-banner-title-box">
+            <div class="casilla-icon-circle">
+              <i class="material-icons-outlined">mark_email_read</i>
+            </div>
+            <div>
+              <div class="casilla-badge-pill">
+                <span class="live-dot-cyan"></span>
+                <span>MTC • SISTEMA REGIONAL DE CASILLA ELECTRÓNICA</span>
+              </div>
+              <h3 class="casilla-banner-title">Cobertura de Casilla Electrónica de Empresas</h3>
+              <p class="casilla-banner-desc">
+                Monitoreo del padrón oficial conforme al D.S. N° 002-2020-MTC y TUO de la Ley N° 27444 para notificaciones administrativas digitales.
+              </p>
+            </div>
+          </div>
+          <div class="casilla-banner-actions">
+            <a routerLink="/casilla-electronica" class="btn-ir-casilla">
+              <i class="material-icons-outlined">open_in_new</i>
+              <span>Gestionar Casillas</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Fila de Indicadores Numéricos -->
+        <div class="casilla-kpi-row">
+          <div class="casilla-stat-card card-total-emp">
+            <div class="casilla-stat-icon">
+              <i class="material-icons-outlined">business</i>
+            </div>
+            <div class="casilla-stat-info">
+              <span class="casilla-stat-label">Empresas Monitoreadas</span>
+              <span class="casilla-stat-number">{{ casilla.totalEmpresas | number }}</span>
+              <span class="casilla-stat-sub">100% Padrón DRTC Puno</span>
+            </div>
+          </div>
+
+          <div class="casilla-stat-card card-con-casilla">
+            <div class="casilla-stat-icon icon-emerald">
+              <i class="material-icons-outlined">verified_user</i>
+            </div>
+            <div class="casilla-stat-info">
+              <span class="casilla-stat-label">Con Casilla Habilitada</span>
+              <span class="casilla-stat-number text-emerald">{{ casilla.empresasConCasilla | number }}</span>
+              <span class="casilla-stat-sub text-emerald-light">Aptas para notificación digital</span>
+            </div>
+          </div>
+
+          <div class="casilla-stat-card card-sin-casilla">
+            <div class="casilla-stat-icon icon-amber">
+              <i class="material-icons-outlined">notification_important</i>
+            </div>
+            <div class="casilla-stat-info">
+              <span class="casilla-stat-label">Sin Casilla Activa</span>
+              <span class="casilla-stat-number text-amber">{{ casilla.empresasSinCasilla | number }}</span>
+              <span class="casilla-stat-sub text-amber-light">Notificación física requerida (Art. 21)</span>
+            </div>
+          </div>
+
+          <div class="casilla-stat-card card-cobertura">
+            <div class="casilla-stat-icon icon-cyan">
+              <i class="material-icons-outlined">pie_chart</i>
+            </div>
+            <div class="casilla-stat-info">
+              <span class="casilla-stat-label">Nivel de Cobertura</span>
+              <span class="casilla-stat-number text-cyan">{{ casilla.porcentajeConCasilla }}%</span>
+              <div class="cobertura-bar-wrap">
+                <div class="cobertura-bar-fill" [style.width.%]="casilla.porcentajeConCasilla"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        @if (casilla.ultimaVerificacion) {
+          <div class="casilla-footer-sync">
+            <i class="material-icons-outlined text-sm">storage</i>
+            <span>Verificación persistida en MongoDB: <strong>{{ casilla.ultimaVerificacion | fechaLatina }}</strong></span>
+          </div>
+        }
+      </div>
+    }
+
     <!-- BANNER DE ALERTA: RESOLUCIONES PRIMIGENIAS PRÓXIMAS A VENCER (30 Y 60 DÍAS) -->
     @if (stats.resolucionesPorVencer30?.total || stats.resolucionesPorVencer60?.total) {
       <div class="alert-banner-vencimiento">

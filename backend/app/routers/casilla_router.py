@@ -1,11 +1,15 @@
-"""
-Router para Verificación de Casilla Electrónica (MTC / DRTC Puno)
-Actúa como proxy seguro y puente hacia el API Node-RED institucional.
-"""
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, BackgroundTasks, Depends
 from typing import Optional
 import httpx
 import logging
+
+from app.dependencies.db import get_database
+from app.services.casilla_service import (
+    ejecutar_verificacion_masiva_empresas,
+    obtener_resumen_empresas_casilla,
+    verificar_empresa_individual_y_guardar,
+    casilla_sync_state
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +53,6 @@ async def verificar_casilla(
             # Si Cloudflare o el servidor devuelve HTML o error
             if "html" in resp.headers.get("content-type", "").lower() or "<html" in resp.text[:200].lower():
                 logger.warning(f"[Casilla Proxy] El servidor externo devolvió HTML (posible Cloudflare/Challenge). Status: {resp.status_code}")
-                # Manejo amigable: si es status 403 o challenge, indicamos la situación
                 return {
                     "status": "observacion",
                     "info": {
@@ -92,3 +95,87 @@ async def verificar_casilla(
                 "message": f"No se pudo conectar con el servicio de casillas: {str(e)}"
             }
         }
+
+
+@router.get("/resumen-empresas")
+async def get_resumen_empresas_casilla(db = Depends(get_database)):
+    """
+    Obtiene las estadísticas y lista de todas las empresas con su estado
+    de casilla electrónica almacenado en la base de datos MongoDB.
+    """
+    try:
+        resumen = await obtener_resumen_empresas_casilla(db)
+        return resumen
+    except Exception as e:
+        logger.error(f"Error obteniendo resumen de casillas de empresas: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/estado-verificacion-masiva")
+async def get_estado_verificacion_masiva():
+    """
+    Retorna el estado de la tarea en segundo plano de verificación masiva.
+    """
+    return casilla_sync_state
+
+
+@router.post("/verificar-todas-empresas")
+async def iniciar_verificacion_todas_empresas(
+    background_tasks: BackgroundTasks,
+    origen: str = Query("MANUAL_WEB", description="Origen de la solicitud")
+):
+    """
+    Dispara la verificación masiva de casilla electrónica para todas las empresas activas.
+    Los resultados se guardan permanentemente en MongoDB.
+    """
+    if casilla_sync_state["en_ejecucion"]:
+        return {
+            "status": "ocupado",
+            "mensaje": "Ya existe una verificación masiva en ejecución actualmente.",
+            "estado": casilla_sync_state
+        }
+
+    background_tasks.add_task(ejecutar_verificacion_masiva_empresas, origen=origen)
+
+    return {
+        "status": "iniciado",
+        "mensaje": "Verificación masiva de casillas iniciada en segundo plano con persistencia en base de datos.",
+        "estado": casilla_sync_state
+    }
+
+
+@router.post("/verificar-empresa/{ruc}")
+async def verificar_empresa_individual(
+    ruc: str,
+    db = Depends(get_database)
+):
+    """
+    Verifica individualmente la casilla electrónica de una empresa y actualiza MongoDB.
+    """
+    try:
+        resultado = await verificar_empresa_individual_y_guardar(db, ruc)
+        if "error" in resultado:
+            raise HTTPException(status_code=400, detail=resultado["error"])
+        return resultado
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al verificar empresa individual {ruc}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/historial")
+async def get_historial_verificaciones_masivas(
+    limit: int = Query(10, ge=1, le=50),
+    db = Depends(get_database)
+):
+    """
+    Obtiene el historial de verificaciones masivas guardadas en la base de datos.
+    """
+    try:
+        cursor = db["casilla_verificaciones"].find({}, {"_id": 0}).sort("fecha", -1).limit(limit)
+        historial = await cursor.to_list(length=limit)
+        return historial
+    except Exception as e:
+        logger.error(f"Error obteniendo historial de verificaciones: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -446,6 +446,63 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
             "condicionCitv": "Obligatoriedad de Certificado de Inspección Técnica Vehicular (CITV) semestral para unidades acogidas a régimen extraordinario",
             "tramitePredominante": "SUSTITUCIONES / INCREMENTOS"
         }
+        # 11. Estadísticas de Casilla Electrónica de Empresas
+        total_empresas_activas = len(empresas_activas)
+        con_casilla_count = await db["empresas"].count_documents({
+            "estaActivo": True,
+            "$or": [
+                {"casillaElectronica.habilitada": True},
+                {"tieneCasillaElectronica": True}
+            ]
+        })
+        sin_casilla_count = max(0, total_empresas_activas - con_casilla_count)
+        porcentaje_casilla = round((con_casilla_count / max(total_empresas_activas, 1)) * 100, 1)
+
+        # Última verificación registrada en BD
+        ultimo_reg_casilla = await db["casilla_verificaciones"].find_one(
+            sort=[("fecha", -1)]
+        )
+        ultima_verificacion_casilla = None
+        if ultimo_reg_casilla and ultimo_reg_casilla.get("fecha"):
+            f_cas = ultimo_reg_casilla["fecha"]
+            ultima_verificacion_casilla = f_cas.isoformat() if isinstance(f_cas, datetime) else str(f_cas)
+
+        # Top 10 empresas sin casilla para atención rápida
+        cursor_sin_casilla = db["empresas"].find(
+            {
+                "estaActivo": True,
+                "$or": [
+                    {"casillaElectronica.habilitada": {"$ne": True}},
+                    {"casillaElectronica": {"$exists": False}},
+                    {"casillaElectronica": None}
+                ]
+            },
+            {"ruc": 1, "razonSocial": 1, "emailContacto": 1, "telefonoContacto": 1}
+        ).limit(10)
+        
+        empresas_sin_casilla_lista = []
+        async for emp_sc in cursor_sin_casilla:
+            ruc_sc = emp_sc.get("ruc")
+            rs_sc = emp_sc.get("razonSocial")
+            if isinstance(rs_sc, dict):
+                rs_sc_nom = rs_sc.get("principal") or rs_sc.get("sunat") or str(rs_sc)
+            else:
+                rs_sc_nom = str(rs_sc or "")
+            empresas_sin_casilla_lista.append({
+                "ruc": ruc_sc,
+                "razonSocial": rs_sc_nom,
+                "emailContacto": emp_sc.get("emailContacto"),
+                "telefonoContacto": emp_sc.get("telefonoContacto")
+            })
+
+        estadisticas_casilla = {
+            "totalEmpresas": total_empresas_activas,
+            "empresasConCasilla": con_casilla_count,
+            "empresasSinCasilla": sin_casilla_count,
+            "porcentajeConCasilla": porcentaje_casilla,
+            "ultimaVerificacion": ultima_verificacion_casilla,
+            "empresasSinCasillaLista": empresas_sin_casilla_lista
+        }
 
         return {
             "flotasPorCorredor": flotas_por_corredor,
@@ -472,7 +529,8 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
             "estadisticasCategoria": estadisticas_categoria,
             "estadisticasPermanencia": estadisticas_permanencia,
             "estadisticasVigenciaTuc": estadisticas_vigencia_tuc,
-            "normativaMtc": normativa_mtc
+            "normativaMtc": normativa_mtc,
+            "estadisticasCasilla": estadisticas_casilla
         }
     except Exception as e:
         import traceback

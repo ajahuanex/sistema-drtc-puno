@@ -99,8 +99,8 @@ class Empresa(BaseModel):
     sitioWeb: Optional[str] = None
     observaciones: Optional[str] = None
     partidaRegistral: Optional[str] = None
-    tieneCasillaElectronica: Optional[bool] = False
-    casillaElectronica: Optional[str] = None
+    casillaElectronica: Optional[Dict[str, Any]] = None
+    tieneCasillaElectronica: Optional[bool] = None
     # Datos SUNAT actualizables
     datosSunat: Optional[Dict[str, Any]] = None
     ultimaValidacionSunat: Optional[datetime] = None
@@ -115,8 +115,8 @@ class EmpresaCreate(BaseModel):
     razonSocial: RazonSocial
     direccionFiscal: Optional[str] = None
     partidaRegistral: Optional[str] = None
-    tieneCasillaElectronica: Optional[bool] = False
-    casillaElectronica: Optional[str] = None
+    casillaElectronica: Optional[Dict[str, Any]] = None
+    tieneCasillaElectronica: Optional[bool] = None
     socios: List[Socio] = Field(default_factory=list)
     representanteLegal: Optional[RepresentanteLegal] = None
     tiposServicio: List[TipoServicio] = Field(default_factory=lambda: [TipoServicio.PASAJEROS])
@@ -132,8 +132,8 @@ class EmpresaUpdate(BaseModel):
     razonSocial: Optional[RazonSocial] = None
     direccionFiscal: Optional[str] = None
     partidaRegistral: Optional[str] = None
+    casillaElectronica: Optional[Dict[str, Any]] = None
     tieneCasillaElectronica: Optional[bool] = None
-    casillaElectronica: Optional[str] = None
     socios: Optional[List[Socio]] = None
     representanteLegal: Optional[RepresentanteLegal] = None
     estado: Optional[EstadoEmpresa] = None

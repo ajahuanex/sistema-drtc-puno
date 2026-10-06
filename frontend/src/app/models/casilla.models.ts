@@ -51,3 +51,57 @@ export interface Toast {
   tipo: 'exito' | 'error' | 'info';
   mensaje: string;
 }
+
+/** Empresa para la tabla de casilla electrónica */
+export interface EmpresaCasillaItem {
+  id: string;
+  ruc: string;
+  razonSocial: string;
+  tieneCasillaElectronica: boolean;
+  casillaElectronica: string;
+  ultimaValidacionCasilla?: string | null;
+  emailContacto?: string;
+  telefonoContacto?: string;
+  estado?: string;
+}
+
+/** Estado de ejecución de la verificación masiva */
+export interface CasillaMasivaEstado {
+  en_ejecucion: boolean;
+  ultimo_inicio?: string | null;
+  ultimo_fin?: string | null;
+  total: number;
+  procesadas: number;
+  con_casilla: number;
+  sin_casilla: number;
+  errores: number;
+  porcentaje: number;
+  empresa_actual?: string | null;
+  ruc_actual?: string | null;
+  ultimo_error?: string | null;
+  origen?: string | null;
+}
+
+/** Resumen de cobertura de empresas con persistencia en BD */
+export interface ResumenEmpresasCasillaResponse {
+  totalEmpresas: number;
+  conCasilla: number;
+  sinCasilla: number;
+  porcentajeConCasilla: number;
+  ultimaVerificacion?: string | null;
+  estadoProceso: CasillaMasivaEstado;
+  empresas: EmpresaCasillaItem[];
+}
+
+/** Registro histórico de verificación en base de datos */
+export interface HistorialVerificacionRegistro {
+  fecha: string;
+  fecha_peru?: string;
+  origen: string;
+  totalEmpresas: number;
+  conCasilla: number;
+  sinCasilla: number;
+  errores: number;
+  porcentajeConCasilla: number;
+  totalDetalles?: number;
+}

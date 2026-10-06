@@ -114,6 +114,20 @@ export interface NormativaMtc {
   tramitePredominante: string;
 }
 
+export interface EstadisticasCasilla {
+  totalEmpresas: number;
+  empresasConCasilla: number;
+  empresasSinCasilla: number;
+  porcentajeConCasilla: number;
+  ultimaVerificacion?: string | null;
+  empresasSinCasillaLista?: {
+    ruc: string;
+    razonSocial: string;
+    emailContacto?: string;
+    telefonoContacto?: string;
+  }[];
+}
+
 export interface DashboardEstadisticas {
   rutasHabilitadasTotal: number;
   rutasConMasEmpresas: RutaEmpresas[];
@@ -133,6 +147,7 @@ export interface DashboardEstadisticas {
   estadisticasPermanencia?: EstadisticasPermanencia;
   estadisticasVigenciaTuc?: EstadisticasVigenciaTuc;
   normativaMtc?: NormativaMtc;
+  estadisticasCasilla?: EstadisticasCasilla;
 }
 
 export interface DetallePermanenciaVehiculo {

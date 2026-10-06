@@ -1,13 +1,14 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   inject,
   signal,
   computed,
   ChangeDetectionStrategy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,6 +16,7 @@ import { MatFormFieldModule, MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/mat
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
@@ -23,7 +25,10 @@ import {
   EstadoCasilla,
   InfoCasillaData,
   ConsultaCasillaHistorial,
-  Toast
+  Toast,
+  EmpresaCasillaItem,
+  CasillaMasivaEstado,
+  ResumenEmpresasCasillaResponse
 } from '../../models/casilla.models';
 
 @Component({
@@ -36,6 +41,7 @@ import {
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -43,6 +49,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
     MatTooltipModule,
     MatChipsModule,
     MatDividerModule
@@ -83,6 +90,22 @@ import {
           >
             <mat-icon>refresh</mat-icon>
             Nueva Consulta
+          </button>
+
+          <button
+            mat-flat-button
+            class="header-btn btn-masivo-action"
+            (click)="iniciarVerificacionMasiva()"
+            [disabled]="estadoMasivo().en_ejecucion"
+            matTooltip="Consulta únicamente las empresas pendientes sin casilla en el MTC (las ya habilitadas no se re-consultan) y actualiza la base de datos"
+          >
+            @if (estadoMasivo().en_ejecucion) {
+              <mat-spinner diameter="18" class="btn-spinner-white"></mat-spinner>
+              <span>Verificando ({{ estadoMasivo().porcentaje }}%)...</span>
+            } @else {
+              <mat-icon>domain_verification</mat-icon>
+              <span>Sincronizar Casillas Pendientes</span>
+            }
           </button>
         </div>
       </div>
@@ -396,6 +419,292 @@ import {
             </mat-card-content>
           </mat-card>
         </div>
+      </div>
+
+      <!-- SECCIÓN DE VERIFICACIÓN MASIVA Y PADRÓN DE EMPRESAS (PERSISTENCIA EN BD) -->
+      <div class="masivo-section">
+        <!-- Banner de Progreso en Tiempo Real si está en ejecución -->
+        @if (estadoMasivo().en_ejecucion) {
+          <div class="masivo-progress-card">
+            <div class="progress-card-top">
+              <div class="progress-title-wrap">
+                <mat-spinner diameter="24" class="progress-spinner-live"></mat-spinner>
+                <div>
+                  <h4>Verificación Masiva en Curso</h4>
+                  <p class="progress-subtitle">
+                    Consultando API Node-RED del MTC y actualizando base de datos MongoDB...
+                  </p>
+                </div>
+              </div>
+              <div class="progress-counter-badge">
+                {{ estadoMasivo().procesadas }} / {{ estadoMasivo().total }} ({{ estadoMasivo().porcentaje }}%)
+              </div>
+            </div>
+
+            <mat-progress-bar mode="determinate" [value]="estadoMasivo().porcentaje" class="masivo-progress-bar"></mat-progress-bar>
+
+            <div class="progress-status-strip">
+              <div class="current-empresa-txt">
+                <mat-icon class="text-sm">sync</mat-icon>
+                <span>Procesando RUC: <strong>{{ estadoMasivo().ruc_actual || '---' }}</strong> - {{ estadoMasivo().empresa_actual || 'Consultando...' }}</span>
+              </div>
+              <div class="progress-stats-inline">
+                <span class="pill-stat stat-active">✅ Con Casilla: {{ estadoMasivo().con_casilla }}</span>
+                <span class="pill-stat stat-inactive">⚠️ Sin Casilla: {{ estadoMasivo().sin_casilla }}</span>
+                @if (estadoMasivo().errores > 0) {
+                  <span class="pill-stat stat-error">❌ Errores: {{ estadoMasivo().errores }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Padrón y Estadísticas Persistidas de Empresas -->
+        <mat-card class="masivo-table-card">
+          <div class="masivo-card-header">
+            <div class="masivo-header-info">
+              <div class="masivo-icon-circle">
+                <mat-icon>business</mat-icon>
+              </div>
+              <div>
+                <div class="db-persisted-tag">
+                  <mat-icon class="tag-icon-db">storage</mat-icon>
+                  <span>GUARDADO EN BASE DE DATOS MONGODB</span>
+                </div>
+                <h3>Padrón Institucional de Casillas de Empresas</h3>
+                <p>Verificación oficial de casillas electrónicas activas conforme al D.S. N° 002-2020-MTC</p>
+              </div>
+            </div>
+
+            <div class="masivo-header-actions">
+              <button
+                mat-stroked-button
+                class="refresh-padron-btn"
+                (click)="cargarResumenEmpresas()"
+                [disabled]="cargandoResumen()"
+                matTooltip="Recargar datos persistidos desde MongoDB"
+              >
+                <mat-icon [class.spinning]="cargandoResumen()">sync</mat-icon>
+                <span>Actualizar Padrón</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Métricas Resumen Persistidas -->
+          <div class="masivo-kpis-grid">
+            <div class="masivo-kpi-box box-total">
+              <div class="kpi-box-icon"><mat-icon>corporate_fare</mat-icon></div>
+              <div class="kpi-box-data">
+                <span class="kpi-box-label">Empresas en Base de Datos</span>
+                <span class="kpi-box-val">{{ resumenEmpresas()?.totalEmpresas || 0 }}</span>
+                <span class="kpi-box-desc">100% Padrón DRTC Puno</span>
+              </div>
+            </div>
+
+            <div class="masivo-kpi-box box-activas">
+              <div class="kpi-box-icon icon-green"><mat-icon>verified</mat-icon></div>
+              <div class="kpi-box-data">
+                <span class="kpi-box-label">Con Casilla Habilitada</span>
+                <span class="kpi-box-val text-green">{{ resumenEmpresas()?.conCasilla || 0 }}</span>
+                <span class="kpi-box-desc text-green-sub">Notificación digital directa</span>
+              </div>
+            </div>
+
+            <div class="masivo-kpi-box box-inactivas">
+              <div class="kpi-box-icon icon-amber"><mat-icon>notification_important</mat-icon></div>
+              <div class="kpi-box-data">
+                <span class="kpi-box-label">Sin Casilla Electrónica</span>
+                <span class="kpi-box-val text-amber">{{ resumenEmpresas()?.sinCasilla || 0 }}</span>
+                <span class="kpi-box-desc text-amber-sub">Requiere notificación física (Art. 21)</span>
+              </div>
+            </div>
+
+            <div class="masivo-kpi-box box-cobertura">
+              <div class="kpi-box-icon icon-cyan"><mat-icon>pie_chart</mat-icon></div>
+              <div class="kpi-box-data">
+                <span class="kpi-box-label">Porcentaje de Cobertura</span>
+                <span class="kpi-box-val text-cyan">{{ resumenEmpresas()?.porcentajeConCasilla || 0 }}%</span>
+                <div class="mini-bar-track">
+                  <div class="mini-bar-fill" [style.width.%]="resumenEmpresas()?.porcentajeConCasilla || 0"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          @if (resumenEmpresas()?.ultimaVerificacion) {
+            <div class="last-verification-footer">
+              <mat-icon class="footer-clock-icon">history</mat-icon>
+              <span>Última verificación masiva guardada en MongoDB: <strong>{{ formatFechaLocal(resumenEmpresas()?.ultimaVerificacion) }}</strong></span>
+            </div>
+          }
+
+          <!-- Filtros y Búsqueda -->
+          <div class="table-filter-toolbar">
+            <div class="search-box-wrap">
+              <mat-icon class="search-icon-svg">search</mat-icon>
+              <input
+                type="text"
+                class="search-input-field"
+                placeholder="Buscar por RUC o Razón Social..."
+                [value]="busquedaEmpresa()"
+                (input)="onBusquedaEmpresaChange($event)"
+              />
+              @if (busquedaEmpresa()) {
+                <button type="button" class="clear-search-btn" (click)="limpiarBusquedaEmpresa()">✕</button>
+              }
+            </div>
+
+            <div class="filter-pills-wrap">
+              <button
+                type="button"
+                class="filter-tab-btn"
+                [class.active]="filtroEmpresas() === 'todas'"
+                (click)="filtroEmpresas.set('todas')"
+              >
+                Todas ({{ resumenEmpresas()?.totalEmpresas || 0 }})
+              </button>
+              <button
+                type="button"
+                class="filter-tab-btn tab-green"
+                [class.active]="filtroEmpresas() === 'con_casilla'"
+                (click)="filtroEmpresas.set('con_casilla')"
+              >
+                Con Casilla ({{ resumenEmpresas()?.conCasilla || 0 }})
+              </button>
+              <button
+                type="button"
+                class="filter-tab-btn tab-amber"
+                [class.active]="filtroEmpresas() === 'sin_casilla'"
+                (click)="filtroEmpresas.set('sin_casilla')"
+              >
+                Sin Casilla ({{ resumenEmpresas()?.sinCasilla || 0 }})
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabla de Empresas -->
+          <div class="table-container-responsive">
+            <table class="empresas-casilla-table">
+              <thead>
+                <tr>
+                  <th style="width: 45px; text-align: center;">#</th>
+                  <th style="width: 140px;">RUC</th>
+                  <th>Razón Social</th>
+                  <th style="width: 170px; text-align: center;">Estado Casilla</th>
+                  <th style="width: 170px; text-align: center;">Última Validación BD</th>
+                  <th style="width: 140px; text-align: center;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargandoResumen() && !resumenEmpresas()) {
+                  <tr>
+                    <td colspan="6" class="text-center py-8">
+                      <mat-spinner diameter="36" class="mx-auto mb-2"></mat-spinner>
+                      <span class="text-muted text-sm">Cargando padrón desde base de datos...</span>
+                    </td>
+                  </tr>
+                } @else if (empresasPaginadas().length === 0) {
+                  <tr>
+                    <td colspan="6" class="text-center py-8 text-muted">
+                      No se encontraron empresas con los criterios seleccionados.
+                    </td>
+                  </tr>
+                } @else {
+                  @for (emp of empresasPaginadas(); track emp.ruc; let idx = $index) {
+                    <tr [class.row-verified]="emp.tieneCasillaElectronica">
+                      <td class="text-center font-bold text-muted">
+                        {{ (paginaActual() - 1) * itemsPorPagina() + idx + 1 }}
+                      </td>
+                      <td>
+                        <span class="font-mono font-bold ruc-badge">{{ emp.ruc }}</span>
+                      </td>
+                      <td>
+                        <div class="empresa-cell-name">
+                          <span class="emp-name-title">{{ emp.razonSocial }}</span>
+                          @if (emp.emailContacto) {
+                            <span class="emp-email-sub">{{ emp.emailContacto }}</span>
+                          }
+                        </div>
+                      </td>
+                      <td class="text-center">
+                        @if (emp.tieneCasillaElectronica) {
+                          <span class="badge-status-chip chip-active">
+                            <mat-icon class="chip-status-icon">check_circle</mat-icon>
+                            HABILITADA
+                          </span>
+                        } @else {
+                          <span class="badge-status-chip chip-inactive">
+                            <mat-icon class="chip-status-icon">cancel</mat-icon>
+                            NO REGISTRA
+                          </span>
+                        }
+                      </td>
+                      <td class="text-center text-xs text-muted">
+                        {{ emp.ultimaValidacionCasilla ? formatFechaLocal(emp.ultimaValidacionCasilla) : 'Pendiente' }}
+                      </td>
+                      <td class="text-center">
+                        <div class="actions-cell-wrap">
+                          <button
+                            mat-icon-button
+                            color="primary"
+                            class="action-btn-sm"
+                            (click)="verificarEmpresaIndividual(emp)"
+                            [disabled]="verificandoIndividualRuc() === emp.ruc || estadoMasivo().en_ejecucion"
+                            matTooltip="Consultar en API y actualizar en BD"
+                          >
+                            @if (verificandoIndividualRuc() === emp.ruc) {
+                              <mat-spinner diameter="16"></mat-spinner>
+                            } @else {
+                              <mat-icon>sync</mat-icon>
+                            }
+                          </button>
+                          <button
+                            mat-icon-button
+                            class="action-btn-sm"
+                            (click)="cargarEnConsulta(emp)"
+                            matTooltip="Cargar datos en el verificador principal"
+                          >
+                            <mat-icon>search</mat-icon>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginación -->
+          @if (totalPaginas() > 1) {
+            <div class="pagination-footer">
+              <span class="pagination-info">
+                Mostrando {{ (paginaActual() - 1) * itemsPorPagina() + 1 }} - 
+                {{ Math.min(paginaActual() * itemsPorPagina(), empresasFiltradas().length) }} 
+                de {{ empresasFiltradas().length }} empresas
+              </span>
+              <div class="pagination-controls">
+                <button
+                  mat-button
+                  class="btn-page"
+                  [disabled]="paginaActual() === 1"
+                  (click)="cambiarPagina(paginaActual() - 1)"
+                >
+                  <mat-icon>chevron_left</mat-icon> Anterior
+                </button>
+                <span class="page-current">Página {{ paginaActual() }} de {{ totalPaginas() }}</span>
+                <button
+                  mat-button
+                  class="btn-page"
+                  [disabled]="paginaActual() === totalPaginas()"
+                  (click)="cambiarPagina(paginaActual() + 1)"
+                >
+                  Siguiente <mat-icon>chevron_right</mat-icon>
+                </button>
+              </div>
+            </div>
+          }
+        </mat-card>
       </div>
     </div>
   `,
@@ -1089,22 +1398,617 @@ import {
         }
       }
     }
+
+    /* Botón masivo en header */
+    .btn-masivo-action {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+      color: #ffffff !important;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+      }
+
+      &:disabled {
+        opacity: 0.75;
+      }
+    }
+
+    .btn-spinner-white ::ng-deep circle {
+      stroke: #ffffff !important;
+    }
+
+    /* Sección Masiva */
+    .masivo-section {
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Progress Banner Live */
+    .masivo-progress-card {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 18px 24px;
+      color: #ffffff;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+
+    .progress-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .progress-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #38bdf8;
+      }
+
+      .progress-subtitle {
+        margin: 2px 0 0 0;
+        font-size: 12px;
+        color: #94a3b8;
+      }
+    }
+
+    .progress-counter-badge {
+      background: #0284c7;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .masivo-progress-bar {
+      height: 8px !important;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      background-color: #334155 !important;
+      
+      ::ng-deep .mdc-linear-progress__bar-inner {
+        border-color: #38bdf8 !important;
+      }
+    }
+
+    .progress-status-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+    }
+
+    .current-empresa-txt {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #e2e8f0;
+
+      mat-icon {
+        color: #38bdf8;
+        animation: spin 1.5s linear infinite;
+      }
+    }
+
+    .progress-stats-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-stat {
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+
+      &.stat-active { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+      &.stat-inactive { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+      &.stat-error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    }
+
+    /* Masivo Table Card */
+    .masivo-table-card {
+      border-radius: 12px;
+      padding: 24px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .masivo-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .masivo-header-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .masivo-icon-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #e0f2fe;
+      color: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      mat-icon { font-size: 24px; width: 24px; height: 24px; }
+    }
+
+    .db-persisted-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+
+      .tag-icon-db { font-size: 14px; width: 14px; height: 14px; }
+    }
+
+    .masivo-header-info h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .masivo-header-info p {
+      margin: 2px 0 0 0;
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .refresh-padron-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    /* KPIs Grid */
+    .masivo-kpis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .masivo-kpi-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+
+    .kpi-box-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: #e2e8f0;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      &.icon-green { background: #dcfce7; color: #16a34a; }
+      &.icon-amber { background: #fef3c7; color: #d97706; }
+      &.icon-cyan { background: #cffafe; color: #0891b2; }
+
+      mat-icon { font-size: 22px; width: 22px; height: 22px; }
+    }
+
+    .kpi-box-data {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .kpi-box-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .kpi-box-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.2;
+      margin: 2px 0;
+
+      &.text-green { color: #16a34a; }
+      &.text-amber { color: #d97706; }
+      &.text-cyan { color: #0891b2; }
+    }
+
+    .kpi-box-desc {
+      font-size: 11px;
+      color: #94a3b8;
+
+      &.text-green-sub { color: #15803d; font-weight: 600; }
+      &.text-amber-sub { color: #b45309; font-weight: 600; }
+    }
+
+    .mini-bar-track {
+      width: 100%;
+      height: 5px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .mini-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0891b2 0%, #10b981 100%);
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+
+    .last-verification-footer {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+
+      .footer-clock-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #0284c7;
+      }
+    }
+
+    /* Toolbar de Búsqueda y Filtros */
+    .table-filter-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-box-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 12px;
+      flex: 1;
+      max-width: 400px;
+    }
+
+    .search-icon-svg {
+      color: #64748b;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .search-input-field {
+      border: none;
+      background: transparent;
+      outline: none;
+      width: 100%;
+      font-size: 13.5px;
+      color: #1e293b;
+    }
+
+    .clear-search-btn {
+      border: none;
+      background: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 4px;
+    }
+
+    .filter-pills-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-tab-btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &.active {
+        background: #0f172a;
+        color: #ffffff;
+        border-color: #0f172a;
+      }
+
+      &.tab-green.active {
+        background: #16a34a;
+        border-color: #16a34a;
+        color: #ffffff;
+      }
+
+      &.tab-amber.active {
+        background: #d97706;
+        border-color: #d97706;
+        color: #ffffff;
+      }
+    }
+
+    /* Tabla */
+    .table-container-responsive {
+      overflow-x: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+
+    .empresas-casilla-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+
+      th {
+        background: #f8fafc;
+        padding: 10px 14px;
+        text-align: left;
+        font-weight: 700;
+        color: #475569;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      td {
+        padding: 11px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+      }
+
+      tr:hover td {
+        background: #f8fafc;
+      }
+
+      tr.row-verified td {
+        background: rgba(240, 253, 244, 0.3);
+      }
+    }
+
+    .ruc-badge {
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .empresa-cell-name {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .emp-name-title {
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .emp-email-sub {
+      font-size: 11.5px;
+      color: #64748b;
+    }
+
+    .badge-status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+
+      .chip-status-icon {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
+      }
+
+      &.chip-active {
+        background: #dcfce7;
+        color: #15803d;
+      }
+
+      &.chip-inactive {
+        background: #fef3c7;
+        color: #b45309;
+      }
+    }
+
+    .actions-cell-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .action-btn-sm {
+      width: 32px !important;
+      height: 32px !important;
+      line-height: 32px !important;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    /* Paginación */
+    .pagination-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+    }
+
+    .pagination-info {
+      font-size: 12.5px;
+      color: #64748b;
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-page {
+      font-size: 12px;
+    }
+
+    .page-current {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .spinning {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 4px 15px rgba(2, 132, 199, 0.2); }
+      50% { box-shadow: 0 4px 25px rgba(2, 132, 199, 0.45); }
+    }
   `]
 })
-export class CasillaElectronicaComponent implements OnInit {
+export class CasillaElectronicaComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private casillaService = inject(CasillaService);
 
   // Formulario
   consultaForm!: FormGroup;
 
-  // Signals de Estado
+  // Signals de Estado Consulta Individual
   estadoCasilla = signal<EstadoCasilla>('pendiente');
   datosCasilla = signal<InfoCasillaData | null>(null);
   mensajeError = signal<string>('No se pudo establecer conexión con el servicio.');
   toasts = signal<Toast[]>([]);
   historial = signal<ConsultaCasillaHistorial[]>([]);
   private toastId = 0;
+
+  // Signals de Verificación Masiva y Padrón en Base de Datos
+  resumenEmpresas = signal<ResumenEmpresasCasillaResponse | null>(null);
+  estadoMasivo = signal<CasillaMasivaEstado>({
+    en_ejecucion: false,
+    total: 0,
+    procesadas: 0,
+    con_casilla: 0,
+    sin_casilla: 0,
+    errores: 0,
+    porcentaje: 0
+  });
+  cargandoResumen = signal<boolean>(false);
+  verificandoIndividualRuc = signal<string | null>(null);
+  filtroEmpresas = signal<'todas' | 'con_casilla' | 'sin_casilla'>('todas');
+  busquedaEmpresa = signal<string>('');
+  paginaActual = signal<number>(1);
+  itemsPorPagina = signal<number>(12);
+  readonly Math = Math;
+  private pollingTimer: any = null;
+
+  empresasFiltradas = computed(() => {
+    const res = this.resumenEmpresas();
+    if (!res || !res.empresas) return [];
+    let lista = res.empresas;
+    const f = this.filtroEmpresas();
+    if (f === 'con_casilla') lista = lista.filter(e => e.tieneCasillaElectronica);
+    if (f === 'sin_casilla') lista = lista.filter(e => !e.tieneCasillaElectronica);
+    
+    const q = this.busquedaEmpresa().trim().toLowerCase();
+    if (q) {
+      lista = lista.filter(e => 
+        (e.ruc || '').toLowerCase().includes(q) || 
+        (e.razonSocial || '').toLowerCase().includes(q)
+      );
+    }
+    return lista;
+  });
+
+  totalPaginas = computed(() => {
+    const total = this.empresasFiltradas().length;
+    return Math.max(1, Math.ceil(total / this.itemsPorPagina()));
+  });
+
+  empresasPaginadas = computed(() => {
+    const lista = this.empresasFiltradas();
+    const pag = this.paginaActual();
+    const items = this.itemsPorPagina();
+    const start = (pag - 1) * items;
+    return lista.slice(start, start + items);
+  });
 
   // Catálogo unificado de documentos (RUC y DNI siempre disponibles)
   readonly catalogoDocumentos = [
@@ -1179,6 +2083,15 @@ export class CasillaElectronicaComponent implements OnInit {
       codTipoDocumento: ['00001', Validators.required],
       nroDocumento: ['', [Validators.required, Validators.minLength(11)]]
     });
+
+    // Cargar datos persistidos desde MongoDB
+    this.cargarResumenEmpresas();
+    // Verificar si hay tarea masiva en ejecución
+    this.consultarEstadoMasivo();
+  }
+
+  ngOnDestroy(): void {
+    this.detenerPolling();
   }
 
   seleccionarModo(modo: 'RUC' | 'DNI'): void {
@@ -1348,5 +2261,177 @@ export class CasillaElectronicaComponent implements OnInit {
 
   cerrarToast(id: number): void {
     this.toasts.update(list => list.filter(t => t.id !== id));
+  }
+
+  cargarResumenEmpresas(): void {
+    this.cargandoResumen.set(true);
+    this.casillaService.obtenerResumenEmpresas().subscribe({
+      next: (res) => {
+        this.resumenEmpresas.set(res);
+        this.cargandoResumen.set(false);
+        if (res?.estadoProceso?.en_ejecucion) {
+          this.estadoMasivo.set(res.estadoProceso);
+          this.iniciarPolling();
+        }
+      },
+      error: (err) => {
+        console.error('Error cargando resumen de empresas:', err);
+        this.cargandoResumen.set(false);
+        this.mostrarToast('error', 'No se pudo cargar el padrón de empresas desde la base de datos.');
+      }
+    });
+  }
+
+  iniciarVerificacionMasiva(): void {
+    if (this.estadoMasivo().en_ejecucion) return;
+
+    this.mostrarToast('info', 'Iniciando verificación masiva en segundo plano con persistencia en MongoDB...');
+    this.casillaService.iniciarVerificacionTodasEmpresas().subscribe({
+      next: (res) => {
+        if (res.status === 'ocupado') {
+          this.mostrarToast('info', res.mensaje || 'Ya hay una verificación en curso.');
+        } else {
+          this.mostrarToast('exito', '🚀 Proceso de verificación masiva iniciado. Los resultados se guardarán permanentemente.');
+        }
+        if (res.estado) {
+          this.estadoMasivo.set(res.estado);
+        }
+        this.iniciarPolling();
+      },
+      error: (err) => {
+        console.error('Error al iniciar verificación masiva:', err);
+        this.mostrarToast('error', 'No se pudo iniciar la verificación masiva.');
+      }
+    });
+  }
+
+  consultarEstadoMasivo(): void {
+    this.casillaService.obtenerEstadoVerificacionMasiva().subscribe({
+      next: (estado) => {
+        if (estado) {
+          this.estadoMasivo.set(estado);
+          if (estado.en_ejecucion) {
+            this.iniciarPolling();
+          }
+        }
+      },
+      error: (err) => console.warn('Error consultando estado masivo:', err)
+    });
+  }
+
+  private iniciarPolling(): void {
+    this.detenerPolling();
+    this.pollingTimer = setInterval(() => {
+      this.casillaService.obtenerEstadoVerificacionMasiva().subscribe({
+        next: (estado) => {
+          this.estadoMasivo.set(estado);
+          if (!estado.en_ejecucion) {
+            this.detenerPolling();
+            this.mostrarToast('exito', `✅ Verificación completada: ${estado.con_casilla} con casilla, ${estado.sin_casilla} sin casilla.`);
+            // Recargar datos actualizados de MongoDB
+            this.cargarResumenEmpresas();
+          }
+        },
+        error: (err) => {
+          console.warn('Error en polling de verificación:', err);
+        }
+      });
+    }, 1500);
+  }
+
+  private detenerPolling(): void {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+    }
+  }
+
+  verificarEmpresaIndividual(emp: EmpresaCasillaItem): void {
+    this.verificandoIndividualRuc.set(emp.ruc);
+    this.casillaService.verificarEmpresaIndividual(emp.ruc).subscribe({
+      next: (res) => {
+        this.verificandoIndividualRuc.set(null);
+        const estadoTxt = res.tieneCasillaElectronica ? '✅ Casilla HABILITADA' : '⚠️ SIN Casilla registrada';
+        this.mostrarToast(res.tieneCasillaElectronica ? 'exito' : 'info', `${emp.razonSocial}: ${estadoTxt} (guardado en BD)`);
+        
+        // Actualizar la empresa localmente en el signal
+        this.resumenEmpresas.update(actual => {
+          if (!actual) return null;
+          const empresasActualizadas = actual.empresas.map(e => {
+            if (e.ruc === emp.ruc) {
+              return {
+                ...e,
+                tieneCasillaElectronica: res.tieneCasillaElectronica,
+                casillaElectronica: res.casillaElectronica,
+                ultimaValidacionCasilla: res.ultimaValidacionCasilla
+              };
+            }
+            return e;
+          });
+          
+          const conCas = empresasActualizadas.filter(e => e.tieneCasillaElectronica).length;
+          const sinCas = empresasActualizadas.length - conCas;
+          const pct = Math.round((conCas / Math.max(empresasActualizadas.length, 1)) * 1000) / 10;
+          
+          return {
+            ...actual,
+            conCasilla: conCas,
+            sinCasilla: sinCas,
+            porcentajeConCasilla: pct,
+            empresas: empresasActualizadas
+          };
+        });
+      },
+      error: (err) => {
+        this.verificandoIndividualRuc.set(null);
+        console.error('Error al verificar empresa individual:', err);
+        this.mostrarToast('error', `Error al consultar empresa ${emp.ruc}.`);
+      }
+    });
+  }
+
+  cargarEnConsulta(emp: EmpresaCasillaItem): void {
+    this.seleccionarModo('RUC');
+    this.consultaForm.patchValue({
+      codTipoPersona: '00002',
+      codTipoDocumento: '00001',
+      nroDocumento: emp.ruc
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.verificarCasilla();
+  }
+
+  onBusquedaEmpresaChange(ev: Event): void {
+    const val = (ev.target as HTMLInputElement).value || '';
+    this.busquedaEmpresa.set(val);
+    this.paginaActual.set(1);
+  }
+
+  limpiarBusquedaEmpresa(): void {
+    this.busquedaEmpresa.set('');
+    this.paginaActual.set(1);
+  }
+
+  cambiarPagina(pag: number): void {
+    if (pag >= 1 && pag <= this.totalPaginas()) {
+      this.paginaActual.set(pag);
+    }
+  }
+
+  formatFechaLocal(fStr: string | null | undefined): string {
+    if (!fStr) return '---';
+    try {
+      const d = new Date(fStr);
+      if (isNaN(d.getTime())) return fStr;
+      return d.toLocaleDateString('es-PE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return fStr;
+    }
   }
 }

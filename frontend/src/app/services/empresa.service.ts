@@ -12,7 +12,8 @@ import {
   SocioCreate,
   SocioUpdate,
   ExpedienteOperativoEmpresa,
-  SunatCronStatus
+  SunatCronStatus,
+  CasillaSyncStatus
 } from '../models/empresa.model';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
@@ -289,6 +290,48 @@ export class EmpresaService {
     );
   }
 
+  /**
+   * Sincroniza el estado de casilla electrónica de una empresa individual con el MTC y guarda en BD.
+   */
+  sincronizarCasillaEmpresa(empresaId: string): Observable<{ mensaje: string; resultado: any; empresa: Empresa }> {
+    return this.http.post<{ mensaje: string; resultado: any; empresa: any }>(
+      `${this.apiUrl}/${empresaId}/sincronizar-casilla`,
+      {},
+      { headers: this.getHeaders() }
+    ).pipe(
+      map(res => ({
+        ...res,
+        empresa: res.empresa ? this.transformEmpresaData(res.empresa) : res.empresa
+      })),
+      catchError(error => this.handleError('sincronizarCasillaEmpresa', error))
+    );
+  }
+
+  /**
+   * Inicia la sincronización masiva de casilla electrónica para todas las empresas activas.
+   */
+  sincronizarTodasCasillas(): Observable<{ status: string; mensaje: string; estado: any }> {
+    return this.http.post<{ status: string; mensaje: string; estado: any }>(
+      `${this.apiUrl}/sincronizar-casillas`,
+      {},
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(error => this.handleError('sincronizarTodasCasillas', error))
+    );
+  }
+
+  /**
+   * Obtiene el estado actual de la sincronización masiva y resumen de casillas desde la base de datos.
+   */
+  getEstadoCasillas(): Observable<CasillaSyncStatus> {
+    return this.http.get<CasillaSyncStatus>(
+      `${this.apiUrl}/estado-casillas`,
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(error => this.handleError('getEstadoCasillas', error))
+    );
+  }
+
   // ========================================
   // TRANSFORMACIÓN DE DATOS
   // ========================================
@@ -309,6 +352,25 @@ export class EmpresaService {
       razonSocial: razon,
       direccionFiscal: empresa.direccionFiscal || empresa.direccion_fiscal || '',
       partidaRegistral: empresa.partidaRegistral || empresa.partida_registral || empresa.partida || undefined,
+      casillaElectronica: (() => {
+        const ce = empresa.casillaElectronica || empresa.casilla_electronica;
+        if (ce && typeof ce === 'object') {
+          return {
+            habilitada: Boolean(ce.habilitada),
+            fechaValidacion: ce.fechaValidacion ? new Date(ce.fechaValidacion) : undefined
+          };
+        }
+        const hab = Boolean(empresa.tieneCasillaElectronica || ce === 'HABILITADA');
+        return {
+          habilitada: hab,
+          fechaValidacion: empresa.ultimaValidacionCasilla ? new Date(empresa.ultimaValidacionCasilla) : undefined
+        };
+      })(),
+      tieneCasillaElectronica: (() => {
+        const ce = empresa.casillaElectronica || empresa.casilla_electronica;
+        if (ce && typeof ce === 'object') return Boolean(ce.habilitada);
+        return Boolean(empresa.tieneCasillaElectronica || ce === 'HABILITADA');
+      })(),
       estado: empresa.estado || EstadoEmpresa.EN_TRAMITE,
       tiposServicio: empresa.tiposServicio || empresa.tipos_servicio || [],
       estaActivo: empresa.estaActivo !== undefined ? empresa.estaActivo : true,

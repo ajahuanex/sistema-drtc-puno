@@ -49,5 +49,41 @@ export class CasillaService {
       })
     );
   }
+
+  /**
+   * Obtiene el resumen consolidado de casillas de todas las empresas guardado en MongoDB.
+   */
+  obtenerResumenEmpresas(): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/casilla/resumen-empresas`);
+  }
+
+  /**
+   * Consulta el progreso y estado actual de la verificación masiva en segundo plano.
+   */
+  obtenerEstadoVerificacionMasiva(): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/casilla/estado-verificacion-masiva`);
+  }
+
+  /**
+   * Inicia la verificación masiva de casilla para todas las empresas activas.
+   */
+  iniciarVerificacionTodasEmpresas(): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/casilla/verificar-todas-empresas`, {});
+  }
+
+  /**
+   * Verifica individualmente una empresa por RUC y actualiza la base de datos.
+   */
+  verificarEmpresaIndividual(ruc: string): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/casilla/verificar-empresa/${ruc}`, {});
+  }
+
+  /**
+   * Obtiene el historial de verificaciones masivas guardadas en la base de datos.
+   */
+  obtenerHistorialVerificaciones(): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/casilla/historial`);
+  }
 }
+
 

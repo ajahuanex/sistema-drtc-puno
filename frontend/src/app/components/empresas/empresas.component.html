@@ -25,6 +25,20 @@
             </button>
           }
 
+          <!-- Indicador Automático Sincronización Casillas (Módulo Casillas) -->
+          <a routerLink="/casilla-electronica" 
+             class="header-action-btn btn-casilla-pill" 
+             matTooltip="Estado de Casillas sincronizado automáticamente con la base de datos del Módulo de Casillas. Clic para ir al módulo.">
+            <span class="material-symbols-outlined btn-icon" [class.spin-icon]="casillaSyncStatus()?.enEjecucion">mark_email_read</span>
+            <span class="btn-text">
+              @if (casillaSyncStatus()?.enEjecucion) {
+                Sincronizando Casillas: {{ casillaSyncStatus()?.porcentajeProgreso || 0 }}%
+              } @else {
+                Casillas MTC: {{ pctCasillasConformes() }}% vinculadas
+              }
+            </span>
+          </a>
+
           <!-- Botón Exportar Excel con Menú -->
           <button mat-button class="header-action-btn" [matMenuTriggerFor]="exportExcelMenu" [disabled]="isLoading()" matTooltip="Exportar empresas a Excel">
             <span class="material-symbols-outlined btn-icon">download</span>
@@ -42,6 +56,15 @@
             <button mat-menu-item (click)="exportarExcelTodas()">
               <mat-icon style="color: #10b981;">table_chart</mat-icon>
               <span>Exportar Todas ({{ empresas().length }})</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="exportarExcelCasilla(true)">
+              <mat-icon style="color: #0d9488;">mark_email_read</mat-icon>
+              <span>Exportar Solo con Casilla ({{ casillasHabilitadasCount() }})</span>
+            </button>
+            <button mat-menu-item (click)="exportarExcelCasilla(false)">
+              <mat-icon style="color: #e11d48;">unsubscribe</mat-icon>
+              <span>Exportar Solo Sin Casilla ({{ casillasSinCasillaCount() }})</span>
             </button>
             <mat-divider></mat-divider>
             <button mat-menu-item (click)="irAInicializador()">
@@ -141,6 +164,43 @@
           </div>
         </div>
 
+        <!-- Card: Casilla Electrónica MTC -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Casilla Electrónica MTC</span>
+            <span class="kpi-icon-badge kpi-badge-teal">
+              <span class="material-symbols-outlined">mark_email_read</span>
+            </span>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-split-stat">
+              <div class="cursor-pointer" (click)="filtrarPorCasilla('CON_CASILLA')" matTooltip="Clic para filtrar empresas con casilla habilitada">
+                <span class="kpi-number text-teal">{{ casillasHabilitadasCount() }}</span>
+                <span class="kpi-subtext">habilitadas</span>
+              </div>
+              <div class="kpi-sunat-subpills">
+                <span class="kpi-pill-tag pill-rose cursor-pointer" 
+                      (click)="filtrarPorCasilla('SIN_CASILLA')" 
+                      matTooltip="Clic para filtrar empresas sin casilla electrónica">
+                  <span class="tag-num">{{ casillasSinCasillaCount() }}</span> Sin Casilla
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="kpi-footer kpi-footer-between">
+            <div class="kpi-footer-left">
+              <span class="status-dot dot-emerald"></span>
+              <span class="kpi-highlight font-emerald">{{ pctCasillasConformes() }}%</span>
+              <span>cobertura</span>
+            </div>
+            <div class="kpi-footer-right">
+              <a routerLink="/casilla-electronica" class="btn-quick-sync" matTooltip="Gestionar verificación en Módulo de Casillas">
+                <span class="material-symbols-outlined">open_in_new</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
         <!-- Card 4: Modalidad Autorizada -->
         <div class="kpi-card">
           <div class="kpi-header">
@@ -215,8 +275,18 @@
               </select>
             </div>
 
+            <!-- Filtro de Casilla Electrónica MTC -->
+            <div class="filter-item">
+              <label class="filter-label">Casilla MTC:</label>
+              <select [ngModel]="casillaFilter()" (ngModelChange)="casillaFilter.set($event); currentPage.set(0)" class="stitch-select">
+                <option value="">Todas las Casillas</option>
+                <option value="CON_CASILLA">✅ Con Casilla ({{ casillasHabilitadasCount() }})</option>
+                <option value="SIN_CASILLA">⚠️ Sin Casilla ({{ casillasSinCasillaCount() }})</option>
+              </select>
+            </div>
+
             <!-- Botón Limpiar filtros -->
-            @if (searchControl.value || estadoControl.value || servicioFilter()) {
+            @if (searchControl.value || estadoControl.value || servicioFilter() || casillaFilter()) {
               <button type="button" (click)="limpiarFiltros()" class="stitch-btn stitch-btn-reset" matTooltip="Limpiar todos los filtros">
                 <span class="material-symbols-outlined">filter_alt_off</span>
                 <span>Limpiar</span>
@@ -441,15 +511,15 @@
                         }
                         @if (columnaVisible('casillaElectronica')) {
                           <td class="text-center casilla-col-td">
-                            @if (empresa.tieneCasillaElectronica || empresa.casillaElectronica) {
+                            @if (empresa.casillaElectronica?.habilitada || empresa.tieneCasillaElectronica) {
                               <span class="badge-casilla badge-casilla-si"
-                                    [matTooltip]="'Casilla Electrónica MTC: ' + (empresa.casillaElectronica || 'Habilitada') + ' (RD 001-2021-MTC/18)'">
+                                    [matTooltip]="'Casilla Electrónica MTC: HABILITADA' + (empresa.casillaElectronica?.fechaValidacion ? ' • Validado: ' + (empresa.casillaElectronica?.fechaValidacion | date:'dd/MM/yyyy HH:mm') : '')">
                                 <span class="material-symbols-outlined casilla-icon">mark_email_read</span>
-                                <span>{{ (empresa.casillaElectronica && empresa.casillaElectronica !== 'HABILITADA') ? empresa.casillaElectronica : 'Habilitada' }}</span>
+                                <span>Habilitada</span>
                               </span>
                             } @else {
                               <span class="badge-casilla badge-casilla-no"
-                                    matTooltip="Sin Casilla Electrónica MTC registrada / pendiente de vinculación">
+                                    [matTooltip]="'Sin Casilla Electrónica MTC registrada' + (empresa.casillaElectronica?.fechaValidacion ? ' • Verificado: ' + (empresa.casillaElectronica?.fechaValidacion | date:'dd/MM/yyyy') : '')">
                                 <span class="material-symbols-outlined casilla-icon">unsubscribe</span>
                                 <span>Sin Casilla</span>
                               </span>
