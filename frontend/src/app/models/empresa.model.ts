@@ -79,6 +79,7 @@ export interface Empresa {
   partidaRegistral?: string;
   casillaElectronica?: CasillaElectronicaInfo;
   tieneCasillaElectronica?: boolean;
+  ultimaValidacionCasilla?: Date | string;
   // Datos SUNAT persistidos
   datosSunat?: SunatData;
   ultimaValidacionSunat?: Date;

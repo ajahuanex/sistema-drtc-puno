@@ -996,6 +996,296 @@ async def get_reporte_detalle_permanencia(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error al obtener detalle de permanencia: {str(e)}")
 
+@router.get("/reporte-detalle/casillas-modalidad")
+async def get_reporte_detalle_casillas_modalidad(db = Depends(get_database)):
+    """
+    Retorna el reporte detallado de empresas activas con el estado de su
+    Casilla Electrónica MTC, agrupadas por su modalidad de servicio (PASAJEROS,
+    TURISMO, INFRAESTRUCTURA, etc.), con totales consolidados y listas separadas
+    de quiénes cuentan con casilla y quiénes no tienen, apto para impresión y fiscalización.
+    """
+    try:
+        MODALIDADES_CONFIG = {
+            "PASAJEROS": {
+                "label": "Transporte Regular de Pasajeros",
+                "icono": "directions_bus",
+                "orden": 1
+            },
+            "TURISMO": {
+                "label": "Transporte Especial Turístico (Turismo)",
+                "icono": "tour",
+                "orden": 2
+            },
+            "INFRAESTRUCTURA": {
+                "label": "Infraestructura Complementaria (Terminales Terrestres)",
+                "icono": "apartment",
+                "orden": 3
+            },
+            "TRABAJADORES": {
+                "label": "Transporte de Trabajadores",
+                "icono": "engineering",
+                "orden": 4
+            },
+            "MERCANCIAS": {
+                "label": "Transporte de Mercancías / Carga",
+                "icono": "local_shipping",
+                "orden": 5
+            },
+            "CARGA": {
+                "label": "Transporte de Carga",
+                "icono": "local_shipping",
+                "orden": 6
+            },
+            "MIXTO": {
+                "label": "Transporte Mixto",
+                "icono": "alt_route",
+                "orden": 7
+            }
+        }
+
+        cursor = db["empresas"].find({"estaActivo": True}).sort("ruc", 1)
+
+        grupos_aut = {}
+        grupos_canc = {}
+        grupos_cons = {}
+
+        total_gral = 0
+        con_casilla_gral = 0
+        sin_casilla_gral = 0
+
+        total_aut = 0
+        con_casilla_aut = 0
+        sin_casilla_aut = 0
+
+        total_canc = 0
+        con_casilla_canc = 0
+        sin_casilla_canc = 0
+
+        empresas_detalle = []
+
+        async for emp in cursor:
+            tipos = emp.get("tiposServicio") or ["PASAJEROS"]
+            if isinstance(tipos, str):
+                tipos = [tipos]
+            if not tipos:
+                tipos = ["PASAJEROS"]
+
+            # Excluir infraestructura complementaria por el momento a solicitud del usuario (faltan datos)
+            tipos = [t for t in tipos if "INFRA" not in str(t).upper()]
+            if not tipos:
+                continue
+
+            total_gral += 1
+            ruc = emp.get("ruc", "")
+            rs = emp.get("razonSocial")
+            if isinstance(rs, dict):
+                rs_nom = rs.get("principal") or rs.get("sunat") or rs.get("minimo") or rs.get("nombre_corto") or str(rs)
+                nombre_corto = rs.get("nombre_corto") or rs.get("minimo") or ""
+            else:
+                rs_nom = str(rs or "")
+                nombre_corto = ""
+
+            ce = emp.get("casillaElectronica")
+            tiene_casilla = False
+            fecha_val = None
+            if isinstance(ce, dict):
+                tiene_casilla = bool(ce.get("habilitada"))
+                f = ce.get("fechaValidacion")
+                if f:
+                    fecha_val = f.isoformat() if isinstance(f, datetime) else str(f)
+            elif emp.get("tieneCasillaElectronica") is True or ce == "HABILITADA":
+                tiene_casilla = True
+                f = emp.get("ultimaValidacionCasilla")
+                if f:
+                    fecha_val = f.isoformat() if isinstance(f, datetime) else str(f)
+
+            if tiene_casilla:
+                con_casilla_gral += 1
+            else:
+                sin_casilla_gral += 1
+
+            estado_raw = str(emp.get("estado") or "AUTORIZADA").strip().upper()
+            es_cancelada = (estado_raw == "CANCELADA")
+
+            if es_cancelada:
+                total_canc += 1
+                if tiene_casilla:
+                    con_casilla_canc += 1
+                else:
+                    sin_casilla_canc += 1
+            else:
+                total_aut += 1
+                if tiene_casilla:
+                    con_casilla_aut += 1
+                else:
+                    sin_casilla_aut += 1
+
+            target_grupos = grupos_canc if es_cancelada else grupos_aut
+
+            for t in tipos:
+                mod_key = t.upper().strip()
+                cfg = MODALIDADES_CONFIG.get(mod_key, {
+                    "label": f"Modalidad: {mod_key}",
+                    "icono": "business",
+                    "orden": 99
+                })
+
+                # Registro por grupo según estado
+                if mod_key not in target_grupos:
+                    target_grupos[mod_key] = {
+                        "modalidad": mod_key,
+                        "modalidadLabel": cfg["label"],
+                        "icono": cfg["icono"],
+                        "orden": cfg["orden"],
+                        "total": 0,
+                        "conCasilla": 0,
+                        "sinCasilla": 0,
+                        "porcentajeConCasilla": 0.0
+                    }
+                target_grupos[mod_key]["total"] += 1
+                if tiene_casilla:
+                    target_grupos[mod_key]["conCasilla"] += 1
+                else:
+                    target_grupos[mod_key]["sinCasilla"] += 1
+
+                # Consolidado
+                if mod_key not in grupos_cons:
+                    grupos_cons[mod_key] = {
+                        "modalidad": mod_key,
+                        "modalidadLabel": cfg["label"],
+                        "icono": cfg["icono"],
+                        "orden": cfg["orden"],
+                        "totalAutorizadas": 0,
+                        "conCasillaAutorizadas": 0,
+                        "sinCasillaAutorizadas": 0,
+                        "totalCanceladas": 0,
+                        "conCasillaCanceladas": 0,
+                        "sinCasillaCanceladas": 0,
+                        "totalGeneral": 0,
+                        "conCasillaGeneral": 0,
+                        "sinCasillaGeneral": 0,
+                        "porcentajeGeneral": 0.0
+                    }
+                grupos_cons[mod_key]["totalGeneral"] += 1
+                if tiene_casilla:
+                    grupos_cons[mod_key]["conCasillaGeneral"] += 1
+                else:
+                    grupos_cons[mod_key]["sinCasillaGeneral"] += 1
+
+                if es_cancelada:
+                    grupos_cons[mod_key]["totalCanceladas"] += 1
+                    if tiene_casilla:
+                        grupos_cons[mod_key]["conCasillaCanceladas"] += 1
+                    else:
+                        grupos_cons[mod_key]["sinCasillaCanceladas"] += 1
+                else:
+                    grupos_cons[mod_key]["totalAutorizadas"] += 1
+                    if tiene_casilla:
+                        grupos_cons[mod_key]["conCasillaAutorizadas"] += 1
+                    else:
+                        grupos_cons[mod_key]["sinCasillaAutorizadas"] += 1
+
+            empresas_detalle.append({
+                "ruc": ruc,
+                "razonSocial": rs_nom,
+                "nombreCorto": nombre_corto,
+                "estado": "CANCELADA" if es_cancelada else "AUTORIZADA",
+                "tiposServicio": tipos,
+                "modalidadPrincipal": tipos[0] if tipos else "PASAJEROS",
+                "tieneCasilla": tiene_casilla,
+                "estadoCasilla": "HABILITADA" if tiene_casilla else "SIN CASILLA",
+                "fechaValidacion": fecha_val,
+                "telefonoContacto": emp.get("telefonoContacto") or "",
+                "emailContacto": emp.get("emailContacto") or "",
+                "direccionFiscal": emp.get("direccionFiscal") or ""
+            })
+
+        # Calcular porcentajes para grupos autorizadas
+        modalidades_aut_list = []
+        for g in grupos_aut.values():
+            tot = g["total"]
+            con = g["conCasilla"]
+            g["porcentajeConCasilla"] = round((con / max(tot, 1)) * 100, 1)
+            modalidades_aut_list.append(g)
+        modalidades_aut_list.sort(key=lambda x: (x["orden"], x["modalidad"]))
+
+        # Calcular porcentajes para grupos canceladas
+        modalidades_canc_list = []
+        for g in grupos_canc.values():
+            tot = g["total"]
+            con = g["conCasilla"]
+            g["porcentajeConCasilla"] = round((con / max(tot, 1)) * 100, 1)
+            modalidades_canc_list.append(g)
+        modalidades_canc_list.sort(key=lambda x: (x["orden"], x["modalidad"]))
+
+        # Calcular porcentajes para consolidado
+        modalidades_cons_list = []
+        for g in grupos_cons.values():
+            tot = g["totalGeneral"]
+            con = g["conCasillaGeneral"]
+            g["porcentajeGeneral"] = round((con / max(tot, 1)) * 100, 1)
+            modalidades_cons_list.append(g)
+        modalidades_cons_list.sort(key=lambda x: (x["orden"], x["modalidad"]))
+
+        porcentaje_gral = round((con_casilla_gral / max(total_gral, 1)) * 100, 1)
+        porcentaje_aut = round((con_casilla_aut / max(total_aut, 1)) * 100, 1)
+        porcentaje_canc = round((con_casilla_canc / max(total_canc, 1)) * 100, 1)
+
+        return {
+            "fechaGeneracion": datetime.utcnow().isoformat(),
+            "resumenGeneral": {
+                "totalEmpresas": total_gral,
+                "conCasilla": con_casilla_gral,
+                "sinCasilla": sin_casilla_gral,
+                "porcentajeConCasilla": porcentaje_gral,
+                "totalAutorizadas": total_aut,
+                "conCasillaAutorizadas": con_casilla_aut,
+                "sinCasillaAutorizadas": sin_casilla_aut,
+                "porcentajeAutorizadas": porcentaje_aut,
+                "totalCanceladas": total_canc,
+                "conCasillaCanceladas": con_casilla_canc,
+                "sinCasillaCanceladas": sin_casilla_canc,
+                "porcentajeCanceladas": porcentaje_canc
+            },
+            "comparativoEstados": [
+                {
+                    "estado": "AUTORIZADA",
+                    "estadoLabel": "Empresas Autorizadas / Activas",
+                    "total": total_aut,
+                    "conCasilla": con_casilla_aut,
+                    "sinCasilla": sin_casilla_aut,
+                    "porcentajeConCasilla": porcentaje_aut,
+                    "observacion": "Empresas con derecho de operación vigente en rutas regionales"
+                },
+                {
+                    "estado": "CANCELADA",
+                    "estadoLabel": "Empresas con Autorización Cancelada",
+                    "total": total_canc,
+                    "conCasilla": con_casilla_canc,
+                    "sinCasilla": sin_casilla_canc,
+                    "porcentajeConCasilla": porcentaje_canc,
+                    "observacion": "Bajas administrativas / Cancelaciones firmes registradas"
+                },
+                {
+                    "estado": "TOTAL",
+                    "estadoLabel": "TOTAL GENERAL DEL PADRÓN",
+                    "total": total_gral,
+                    "conCasilla": con_casilla_gral,
+                    "sinCasilla": sin_casilla_gral,
+                    "porcentajeConCasilla": porcentaje_gral,
+                    "observacion": "Total consolidado de empresas registradas en la DRTC Puno"
+                }
+            ],
+            "modalidadesAutorizadas": modalidades_aut_list,
+            "modalidadesCanceladas": modalidades_canc_list,
+            "modalidadesConsolidado": modalidades_cons_list,
+            "empresas": empresas_detalle
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al obtener reporte de casillas por modalidad: {str(e)}")
+
 @router.post("/generar-reporte")
 async def generar_reporte_google_docs(db = Depends(get_database)):
     """

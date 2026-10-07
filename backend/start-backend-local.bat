@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   Iniciando Backend SIRRET (Modo Local)
+echo   Iniciando Backend SIRRETT (Modo Local)
 echo ========================================
 echo.
 

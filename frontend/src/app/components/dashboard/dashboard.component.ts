@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, computed, effect, ViewChild, ElementRef, AfterViewInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { 
   DashboardService, 
   DashboardEstadisticas, 
@@ -9,6 +10,7 @@ import {
   DetallePermanenciaVehiculo
 } from '../../services/dashboard.service';
 import { ThemeService } from '../../services/theme.service';
+import { ReporteCasillasDialogComponent } from './reporte-casillas-dialog.component';
 import Chart from 'chart.js/auto';
 import * as XLSX from 'xlsx';
 import { FechaLatinaPipe } from '../../pipes/fecha-latina.pipe';
@@ -16,13 +18,14 @@ import { FechaLatinaPipe } from '../../pipes/fecha-latina.pipe';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FechaLatinaPipe],
+  imports: [CommonModule, RouterModule, FechaLatinaPipe, MatDialogModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private dashboardService = inject(DashboardService);
   public themeService = inject(ThemeService);
+  private dialog = inject(MatDialog);
   
   estadisticas = signal<DashboardEstadisticas | null>(null);
   cargando = signal<boolean>(true);
@@ -684,6 +687,16 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }));
 
     this.exportarExcel(exportData, 'DRTC_PUNO_Rutas_Con_Mas_Empresas', 'Rutas Empresas');
+  }
+
+  abrirReporteCasillas(): void {
+    this.dialog.open(ReporteCasillasDialogComponent, {
+      width: '95vw',
+      maxWidth: '1200px',
+      height: '92vh',
+      panelClass: 'modal-reporte-casillas-panel',
+      autoFocus: false
+    });
   }
 
   descargarReporteRutasHabilitadas(): void {

@@ -598,7 +598,9 @@ class FlotaEmpresaExcelService:
 
         # Detección inteligente por columna TRAMITE o sufijo de resolución
         tramite_upper = str(tramite or "").upper().strip()
-        if "RENOV" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "R"):
+        if "AUTORIZ" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() in ("A", "AP")) or (nro_norm and nro_prim_norm and nro_norm == nro_prim_norm):
+            tipo_acto = "AUTORIZACION"
+        elif "RENOV" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "R"):
             tipo_acto = "RENOVACION"
         elif "SUSTITUC" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "S") or (baja and str(baja).strip() not in ("-", "", "None", "NAN")):
             tipo_acto = "SUSTITUCION_VEHICULAR"
@@ -611,7 +613,7 @@ class FlotaEmpresaExcelService:
         elif "ERRATA" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "FE"):
             tipo_acto = "FE_DE_ERRATAS"
         else:
-            tipo_acto = mapeo_tipo.get((tipo_hija_code or "").upper(), "INCREMENTO_FLOTA" if (placa and placa != "-") else "OTROS")
+            tipo_acto = mapeo_tipo.get((tipo_hija_code or "").upper(), "AUTORIZACION" if (nro_norm and nro_prim_norm and nro_norm == nro_prim_norm) else ("INCREMENTO_FLOTA" if (placa and placa != "-") else "OTROS"))
         
         hija_doc = None
         if nro_norm in hija_cache:

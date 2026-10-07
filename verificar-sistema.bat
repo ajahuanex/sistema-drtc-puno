@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   Verificacion del Sistema SIRRET
+echo   Verificacion del Sistema SIRRETT
 echo ========================================
 echo.
 

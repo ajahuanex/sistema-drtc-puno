@@ -12,7 +12,8 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
 
   const isGoogleSheets = req.url.includes('docs.google.com') || req.url.includes('google.com');
   const isCasillaNodeRed = req.url.includes('transportespuno.gob.pe');
-  const isExternalService = isGoogleSheets || isCasillaNodeRed || (req.url.startsWith('http') && !req.url.includes('localhost') && !req.url.includes('127.0.0.1'));
+  const isInternalApi = req.url.includes('/api/v1') || req.url.includes('localhost') || req.url.includes('127.0.0.1') || req.url.startsWith('/');
+  const isExternalService = isGoogleSheets || isCasillaNodeRed || !isInternalApi;
 
   // Agregar token de autorización solo a solicitudes internas a la API de SIRRETT
   let modifiedRequest = req;
@@ -45,16 +46,18 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
         const isLoginPage = currentUrl.includes('/login');
         const isAuthEndpoint = req.url.includes('/auth/');
         
-        console.log('🔴 Error 401 - No autorizado:', {
+        console.warn('🔴 Error 401 - No autorizado:', {
           currentUrl,
           isLoginPage,
           isAuthEndpoint,
           requestUrl: req.url
         });
         
-        console.log('❌ Error 401 detectado en API de aplicación, redirigiendo a login');
-        authService.logout();
-        router.navigate(['/login'], { replaceUrl: true });
+        if (!isLoginPage && !isAuthEndpoint) {
+          console.warn('❌ Sesión expirada o no autorizada (401), redirigiendo a login');
+          authService.logout();
+          router.navigate(['/login'], { replaceUrl: true });
+        }
         return throwError(() => error);
       }
       

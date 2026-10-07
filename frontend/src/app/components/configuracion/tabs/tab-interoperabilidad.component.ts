@@ -14,6 +14,7 @@ import { ParametrosService } from '../../../services/parametros.service';
 import { PermisosService } from '../../../services/permisos.service';
 import { ParametroSistema } from '../../../models/parametro.model';
 import { EndpointInteroperabilidadInfo, TestInteroperabilidadResponse } from '../../../models/permisos.model';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-tab-interoperabilidad',
@@ -119,7 +120,7 @@ import { EndpointInteroperabilidadInfo, TestInteroperabilidadResponse } from '..
         <div class="header-icon-title">
           <mat-icon class="section-icon">api</mat-icon>
           <div>
-            <h3>Endpoints Definidos en SIRRETT</h3>
+            <h3>Endpoints Definidos en {{ systemName }}</h3>
             <p>Rutas relativas registradas para la consulta de información estatal en tiempo real.</p>
           </div>
         </div>
@@ -694,6 +695,9 @@ import { EndpointInteroperabilidadInfo, TestInteroperabilidadResponse } from '..
   `]
 })
 export class TabInteroperabilidadComponent implements OnInit {
+  readonly systemName = environment.systemName;
+  readonly systemFullName = environment.systemFullName;
+
   private parametrosService = inject(ParametrosService);
   private permisosService = inject(PermisosService);
   private snackBar = inject(MatSnackBar);

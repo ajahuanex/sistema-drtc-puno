@@ -1,2 +1,2 @@
-# Sistema de Gestión SIRRET
+# Sistema de Gestión SIRRETT
 # Backend FastAPI 

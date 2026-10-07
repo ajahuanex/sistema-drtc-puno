@@ -1,9 +1,10 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List, Union
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from enum import Enum
 
 class TipoActoModificatorio(str, Enum):
+    AUTORIZACION = "AUTORIZACION"
     RENOVACION = "RENOVACION"
     INCREMENTO_FLOTA = "INCREMENTO_FLOTA"
     SUSTITUCION_VEHICULAR = "SUSTITUCION_VEHICULAR"
@@ -31,7 +32,14 @@ class ResolucionHija(BaseModel):
     razon_social: Optional[str] = Field(None, description="Razón social de la empresa de transporte")
     
     # Clasificación y fechas
-    tipo_acto: TipoActoModificatorio = TipoActoModificatorio.INCREMENTO_FLOTA
+    tipo_acto: Union[TipoActoModificatorio, str] = TipoActoModificatorio.AUTORIZACION
+
+    @field_validator("tipo_acto", mode="before")
+    @classmethod
+    def validar_tipo_acto(cls, v):
+        if not v:
+            return "OTROS"
+        return str(v).strip().upper()
     tipo_tramite_origen: Optional[str] = Field(None, description="Nombre o descripción original del trámite (SUSTITUCION, INCREMENTO, etc.)")
     fecha_resolucion: Optional[datetime] = Field(None, description="Fecha de emisión del acto modificatorio")
     fecha_inicio_efectos: Optional[datetime] = Field(None, description="Fecha en que surte efecto legal la modificación")

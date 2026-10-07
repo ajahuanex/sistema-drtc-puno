@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { LoginRequest } from '../../models/usuario.model';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -30,6 +31,9 @@ import { LoginRequest } from '../../models/usuario.model';
   styleUrls: ['./login.component.scss']
 })
 export class LoginComponent {
+  readonly systemName = environment.systemName;
+  readonly systemFullName = environment.systemFullName;
+
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
@@ -101,7 +105,7 @@ export class LoginComponent {
     this.authService.login(loginRequest).subscribe({
       next: () => {
         this.isLoading.set(false);
-        this.snackBar.open('Acceso concedido al sistema SIRRETT', 'Cerrar', { duration: 2500 });
+        this.snackBar.open(`Acceso concedido al sistema ${this.systemName}`, 'Cerrar', { duration: 2500 });
         setTimeout(() => {
           this.router.navigate(['/empresas'], { replaceUrl: true });
         }, 100);

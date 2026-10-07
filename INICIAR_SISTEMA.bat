@@ -1,6 +1,6 @@
 @echo off
 echo ======================================================================
-echo   SISTEMA SIRRET - INICIO RAPIDO
+echo   SISTEMA SIRRETT - INICIO RAPIDO
 echo ======================================================================
 echo.
 

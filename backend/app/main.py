@@ -42,8 +42,8 @@ logger = logging.getLogger(__name__)
 
 # Crear aplicación FastAPI
 app = FastAPI(
-    title="API SIRRETT",
-    description="API RESTful para el Sistema Regional de Registros de Transporte Terrestre (SIRRETT)",
+    title=f"API {settings.SISTEMA_NOMBRE}",
+    description=f"API RESTful para el {settings.SISTEMA_NOMBRE_COMPLETO}",
     version=settings.VERSION,
     lifespan=lifespan,
     docs_url="/docs",
@@ -173,7 +173,9 @@ async def health_check():
     
     return {
         "status": overall_status,
-        "service": settings.PROJECT_NAME,
+        "service": settings.SISTEMA_NOMBRE,
+        "project_name": settings.PROJECT_NAME,
+        "system_full_name": settings.SISTEMA_NOMBRE_COMPLETO,
         "version": settings.VERSION,
         "timestamp": time.time(),
         "database": {
@@ -189,18 +191,36 @@ async def health_check():
 # Endpoint raíz
 @app.get("/", tags=["Root"])
 async def root():
-    """Endpoint raíz con información del sistema SIRRETT"""
+    """Endpoint raíz con información del sistema"""
     from app.dependencies.db import db
     mode = "database" if db.client else "no_database"
     
     return {
-        "message": f"Bienvenido al {settings.PROJECT_NAME}",
+        "message": f"Bienvenido al {settings.SISTEMA_NOMBRE}",
+        "system_name": settings.SISTEMA_NOMBRE,
+        "system_full_name": settings.SISTEMA_NOMBRE_COMPLETO,
+        "project_name": settings.PROJECT_NAME,
+        "entidad_nombre": settings.ENTIDAD_NOMBRE,
         "version": settings.VERSION,
         "mode": mode,
         "docs": "/docs",
         "redoc": "/redoc",
         "health": "/health",
         "database": settings.DATABASE_NAME
+    }
+
+# Endpoint de información pública institucional del sistema
+@app.get("/api/v1/sistema/info", tags=["Sistema"])
+async def sistema_info():
+    """Información y metadatos de configuración institucional del sistema"""
+    return {
+        "sistema_nombre": settings.SISTEMA_NOMBRE,
+        "sistema_nombre_completo": settings.SISTEMA_NOMBRE_COMPLETO,
+        "project_name": settings.PROJECT_NAME,
+        "entidad_nombre": settings.ENTIDAD_NOMBRE,
+        "version": settings.VERSION,
+        "dominio_institucional": settings.DOMINIO_INSTITUCIONAL,
+        "email_institucional": settings.EMAIL_INSTITUCIONAL
     }
 
 # Endpoint de login temporal para debuggear

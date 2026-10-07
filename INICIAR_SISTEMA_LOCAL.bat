@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo SISTEMA SIRRET - DESPLIEGUE LOCAL
+echo SISTEMA SIRRETT - DESPLIEGUE LOCAL
 echo ========================================
 echo.
 echo Este script iniciará:

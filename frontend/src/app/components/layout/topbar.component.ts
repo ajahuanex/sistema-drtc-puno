@@ -18,6 +18,7 @@ import { DatabaseStatusService } from '../../services/database-status.service';
 import { BusquedaGlobalService, ResultadosBusquedaGlobal, ItemResultadoBusqueda } from '../../services/busqueda-global.service';
 import { Usuario } from '../../models/usuario.model';
 import { ChangeDetectionStrategy } from '@angular/core';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-topbar',
@@ -102,7 +103,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
               <div class="dropdown-header">
                 <div class="header-title-flex">
                   <mat-icon class="header-icon">manage_search</mat-icon>
-                  <span class="header-title">Búsqueda en Base de Datos SIRRETT</span>
+                  <span class="header-title">Búsqueda en Base de Datos {{ systemName }}</span>
                 </div>
                 <span class="results-badge">
                   {{ totalCoincidencias() }} resultado(s)
@@ -485,6 +486,9 @@ import { ChangeDetectionStrategy } from '@angular/core';
   styleUrls: ['./topbar.component.scss']
 })
 export class TopbarComponent implements OnInit, OnDestroy {
+  readonly systemName = environment.systemName;
+  readonly systemFullName = environment.systemFullName;
+
   @Output() toggleSidebar = new EventEmitter<void>();
   @Input() sidebarExpanded = true;
   @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;

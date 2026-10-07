@@ -1,8 +1,8 @@
 @echo off
-REM Script para iniciar el backend de SIRRET en Windows
+REM Script para iniciar el backend de SIRRETT en Windows
 
 echo.
-echo 🚀 Iniciando backend SIRRET...
+echo 🚀 Iniciando backend SIRRETT...
 echo.
 
 REM Ir a la carpeta del backend

@@ -96,6 +96,16 @@ export class ResolucionHijaService {
       anio_fabricacion?: number;
       categoria?: string;
       color?: string;
+      carroceria?: string;
+      modalidad?: string;
+      vin?: string;
+      motor?: string;
+      asientos?: number;
+      pasajeros?: number;
+      combustible?: string;
+      peso_seco?: number;
+      peso_bruto?: number;
+      carga_util?: number;
       rutas?: string[];
       es_saliente?: boolean;
       estado?: string;

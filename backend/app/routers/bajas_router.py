@@ -6,8 +6,8 @@ from typing import List, Optional
 from bson import ObjectId
 
 from app.dependencies.db import get_database
-from app.dependencies.auth import get_current_active_user, get_admin_or_oti_user
-from app.models.usuario import UsuarioResponse
+from app.dependencies.auth import get_current_active_user, get_admin_or_oti_user, get_current_user_optional
+from app.models.usuario import UsuarioResponse, UsuarioInDB
 from app.models.baja_externa import BajaExternaCreate, BajaExternaUpdate, BajaExternaResponse
 from app.config.settings import settings
 
@@ -26,7 +26,7 @@ async def obtener_bajas(
     tipo_baja: Optional[str] = None,
     q: Optional[str] = None,
     collection = Depends(get_bajas_collection),
-    current_user: UsuarioResponse = Depends(get_current_active_user)
+    current_user: Optional[UsuarioInDB] = Depends(get_current_user_optional)
 ):
     """
     Obtener lista de bajas vehiculares (externas y locales) registradas.
@@ -65,7 +65,7 @@ async def obtener_bajas(
 async def buscar_vehiculo_baja(
     placa: str,
     db = Depends(get_database),
-    current_user: UsuarioResponse = Depends(get_current_active_user)
+    current_user: Optional[UsuarioInDB] = Depends(get_current_user_optional)
 ):
     """
     Busca si el vehículo existe en la flota regional para autocompletar RUC y Razón Social.
@@ -129,7 +129,7 @@ async def registrar_baja(
     numero_oficio: Optional[str] = Form(None),
     archivo: Optional[UploadFile] = File(None),
     collection = Depends(get_bajas_collection),
-    current_user: UsuarioResponse = Depends(get_current_active_user)
+    current_user: Optional[UsuarioInDB] = Depends(get_current_user_optional)
 ):
     """
     Registrar una nueva baja (externa o local). Todos los campos excepto placa son opcionales.
@@ -168,7 +168,7 @@ async def registrar_baja(
             "archivo_evidencia": archivo_url,
             "estado_notificacion": "PENDIENTE",
             "fecha_registro": datetime.utcnow(),
-            "registrado_por": getattr(current_user, "dni", None) or getattr(current_user, "username", "SISTEMA")
+            "registrado_por": getattr(current_user, "dni", None) or getattr(current_user, "username", "SISTEMA") if current_user else "SISTEMA"
         }
         
         result = await collection.insert_one(nueva_baja)
@@ -187,7 +187,7 @@ async def marcar_como_notificado(
     baja_id: str,
     payload: Optional[dict] = None,
     collection = Depends(get_bajas_collection),
-    current_user: UsuarioResponse = Depends(get_current_active_user)
+    current_user: Optional[UsuarioInDB] = Depends(get_current_user_optional)
 ):
     """
     Marcar una baja vehicular como NOTIFICADA (ej. ya se emitió y notificó oficio a la empresa o MTC).
@@ -234,7 +234,7 @@ async def marcar_como_notificado(
 async def eliminar_baja(
     baja_id: str,
     collection = Depends(get_bajas_collection),
-    current_user: UsuarioResponse = Depends(get_current_active_user)
+    current_user: Optional[UsuarioInDB] = Depends(get_current_user_optional)
 ):
     """
     Eliminar un registro de baja vehicular.

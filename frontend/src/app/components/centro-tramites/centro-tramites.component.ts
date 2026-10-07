@@ -437,9 +437,51 @@ export class CentroTramites implements OnInit {
   mostrarConfigColumnas = signal<boolean>(false);
 
 
-  // Detail panel
+  // Detail panel (Detalle del Trámite y Flota Vehicular)
   tramiteDetalle = signal<any>(null);
   mostrarDetalle = signal<boolean>(false);
+  cargandoVehiculosDetalle = signal<boolean>(false);
+  vehiculosDetalle = signal<any[]>([]);
+  filtroTipoVehiculoDetalle = signal<'TODOS' | 'INGRESANTES' | 'SALIENTES'>('TODOS');
+  busquedaVehiculoDetalle = signal<string>('');
+
+  vehiculosDetalleFiltrados = computed(() => {
+    let list = this.vehiculosDetalle();
+    const filtro = this.filtroTipoVehiculoDetalle();
+    const query = this.busquedaVehiculoDetalle().trim().toLowerCase();
+
+    if (filtro === 'INGRESANTES') {
+      list = list.filter(v => !v.es_saliente);
+    } else if (filtro === 'SALIENTES') {
+      list = list.filter(v => v.es_saliente);
+    }
+
+    if (query) {
+      list = list.filter(v => {
+        const placa = (v.placa || '').toLowerCase();
+        const tuc = (v.numero_tuc || '').toLowerCase();
+        const marca = (v.marca || '').toLowerCase();
+        const modelo = (v.modelo || '').toLowerCase();
+        const cat = (v.categoria || '').toLowerCase();
+        const anio = (v.anio_fabricacion || '').toString().toLowerCase();
+        const carroceria = (v.carroceria || '').toLowerCase();
+        const vin = (v.vin || '').toLowerCase();
+        const motor = (v.motor || '').toLowerCase();
+        const color = (v.color || '').toLowerCase();
+        const comb = (v.combustible || '').toLowerCase();
+        return placa.includes(query) || tuc.includes(query) || marca.includes(query) ||
+               modelo.includes(query) || cat.includes(query) || anio.includes(query) ||
+               carroceria.includes(query) || vin.includes(query) || motor.includes(query) ||
+               color.includes(query) || comb.includes(query);
+      });
+    }
+
+    return list;
+  });
+
+  totalVehiculosDetalle = computed(() => this.vehiculosDetalle().length);
+  totalIngresantesDetalle = computed(() => this.vehiculosDetalle().filter(v => !v.es_saliente).length);
+  totalSalientesDetalle = computed(() => this.vehiculosDetalle().filter(v => v.es_saliente).length);
 
   columnasTablaVisibles = computed(() => {
     const config = this.columnasVisibles();
@@ -450,6 +492,7 @@ export class CentroTramites implements OnInit {
 
   // Trámites de Flota Vehicular (con placas / TUCs)
   tiposTramiteFlota = [
+    { id: 'AUTORIZACION', nombre: 'Autorización', icono: 'verified', desc: 'Autorización inicial de servicio' },
     { id: 'RENOVACION', nombre: 'Renovación', icono: 'autorenew', desc: 'Extensión de vigencia' },
     { id: 'SUSTITUCION', nombre: 'Sustitución', icono: 'sync_alt', desc: 'Reemplazo de unidad' },
     { id: 'INCREMENTO', nombre: 'Incremento', icono: 'trending_up', desc: 'Nuevas unidades' },
@@ -778,7 +821,10 @@ export class CentroTramites implements OnInit {
           const esSoloBaja = placasIng.length === 0 && placasSal.length > 0;
 
           const nroNorm = this.normalizarNumeroResolucion(r.nro_resolucion, r.fecha_resolucion || r.fecha_registro);
-          const tipoActo = r.tipo_acto || r.tipo_tramite_origen || 'MODIFICACION';
+          let tipoActo = r.tipo_acto || r.tipo_tramite_origen || 'MODIFICACION';
+          if ((r.nro_resolucion && r.nro_resolucion_primigenia && r.nro_resolucion === r.nro_resolucion_primigenia) || String(r.nro_resolucion || '').includes('0701')) {
+            tipoActo = 'AUTORIZACION';
+          }
           const infoTipo = this.obtenerInfoTipoTramite(tipoActo);
 
           // Expediente real: NO inventar resolución primigenia
@@ -930,6 +976,9 @@ export class CentroTramites implements OnInit {
 
   obtenerInfoTipoTramite(tipoRaw: string): { label: string; badgeClass: string } {
     const t = (tipoRaw || '').toUpperCase();
+    if (t.includes('AUTORIZAC')) {
+      return { label: 'AUTORIZACIÓN', badgeClass: 'badge-tramite-autorizacion' };
+    }
     if (t.includes('SUSTITUCION')) {
       return { label: 'SUSTITUCIÓN', badgeClass: 'badge-tramite-sustitucion' };
     }
@@ -1005,15 +1054,108 @@ export class CentroTramites implements OnInit {
     return this.columnasVisibles()[key] !== false;
   }
 
-  // DETAIL PANEL
+  // DETAIL PANEL: DETALLE DEL TRÁMITE
   verDetalleTramite(tramite: any) {
+    if (!tramite) return;
     this.tramiteDetalle.set(tramite);
     this.mostrarDetalle.set(true);
+    this.filtroTipoVehiculoDetalle.set('TODOS');
+    this.busquedaVehiculoDetalle.set('');
+    this.vehiculosDetalle.set([]);
+    this.cargandoVehiculosDetalle.set(true);
+
+    const hijaId = tramite._id || tramite.id || tramite.nro_resolucion_raw;
+    if (hijaId) {
+      this.resolucionHijaService.getVehiculosDetalleTramite(hijaId).subscribe({
+        next: (resp) => {
+          this.cargandoVehiculosDetalle.set(false);
+          if (resp && Array.isArray(resp.vehiculos) && resp.vehiculos.length > 0) {
+            this.vehiculosDetalle.set(resp.vehiculos);
+          } else {
+            this.vehiculosDetalle.set(this._generarVehiculosFallback(tramite));
+          }
+        },
+        error: (err) => {
+          console.warn('Error al obtener vehículos detallados del trámite, usando fallback local:', err);
+          this.cargandoVehiculosDetalle.set(false);
+          this.vehiculosDetalle.set(this._generarVehiculosFallback(tramite));
+        }
+      });
+    } else {
+      this.cargandoVehiculosDetalle.set(false);
+      this.vehiculosDetalle.set(this._generarVehiculosFallback(tramite));
+    }
+  }
+
+  private _generarVehiculosFallback(tramite: any): any[] {
+    const list: any[] = [];
+    const tucs = Array.isArray(tramite.numeros_tuc) ? tramite.numeros_tuc : [];
+
+    // Ingresantes
+    const placasIng = Array.isArray(tramite.placasIng) ? tramite.placasIng : [];
+    placasIng.forEach((placa: string, idx: number) => {
+      list.push({
+        placa: (placa || '').toUpperCase(),
+        es_saliente: false,
+        operacion: 'INGRESO / ALTA',
+        numero_tuc: tucs[idx] || null,
+        estado: 'AUTORIZADO',
+        anio_fabricacion: null,
+        categoria: null,
+        marca: null,
+        modelo: null,
+        carroceria: null,
+        vin: null,
+        motor: null,
+        color: null,
+        asientos: null,
+        pasajeros: null,
+        combustible: null,
+        peso_seco: null,
+        peso_bruto: null,
+        carga_util: null,
+        rutas: Array.isArray(tramite.rutas_modificadas_ids) ? tramite.rutas_modificadas_ids.join(', ') : null
+      });
+    });
+
+    // Salientes
+    const placasSal = Array.isArray(tramite.placasSal) ? tramite.placasSal : [];
+    placasSal.forEach((placa: string) => {
+      list.push({
+        placa: (placa || '').toUpperCase(),
+        es_saliente: true,
+        operacion: 'BAJA / SALIENTE',
+        numero_tuc: null,
+        estado: 'SALIENTE',
+        anio_fabricacion: null,
+        categoria: null,
+        marca: null,
+        modelo: null,
+        carroceria: null,
+        vin: null,
+        motor: null,
+        color: null,
+        asientos: null,
+        pasajeros: null,
+        combustible: null,
+        peso_seco: null,
+        peso_bruto: null,
+        carga_util: null,
+        rutas: null
+      });
+    });
+
+    return list;
   }
 
   cerrarDetalle() {
     this.mostrarDetalle.set(false);
-    setTimeout(() => this.tramiteDetalle.set(null), 300);
+    setTimeout(() => {
+      this.tramiteDetalle.set(null);
+      this.vehiculosDetalle.set([]);
+      this.busquedaVehiculoDetalle.set('');
+      this.filtroTipoVehiculoDetalle.set('TODOS');
+    }, 300);
   }
 
   cambiarPagina(event: PageEvent) {

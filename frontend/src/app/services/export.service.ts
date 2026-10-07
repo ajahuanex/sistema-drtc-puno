@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { environment } from '../../environments/environment';
 
 export interface ExportOptions {
   filename?: string;
@@ -75,7 +76,7 @@ export class ExportService {
     wb.Props = {
       Title: 'Exportación de Rutas',
       Subject: 'Sistema DRTC Puno',
-      Author: 'Sistema SIRRET',
+      Author: `Sistema ${environment.systemName}`,
       CreatedDate: new Date()
     };
 
@@ -116,7 +117,7 @@ export class ExportService {
     // Título
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Reporte de Rutas - Sistema SIRRET', 20, 20);
+    doc.text(`Reporte de Rutas - Sistema ${environment.systemName}`, 20, 20);
     
     // Fecha de generación
     doc.setFontSize(10);

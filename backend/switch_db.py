@@ -264,7 +264,7 @@ def interactive_menu():
         current = cfg['target'].upper()
 
         print("\n" + "=" * 60)
-        print(f" 🔀 SWITCH DE BASE DE DATOS MONGODB - SIRRET")
+        print(f" 🔀 SWITCH DE BASE DE DATOS MONGODB - SIRRETT")
         print(f"    Entorno actual: [{current}]")
         print("=" * 60)
         print("  1. Cambiar a MongoDB REMOTO (161.132.52.69)")

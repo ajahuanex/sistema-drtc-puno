@@ -5,6 +5,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-sidebar',
@@ -27,7 +28,7 @@ import { AuthService } from '../../services/auth.service';
         @if (isExpanded()) {
           <div class="sidebar-header" data-purpose="sidebar-header">
             <div class="header-brand-group">
-              <span class="brand-title font-display">SIRRETT</span>
+              <span class="brand-title font-display">{{ systemName }}</span>
               <div class="live-status-pill">
                 <span class="pulse-wrapper">
                   <span class="ping-ring"></span>
@@ -49,8 +50,8 @@ import { AuthService } from '../../services/auth.service';
           </div>
         } @else {
           <!-- Header Colapsado -->
-          <div class="sidebar-header-collapsed" [matTooltip]="'SIRRETT v2.4 (En Línea)'" matTooltipPosition="right">
-            <span class="collapsed-badge">S</span>
+          <div class="sidebar-header-collapsed" [matTooltip]="systemName + ' v2.4 (En Línea)'" matTooltipPosition="right">
+            <span class="collapsed-badge">{{ systemName.charAt(0) }}</span>
           </div>
         }
 
@@ -961,6 +962,9 @@ import { AuthService } from '../../services/auth.service';
   `]
 })
 export class SidebarComponent implements OnInit {
+  readonly systemName = environment.systemName;
+  readonly systemFullName = environment.systemFullName;
+
   isExpanded = input<boolean>(true);
   expandedGroups = signal<Set<string>>(new Set<string>());
 

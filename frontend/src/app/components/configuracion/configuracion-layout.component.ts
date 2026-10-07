@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { environment } from '../../../environments/environment';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
 import { TabUsuariosComponent } from './tabs/tab-usuarios.component';
@@ -26,7 +27,7 @@ import { TabSeguridadComponent } from './tabs/tab-seguridad.component';
       <div class="page-header">
         <div class="header-content">
           <h1>Configuración y Seguridad</h1>
-          <p class="subtitle">Administración integral del sistema SIRRETT</p>
+          <p class="subtitle">Administración integral del sistema {{ systemName }}</p>
         </div>
       </div>
 
@@ -174,4 +175,6 @@ import { TabSeguridadComponent } from './tabs/tab-seguridad.component';
     }
   `]
 })
-export class ConfiguracionLayoutComponent {}
+export class ConfiguracionLayoutComponent {
+  readonly systemName = environment.systemName;
+}

@@ -87,7 +87,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${CYAN}======================================================${NC}"
-echo -e "${BOLD}🚀 Iniciando Backend SIRRET (FastAPI) en macOS / Windows (Git Bash)${NC}"
+echo -e "${BOLD}🚀 Iniciando Backend SIRRETT (FastAPI) en macOS / Windows (Git Bash)${NC}"
 echo -e "${CYAN}======================================================${NC}"
 
 # 1. Verificar si el puerto ya está en uso

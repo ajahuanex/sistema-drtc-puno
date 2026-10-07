@@ -81,7 +81,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${CYAN}======================================================${NC}"
-echo -e "${BOLD}🅰️  Iniciando Frontend SIRRET (Angular 20) en macOS / Windows (Git Bash)${NC}"
+echo -e "${BOLD}🅰️  Iniciando Frontend SIRRETT (Angular 20) en macOS / Windows (Git Bash)${NC}"
 echo -e "${CYAN}======================================================${NC}"
 
 # 1. Configurar y validar Node.js compatible (Angular 20 requiere Node 18+, 20+ o 22+)

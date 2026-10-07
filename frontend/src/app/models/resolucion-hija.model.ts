@@ -1,4 +1,5 @@
 export type TipoActoModificatorio = 
+  | 'AUTORIZACION'
   | 'RENOVACION' 
   | 'INCREMENTO_FLOTA' 
   | 'SUSTITUCION_VEHICULAR' 

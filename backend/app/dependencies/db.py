@@ -1,5 +1,5 @@
 """
-Configuración de base de datos MongoDB para SIRRET
+Configuración de base de datos MongoDB para SIRRETT
 """
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient

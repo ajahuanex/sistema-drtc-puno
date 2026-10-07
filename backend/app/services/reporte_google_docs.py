@@ -5,6 +5,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import io
 from datetime import datetime
+from app.config.settings import settings
 
 class GoogleDocsReportService:
     def __init__(self):
@@ -35,14 +36,14 @@ class GoogleDocsReportService:
         drive_service = build('drive', 'v3', credentials=credentials)
         
         fecha_str = datetime.now().strftime("%d/%m/%Y %H:%M")
-        doc_title = f"Reporte Estadístico SIRRET - {datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        doc_title = f"Reporte Estadístico {settings.SISTEMA_NOMBRE} - {datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         # Construir el contenido en HTML, Google Drive lo convierte automáticamente a Doc
         html_content = f"""
         <html>
         <head><title>{doc_title}</title></head>
         <body style="font-family: Arial, sans-serif;">
-        <h1 style="color: #1e40af;">Reporte Estadístico del Sistema Regional de Registros de Transporte (SIRRET)</h1>
+        <h1 style="color: #1e40af;">Reporte Estadístico del {settings.SISTEMA_NOMBRE_COMPLETO}</h1>
         <p><strong>Generado el:</strong> {fecha_str}</p>
         
         <h2 style="color: #374151; border-bottom: 1px solid #ccc;">RESUMEN GENERAL</h2>

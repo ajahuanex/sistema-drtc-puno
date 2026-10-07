@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   Frontend SIRRET (Angular)
+echo   Frontend SIRRETT (Angular)
 echo ========================================
 echo.
 

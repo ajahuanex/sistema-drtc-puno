@@ -183,10 +183,10 @@ const ESTADOS_RUC: Record<string, string> = {
                             <div>
                               <span class="d-label" style="margin-bottom:0.35rem;font-weight:700;color:#334155;">5. Casilla Electrónica MTC (D.S. 001-2021-MTC / Ley 27444)</span>
                               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                @if (emp.tieneCasillaElectronica || emp.casillaElectronica) {
+                                @if (emp.tieneCasillaElectronica || emp.casillaElectronica?.habilitada) {
                                   <span style="display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;">
                                     <mat-icon style="font-size:16px;width:16px;height:16px;color:#059669;">mark_email_read</mat-icon>
-                                    <span>{{ emp.casillaElectronica && emp.casillaElectronica !== 'HABILITADA' ? emp.casillaElectronica : 'CASILLA HABILITADA' }}</span>
+                                    <span>CASILLA HABILITADA</span>
                                   </span>
                                 } @else {
                                   <span style="display:inline-flex;align-items:center;gap:4px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;">
@@ -194,10 +194,10 @@ const ESTADOS_RUC: Record<string, string> = {
                                     <span>SIN CASILLA MTC</span>
                                   </span>
                                 }
-                                @if (emp.ultimaValidacionCasilla) {
+                                @if (emp.casillaElectronica?.fechaValidacion || emp.ultimaValidacionCasilla) {
                                   <span style="font-size:11px;color:#64748b;display:inline-flex;align-items:center;gap:4px;">
                                     <mat-icon style="font-size:14px;width:14px;height:14px;color:#94a3b8;">event</mat-icon>
-                                    Validado MTC: {{ emp.ultimaValidacionCasilla | date:'dd/MM/yyyy HH:mm' }}
+                                    Validado MTC: {{ (emp.casillaElectronica?.fechaValidacion || emp.ultimaValidacionCasilla) | date:'dd/MM/yyyy HH:mm' }}
                                   </span>
                                 }
                               </div>

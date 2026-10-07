@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   Backend SIRRET (Modo Debug)
+echo   Backend SIRRETT (Modo Debug)
 echo ========================================
 echo.
 

@@ -684,11 +684,9 @@ body {
 
 /* Print Styles */
 @media print {
-  * {
-    background: transparent !important;
-    color: black !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
+  /* Evitar forzar transparencia global que hace transparente los modales sobre el sitio web */
+  body.modal-reporte-activo > *:not(.cdk-overlay-container) {
+    display: none !important;
   }
 }
 

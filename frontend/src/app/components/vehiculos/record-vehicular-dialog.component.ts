@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 import { Vehiculo360Response } from '../../services/vehiculo.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-record-vehicular-dialog',
@@ -350,7 +351,7 @@ import { Vehiculo360Response } from '../../services/vehiculo.service';
               </div>
               <div class="qr-text">
                 <strong>VERIFICACIÓN DIGITAL</strong><br/>
-                Consulta expedida en línea por el Sistema SIRRET - DRTC Puno.<br/>
+                Consulta expedida en línea por el Sistema {{ systemName }} - DRTC Puno.<br/>
                 Fecha de Emisión: {{ fechaActual | date:'dd/MM/yyyy HH:mm:ss' }}
               </div>
             </div>
@@ -765,6 +766,8 @@ export class RecordVehicularDialogComponent {
   data: Vehiculo360Response = inject(MAT_DIALOG_DATA);
   private dialogRef = inject(MatDialogRef<RecordVehicularDialogComponent>);
 
+  readonly systemName = environment.systemName;
+  readonly systemFullName = environment.systemFullName;
   fechaActual = new Date();
 
   cerrar(): void {
@@ -1004,7 +1007,7 @@ export class RecordVehicularDialogComponent {
     doc.text('DRTC - Gobierno Regional Puno', 157.5, currentY + 23, { align: 'center' });
 
     doc.setFontSize(7);
-    doc.text(`Documento expedido por el Sistema SIRRET el ${new Date().toLocaleString('es-PE')}`, 105, 290, { align: 'center' });
+    doc.text(`Documento expedido por el Sistema ${this.systemName} el ${new Date().toLocaleString('es-PE')}`, 105, 290, { align: 'center' });
 
     doc.save(`Record_Vehicular_${v.placa}_DRTC_PUNO.pdf`);
   }

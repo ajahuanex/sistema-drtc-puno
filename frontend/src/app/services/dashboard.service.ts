@@ -176,6 +176,82 @@ export interface ReporteResponse {
   url: string;
 }
 
+export interface EmpresaCasillaItem {
+  numero: number;
+  ruc: string;
+  razonSocial: string;
+  nombreCorto?: string;
+  modalidad: string;
+  modalidadLabel: string;
+  tieneCasilla: boolean;
+  estadoCasilla: 'HABILITADA' | 'SIN CASILLA';
+  fechaValidacion?: string | null;
+  telefonoContacto?: string;
+  emailContacto?: string;
+  direccionFiscal?: string;
+}
+
+export interface ModalidadCasillaResumen {
+  modalidad: string;
+  modalidadLabel: string;
+  icono?: string;
+  orden?: number;
+  total: number;
+  conCasilla: number;
+  sinCasilla: number;
+  porcentajeConCasilla: number;
+}
+
+export interface ModalidadConsolidadoResumen {
+  modalidad: string;
+  modalidadLabel: string;
+  icono?: string;
+  orden?: number;
+  totalAutorizadas: number;
+  conCasillaAutorizadas: number;
+  sinCasillaAutorizadas: number;
+  totalCanceladas: number;
+  conCasillaCanceladas: number;
+  sinCasillaCanceladas: number;
+  totalGeneral: number;
+  conCasillaGeneral: number;
+  sinCasillaGeneral: number;
+  porcentajeGeneral: number;
+}
+
+export interface ComparativoEstadoItem {
+  estado: string;
+  estadoLabel: string;
+  total: number;
+  conCasilla: number;
+  sinCasilla: number;
+  porcentajeConCasilla: number;
+  observacion: string;
+}
+
+export interface ReporteCasillasModalidadResponse {
+  fechaGeneracion: string;
+  resumenGeneral: {
+    totalEmpresas: number;
+    conCasilla: number;
+    sinCasilla: number;
+    porcentajeConCasilla: number;
+    totalAutorizadas: number;
+    conCasillaAutorizadas: number;
+    sinCasillaAutorizadas: number;
+    porcentajeAutorizadas: number;
+    totalCanceladas: number;
+    conCasillaCanceladas: number;
+    sinCasillaCanceladas: number;
+    porcentajeCanceladas: number;
+  };
+  comparativoEstados: ComparativoEstadoItem[];
+  modalidadesAutorizadas: ModalidadCasillaResumen[];
+  modalidadesCanceladas: ModalidadCasillaResumen[];
+  modalidadesConsolidado: ModalidadConsolidadoResumen[];
+  empresas?: any[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -219,6 +295,10 @@ export class DashboardService {
     if (params?.ruc) httpParams = httpParams.set('ruc', params.ruc);
     if (params?.search) httpParams = httpParams.set('search', params.search);
     return this.http.get<DetallePermanenciaVehiculo[]>(`${this.apiUrl}/reporte-detalle/permanencia`, { params: httpParams });
+  }
+
+  getReporteCasillasPorModalidad(): Observable<ReporteCasillasModalidadResponse> {
+    return this.http.get<ReporteCasillasModalidadResponse>(`${this.apiUrl}/reporte-detalle/casillas-modalidad`);
   }
 
   generarReporte(): Observable<ReporteResponse> {

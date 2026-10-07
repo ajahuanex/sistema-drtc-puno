@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     # Seguridad - IMPORTANTE: Cambiar en producción
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tu_clave_secreta_muy_larga_y_segura_aqui_sirret_2024")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 horas por defecto
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
     
     # CORS - URLs específicas para SIRRETT
@@ -83,7 +83,7 @@ class Settings(BaseSettings):
     
     # Información del sistema
     SISTEMA_NOMBRE: str = os.getenv("SISTEMA_NOMBRE", "SIRRETT")
-    SISTEMA_NOMBRE_COMPLETO: str = os.getenv("SISTEMA_NOMBRE_COMPLETO", "Sistema Regional de Registros de Transporte de Tránsito (SIRRETT)")
+    SISTEMA_NOMBRE_COMPLETO: str = os.getenv("SISTEMA_NOMBRE_COMPLETO", "Sistema Regional de Registros de Transporte Terrestre (SIRRETT)")
     ENTIDAD_NOMBRE: str = os.getenv("ENTIDAD_NOMBRE", "Dirección Regional de Transportes y Comunicaciones Puno")
     DOMINIO_INSTITUCIONAL: str = os.getenv("DOMINIO_INSTITUCIONAL", "transportespuno.gob.pe")
     EMAIL_INSTITUCIONAL: str = os.getenv("EMAIL_INSTITUCIONAL", "admin@transportespuno.gob.pe")

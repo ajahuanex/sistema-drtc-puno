@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, effect, OnInit, AfterViewInit } fr
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { EagerInitService } from './services/eager-init.service';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -36,8 +37,8 @@ import { EagerInitService } from './services/eager-init.service';
               </div>
             </div>
 
-            <h1 class="loading-title">SIRRETT</h1>
-            <p class="loading-subtitle">Sistema Regional de Registros de Transporte Terrestre</p>
+            <h1 class="loading-title">{{ systemName }}</h1>
+            <p class="loading-subtitle">{{ systemFullName }}</p>
             
             <div class="loading-progress-container">
               <div class="progress-meta">
@@ -84,7 +85,7 @@ import { EagerInitService } from './services/eager-init.service';
             </div>
           </div>
 
-          <h1 class="loading-title">SIRRETT</h1>
+          <h1 class="loading-title">{{ systemName }}</h1>
           <p class="loading-subtitle">Inicializando Base de Datos y Servicios</p>
           
           <div class="init-steps">
@@ -485,6 +486,9 @@ import { EagerInitService } from './services/eager-init.service';
   `]
 })
 export class AppComponent implements OnInit, AfterViewInit {
+  readonly systemName = environment.systemName;
+  readonly systemFullName = environment.systemFullName;
+
   private eagerInitService = inject(EagerInitService);
 
   // Signals para el estado de la aplicación

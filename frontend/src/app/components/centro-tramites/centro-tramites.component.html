@@ -346,7 +346,7 @@
                         <mat-icon>print</mat-icon>
                       </button>
                     }
-                    <button mat-icon-button class="btn-row-action action-view" matTooltip="Ver detalle del expediente" (click)="verDetalleTramite(element)">
+                    <button mat-icon-button class="btn-row-action action-view" matTooltip="Ver detalle del trámite" (click)="verDetalleTramite(element)">
                       <mat-icon>visibility</mat-icon>
                     </button>
                   </div>
@@ -3487,7 +3487,7 @@
     </div>
   </div>
 
-  <!-- DETAIL PANEL: DETALLE DEL EXPEDIENTE -->
+  <!-- DETAIL PANEL: DETALLE DEL TRÁMITE -->
   <div class="detail-backdrop" [class.visible]="mostrarDetalle()" (click)="cerrarDetalle()"></div>
   <div class="detail-drawer" [class.open]="mostrarDetalle()">
     @if (tramiteDetalle(); as det) {
@@ -3496,7 +3496,7 @@
         <div class="detail-header-left">
           <span class="correlativo-badge correlativo-lg">{{det.correlativo}}</span>
           <div>
-            <h3 class="detail-title">Detalle del Expediente</h3>
+            <h3 class="detail-title">Detalle del Trámite</h3>
             <span class="detail-subtitle">{{det.id}}</span>
           </div>
         </div>
@@ -3525,6 +3525,7 @@
           <span class="detail-type-badge">
             <mat-icon style="font-size: 16px; width: 16px; height: 16px;">
               @switch (det.tipoRaw) {
+                @case ('AUTORIZACION') { verified }
                 @case ('SUSTITUCION') { sync_alt }
                 @case ('RENOVACION') { autorenew }
                 @case ('INCREMENTO') { trending_up }
@@ -3542,131 +3543,252 @@
           </span>
         </div>
 
-        <!-- Datos Generales -->
-        <div class="detail-section">
-          <h4 class="detail-section-title">
-            <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #2563eb;">business</mat-icon>
-            Datos Generales
-          </h4>
-          <div class="detail-grid">
-            <div class="detail-field">
-              <span class="detail-label">Empresa</span>
-              <span class="detail-value company-name-text">{{det.empresa}}</span>
+        <!-- Fila de Metadatos: Empresa y Expediente -->
+        <div class="detail-meta-columns">
+          <!-- Datos de la Empresa -->
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #2563eb;">business</mat-icon>
+              Datos de la Empresa
+            </h4>
+            <div class="detail-grid">
+              <div class="detail-field">
+                <span class="detail-label">Empresa</span>
+                <span class="detail-value company-name-text">{{det.empresa}}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-label">RUC</span>
+                <span class="detail-value" style="font-family: monospace; font-weight: 700;">{{det.ruc}}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-label">Fecha de Resolución</span>
+                @if (det.fecha && det.fecha !== 'No consignada' && det.fecha !== 'S/F') {
+                  <span class="detail-value" style="font-weight: 600;">{{det.fecha}}</span>
+                } @else {
+                  <span class="detail-value" style="color: #94a3b8; font-style: italic; font-size: 0.8rem;">
+                    No consignada en documento
+                  </span>
+                }
+              </div>
+              <div class="detail-field">
+                <span class="detail-label">Año</span>
+                <span class="detail-value" style="font-weight: 700; color: #1e293b;">{{det.anio}}</span>
+              </div>
             </div>
-            <div class="detail-field">
-              <span class="detail-label">RUC</span>
-              <span class="detail-value" style="font-family: monospace; font-weight: 700;">{{det.ruc}}</span>
-            </div>
-            <div class="detail-field">
-              <span class="detail-label">Fecha de Resolución</span>
-              @if (det.fecha && det.fecha !== 'No consignada' && det.fecha !== 'S/F') {
-                <span class="detail-value" style="font-weight: 600;">{{det.fecha}}</span>
-              } @else {
-                <span class="detail-value" style="color: #94a3b8; font-style: italic; font-size: 0.8rem;">
-                  No consignada en documento
-                </span>
+          </div>
+
+          <!-- Origen del Trámite / Expediente -->
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #7c3aed;">description</mat-icon>
+              Resolución y Expediente
+            </h4>
+            <div class="detail-grid">
+              <div class="detail-field">
+                <span class="detail-label">N° Expediente</span>
+                @if (det.expediente_numero) {
+                  <span class="detail-value" style="font-family: monospace; font-weight: 700; color: #2563eb;">{{det.expediente_numero}}</span>
+                } @else {
+                  <span class="detail-value" style="color: #94a3b8; font-style: italic;">Sin expediente</span>
+                }
+              </div>
+              @if (det.fecha_expediente_display) {
+                <div class="detail-field">
+                  <span class="detail-label">Fecha del Expediente</span>
+                  <span class="detail-value" style="font-weight: 600; color: #334155;">{{det.fecha_expediente_display}}</span>
+                </div>
               }
-            </div>
-            <div class="detail-field">
-              <span class="detail-label">Año</span>
-              <span class="detail-value" style="font-weight: 700; color: #1e293b;">{{det.anio}}</span>
+              @if (det.nro_resolucion_primigenia) {
+                <div class="detail-field">
+                  <span class="detail-label">Resolución Matriz / Primigenia</span>
+                  <span class="detail-value" style="font-family: monospace; font-weight: 700;">{{det.nro_resolucion_primigenia}}</span>
+                </div>
+              }
+              @if (det.fecha_inicio_efectos) {
+                <div class="detail-field">
+                  <span class="detail-label">Inicio de Efectos</span>
+                  <span class="detail-value">{{formatoFechaLatina(det.fecha_inicio_efectos)}}</span>
+                </div>
+              }
             </div>
           </div>
         </div>
 
-        <!-- Origen / Expediente -->
-        <div class="detail-section">
-          <h4 class="detail-section-title">
-            <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #7c3aed;">description</mat-icon>
-            Origen del Trámite
-          </h4>
-          <div class="detail-grid">
-            <div class="detail-field">
-              <span class="detail-label">N° Expediente</span>
-              @if (det.expediente_numero) {
-                <span class="detail-value" style="font-family: monospace; font-weight: 700; color: #2563eb;">{{det.expediente_numero}}</span>
-              } @else {
-                <span class="detail-value" style="color: #94a3b8; font-style: italic;">Sin expediente</span>
-              }
+        <!-- Flota Vehicular del Trámite (Tabla Completa con Datos Técnicos) -->
+        <div class="detail-section detail-section-vehicles">
+          <div class="detail-vehicles-header">
+            <div class="detail-vehicles-header-title">
+              <h4 class="detail-section-title" style="margin: 0; padding: 0; border: none;">
+                <mat-icon style="font-size: 20px; width: 20px; height: 20px; color: #059669;">directions_car</mat-icon>
+                Flota Vehicular del Trámite
+              </h4>
+              <span class="detail-vehicles-count-badge">
+                {{totalVehiculosDetalle()}} {{totalVehiculosDetalle() === 1 ? 'vehículo' : 'vehículos'}}
+              </span>
             </div>
-            @if (det.fecha_expediente_display) {
-              <div class="detail-field">
-                <span class="detail-label">Fecha del Expediente</span>
-                <span class="detail-value" style="font-weight: 600; color: #334155;">{{det.fecha_expediente_display}}</span>
+
+            <!-- Filtros rápidos y buscador -->
+            <div class="detail-vehicles-filters">
+              <div class="detail-filter-pills">
+                <button type="button" 
+                        class="pill-btn" 
+                        [class.active]="filtroTipoVehiculoDetalle() === 'TODOS'"
+                        (click)="filtroTipoVehiculoDetalle.set('TODOS')">
+                  Todos ({{totalVehiculosDetalle()}})
+                </button>
+                @if (totalIngresantesDetalle() > 0) {
+                  <button type="button" 
+                          class="pill-btn pill-btn-success" 
+                          [class.active]="filtroTipoVehiculoDetalle() === 'INGRESANTES'"
+                          (click)="filtroTipoVehiculoDetalle.set('INGRESANTES')">
+                    <mat-icon style="font-size: 14px; width: 14px; height: 14px;">add_circle</mat-icon>
+                    Altas / Ingreso ({{totalIngresantesDetalle()}})
+                  </button>
+                }
+                @if (totalSalientesDetalle() > 0) {
+                  <button type="button" 
+                          class="pill-btn pill-btn-warning" 
+                          [class.active]="filtroTipoVehiculoDetalle() === 'SALIENTES'"
+                          (click)="filtroTipoVehiculoDetalle.set('SALIENTES')">
+                    <mat-icon style="font-size: 14px; width: 14px; height: 14px;">remove_circle</mat-icon>
+                    Bajas / Saliente ({{totalSalientesDetalle()}})
+                  </button>
+                }
               </div>
-            }
-            @if (det.nro_resolucion_primigenia) {
-              <div class="detail-field">
-                <span class="detail-label">Resolución Matriz / Primigenia</span>
-                <span class="detail-value" style="font-family: monospace; font-weight: 700;">{{det.nro_resolucion_primigenia}}</span>
+
+              <!-- Buscador dentro del detalle -->
+              <div class="detail-search-box">
+                <mat-icon class="detail-search-icon">search</mat-icon>
+                <input type="text"
+                       class="detail-search-input"
+                       placeholder="Buscar por placa, TUC, año, categoría, ruta..."
+                       [value]="busquedaVehiculoDetalle()"
+                       (input)="busquedaVehiculoDetalle.set($any($event.target).value)" />
+                @if (busquedaVehiculoDetalle()) {
+                  <button type="button" class="detail-search-clear" (click)="busquedaVehiculoDetalle.set('')">
+                    <mat-icon style="font-size: 14px; width: 14px; height: 14px;">close</mat-icon>
+                  </button>
+                }
               </div>
-            }
-            @if (det.fecha_inicio_efectos) {
-              <div class="detail-field">
-                <span class="detail-label">Inicio de Efectos</span>
-                <span class="detail-value">{{formatoFechaLatina(det.fecha_inicio_efectos)}}</span>
-              </div>
-            }
+            </div>
           </div>
+
+          <!-- Estado de Carga -->
+          @if (cargandoVehiculosDetalle()) {
+            <div class="drawer-loading-state">
+              <mat-spinner diameter="28"></mat-spinner>
+              <span>Consultando flota vehicular del trámite...</span>
+            </div>
+          } @else {
+            <!-- Tabla de Vehículos -->
+            @if (vehiculosDetalleFiltrados().length > 0) {
+              <div class="drawer-table-container">
+                <table class="drawer-vehicle-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px; text-align: center;">#</th>
+                      <th style="width: 150px; text-align: center;">Placa</th>
+                      <th style="width: 170px; text-align: center;">TUC N°</th>
+                      <th style="width: 90px; text-align: center;">Año</th>
+                      <th style="width: 90px; text-align: center;">Cat.</th>
+                      <th style="width: 120px; text-align: center;">Rutas</th>
+                      <th style="width: 80px; text-align: center;">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (v of vehiculosDetalleFiltrados(); track (v.placa + '_' + $index); let idx = $index) {
+                      <tr [class.row-saliente]="v.es_saliente">
+                        <!-- # -->
+                        <td style="text-align: center; color: #64748b; font-weight: 700; font-size: 0.82rem;">
+                          {{idx + 1}}
+                        </td>
+
+                        <!-- Placa: fondo verde para alta, o ámbar/tachada para baja -->
+                        <td style="text-align: center;">
+                          <span class="veh-plate-pill" [class.plate-alta]="!v.es_saliente" [class.plate-saliente]="v.es_saliente">
+                            {{v.placa}}
+                          </span>
+                        </td>
+
+                        <!-- TUC -->
+                        <td style="text-align: center;">
+                          @if (v.numero_tuc) {
+                            <span class="veh-tuc-pill" [matTooltip]="'TUC N° ' + v.numero_tuc">
+                              <mat-icon style="font-size: 13px; width: 13px; height: 13px;">badge</mat-icon>
+                              {{v.numero_tuc}}
+                            </span>
+                          } @else if (v.es_saliente) {
+                            <span class="veh-tuc-na" matTooltip="Unidad dada de baja">
+                              Baja / Retirada
+                            </span>
+                          } @else {
+                            <span class="veh-tuc-empty" matTooltip="TUC no consignado o pendiente de emisión">
+                              Pendiente / S/T
+                            </span>
+                          }
+                        </td>
+
+                        <!-- Año -->
+                        <td style="text-align: center;">
+                          <span class="veh-anio-pill">{{v.anio_fabricacion || 'S/A'}}</span>
+                        </td>
+
+                        <!-- Categoría -->
+                        <td style="text-align: center;">
+                          <span class="veh-cat-pill">{{v.categoria || 'M2'}}</span>
+                        </td>
+
+                        <!-- Rutas -->
+                        <td style="text-align: center;">
+                          @if (v.rutas) {
+                            <span class="veh-route-tag" [matTooltip]="'Rutas: ' + v.rutas">
+                              {{v.rutas}}
+                            </span>
+                          } @else {
+                            <span class="veh-empty-text">-</span>
+                          }
+                        </td>
+
+                        <!-- Acción -->
+                        <td style="text-align: center;">
+                          @if (!v.es_saliente && v.placa) {
+                            <button mat-icon-button 
+                                    class="veh-action-btn" 
+                                    (click)="imprimirTucIndividual(v.placa)" 
+                                    [matTooltip]="'Imprimir TUC de ' + v.placa + ' (Ctrl+P)'">
+                              <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #059669;">print</mat-icon>
+                            </button>
+                          } @else {
+                            <span class="veh-empty-text">-</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <!-- Empty state -->
+              <div class="drawer-empty-vehicles">
+                <mat-icon class="empty-icon">no_crash</mat-icon>
+                <div class="empty-title">
+                  @if (busquedaVehiculoDetalle()) {
+                    No hay vehículos que coincidan con "{{busquedaVehiculoDetalle()}}"
+                  } @else {
+                    No hay vehículos registrados para este filtro
+                  }
+                </div>
+                <div class="empty-desc">
+                  @if (busquedaVehiculoDetalle()) {
+                    Intente buscar por otra placa, TUC, marca o limpie el filtro de búsqueda.
+                  } @else {
+                    Este trámite administrativo no cuenta con vehículos asociados en la categoría seleccionada.
+                  }
+                </div>
+              </div>
+            }
+          }
         </div>
-
-        <!-- Vehículos -->
-        @if ((det.placasIng && det.placasIng.length > 0) || (det.placasSal && det.placasSal.length > 0)) {
-          <div class="detail-section">
-            <h4 class="detail-section-title">
-              <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #059669;">directions_car</mat-icon>
-              Vehículos Involucrados
-            </h4>
-
-            @if (det.placasIng && det.placasIng.length > 0) {
-              <div class="detail-vehicles-group">
-                <span class="detail-vehicles-label label-ingresantes">
-                  <span class="material-symbols-outlined" style="font-size: 14px;">add_circle</span>
-                  Ingresantes ({{det.placasIng.length}})
-                </span>
-                <div class="detail-vehicles-list" style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  @for (placa of det.placasIng; track placa) {
-                    <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 2px 6px;">
-                      <span class="plate-badge plate-emerald" style="box-shadow: none;">{{placa}}</span>
-                      <button mat-icon-button (click)="imprimirTucIndividual(placa)" matTooltip="Imprimir TUC A4 (Ctrl+P)" style="width: 22px; height: 22px; line-height: 22px;">
-                        <mat-icon style="font-size: 14px; width: 14px; height: 14px; color: #059669;">print</mat-icon>
-                      </button>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            @if (det.placasSal && det.placasSal.length > 0) {
-              <div class="detail-vehicles-group" style="margin-top: 0.75rem;">
-                <span class="detail-vehicles-label label-salientes">
-                  <span class="material-symbols-outlined" style="font-size: 14px;">remove_circle</span>
-                  Salientes ({{det.placasSal.length}})
-                </span>
-                <div class="detail-vehicles-list">
-                  @for (placa of det.placasSal; track placa) {
-                    <span class="plate-badge plate-amber">{{placa}}</span>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        }
-
-        <!-- TUCs -->
-        @if (det.numeros_tuc && det.numeros_tuc.length > 0) {
-          <div class="detail-section">
-            <h4 class="detail-section-title">
-              <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #b45309;">badge</mat-icon>
-              TUCs Asociados
-            </h4>
-            <div class="detail-vehicles-list">
-              @for (tuc of det.numeros_tuc; track tuc) {
-                <span class="tuc-badge">{{tuc}}</span>
-              }
-            </div>
-          </div>
-        }
 
         <!-- Rutas -->
         @if (det.rutas_modificadas_ids && det.rutas_modificadas_ids.length > 0) {

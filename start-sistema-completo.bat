@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   SIRRET - Sistema Completo
+echo   SIRRETT - Sistema Completo
 echo ========================================
 echo.
 echo Iniciando Backend y Frontend...
@@ -22,17 +22,17 @@ if not exist "frontend" (
 )
 
 echo Iniciando Backend (SQLite)...
-start "Backend SIRRET" cmd /k "cd backend && start-backend-sqlite.bat"
+start "Backend SIRRETT" cmd /k "cd backend && start-backend-sqlite.bat"
 
 echo Esperando 5 segundos para que el backend inicie...
 timeout /t 5 /nobreak >nul
 
 echo Iniciando Frontend (Angular)...
-start "Frontend SIRRET" cmd /k "cd frontend && start-frontend.bat"
+start "Frontend SIRRETT" cmd /k "cd frontend && start-frontend.bat"
 
 echo.
 echo ========================================
-echo   Sistema SIRRET Iniciado
+echo   Sistema SIRRETT Iniciado
 echo ========================================
 echo.
 echo Backend: http://localhost:8000

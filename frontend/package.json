@@ -1,7 +1,7 @@
 {
   "name": "sirret-frontend",
   "version": "1.0.0",
-  "description": "Sistema Regional de Registros de Transporte (SIRRET) - Frontend",
+  "description": "Sistema Regional de Registros de Transporte Terrestre (SIRRETT) - Frontend",
   "scripts": {
     "ng": "ng",
     "start": "ng serve --proxy-config proxy.conf.json",

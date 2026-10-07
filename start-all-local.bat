@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Sistema SIRRET - Despliegue Local
+echo Sistema SIRRETT - Despliegue Local
 echo ========================================
 echo.
 echo Este script iniciará:

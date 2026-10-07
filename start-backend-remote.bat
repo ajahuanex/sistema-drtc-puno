@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
-REM Script para iniciar el backend de SIRRET conectado a MongoDB Remoto
+REM Script para iniciar el backend de SIRRETT conectado a MongoDB Remoto
 
 echo.
 echo =====================================================================
-echo  🚀 Iniciando backend SIRRET en modo REMOTO (161.132.52.69)...
+echo  🚀 Iniciando backend SIRRETT en modo REMOTO (161.132.52.69)...
 echo =====================================================================
 echo.
 

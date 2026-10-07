@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-title SIRRET - Switch de Base de Datos MongoDB
+title SIRRETT - Switch de Base de Datos MongoDB
 
 if "%~1"=="remote" goto :switch_remote
 if "%~1"=="local" goto :switch_local

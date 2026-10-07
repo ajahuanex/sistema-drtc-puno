@@ -192,11 +192,11 @@ async def get_vehiculos_detalle_tramite(
     Obtiene la lista detallada de vehículos vinculados al trámite (ingresantes y salientes)
     con sus datos técnicos y números de TUC para su edición.
     """
-    query = {"id": hija_id}
+    conditions = [{"id": hija_id}, {"nro_resolucion": hija_id}]
     if ObjectId.is_valid(hija_id):
-        query = {"$or": [{"id": hija_id}, {"_id": ObjectId(hija_id)}]}
+        conditions.append({"_id": ObjectId(hija_id)})
     
-    doc = await db["resoluciones_hijas"].find_one(query)
+    doc = await db["resoluciones_hijas"].find_one({"$or": conditions})
     if not doc:
         raise HTTPException(status_code=404, detail="Trámite no encontrado")
         
@@ -223,34 +223,52 @@ async def get_vehiculos_detalle_tramite(
         es_saliente = p in placas_sal and p not in placas_ing
         fv = flota_map.get(p) or {}
         
-        marca = fv.get("marca")
-        modelo = fv.get("modelo")
-        anio = fv.get("anio_fabricacion")
-        categoria = fv.get("categoria")
-        color = fv.get("color")
+        clean_p = p.replace("-", "").strip()
+        vd = await db["vehiculos_data"].find_one({"$or": [{"placa_actual": p}, {"placa_actual": clean_p}, {"placa": p}]}) or {}
         
-        if not marca:
-            clean_p = p.replace("-", "").strip()
-            vd = await db["vehiculos_data"].find_one({"$or": [{"placa_actual": p}, {"placa_actual": clean_p}, {"placa": p}]})
-            if vd:
-                marca = vd.get("marca")
-                modelo = vd.get("modelo")
-                anio = vd.get("anio_fabricacion")
-                categoria = vd.get("categoria")
-                color = vd.get("color")
-                
+        marca = fv.get("marca") or vd.get("marca") or ""
+        modelo = fv.get("modelo") or vd.get("modelo") or ""
+        anio = fv.get("anio_fabricacion") or vd.get("anio_fabricacion")
+        categoria = fv.get("categoria") or vd.get("categoria") or "M2"
+        color = fv.get("color") or vd.get("color") or ""
+        carroceria = fv.get("carroceria") or vd.get("carroceria") or ""
+        modalidad = fv.get("modalidad") or vd.get("modalidad") or doc.get("modalidad_servicio") or ""
+        vin = fv.get("numero_serie_vin") or fv.get("vin") or vd.get("serie_vin") or vd.get("numero_chasis") or ""
+        motor = fv.get("numero_motor") or vd.get("motor") or vd.get("numero_motor") or ""
+        asientos = fv.get("num_asientos") or fv.get("asientos") or vd.get("asientos") or vd.get("num_asientos")
+        pasajeros = fv.get("num_pasajeros") or fv.get("pasajeros") or vd.get("pasajeros") or vd.get("num_pasajeros")
+        combustible = fv.get("combustible") or vd.get("combustible") or ""
+        peso_seco = fv.get("peso_neto") or fv.get("peso_seco") or vd.get("peso_neto") or vd.get("peso_seco")
+        peso_bruto = fv.get("peso_bruto") or vd.get("peso_bruto")
+        carga_util = fv.get("carga_util") or vd.get("carga_util")
+        rutas = fv.get("rutas") or doc.get("rutas_modificadas_ids") or []
+        tuc = fv.get("numero_tuc") or tuc_pos_map.get(p) or ""
+        
         resultado.append({
             "placa": p,
-            "numero_tuc": fv.get("numero_tuc") or tuc_pos_map.get(p) or "",
-            "marca": marca or "",
-            "modelo": modelo or "",
+            "numero_tuc": tuc,
+            "marca": marca,
+            "modelo": modelo,
             "anio_fabricacion": anio,
-            "categoria": categoria or "M2",
-            "color": color or "",
-            "rutas": fv.get("rutas") or doc.get("rutas_modificadas_ids") or [],
+            "categoria": categoria,
+            "color": color,
+            "carroceria": carroceria,
+            "modalidad": modalidad,
+            "vin": vin,
+            "motor": motor,
+            "asientos": asientos,
+            "pasajeros": pasajeros,
+            "combustible": combustible,
+            "peso_seco": peso_seco,
+            "peso_bruto": peso_bruto,
+            "carga_util": carga_util,
+            "rutas": rutas,
             "es_saliente": es_saliente,
             "estado": fv.get("estado", "HABILITADO" if not es_saliente else "INHABILITADO")
         })
+    
+    # Ordenar: ingresantes primero, salientes al final
+    resultado.sort(key=lambda x: (1 if x["es_saliente"] else 0, x["placa"]))
         
     return {
         "tramite_id": str(doc.get("_id") or doc.get("id")),

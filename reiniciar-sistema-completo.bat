@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo REINICIO COMPLETO DEL SISTEMA SIRRET
+echo REINICIO COMPLETO DEL SISTEMA SIRRETT
 echo ========================================
 echo.
 

@@ -371,6 +371,11 @@ export class EmpresaService {
         if (ce && typeof ce === 'object') return Boolean(ce.habilitada);
         return Boolean(empresa.tieneCasillaElectronica || ce === 'HABILITADA');
       })(),
+      ultimaValidacionCasilla: (() => {
+        const ce = empresa.casillaElectronica || empresa.casilla_electronica;
+        if (ce && typeof ce === 'object' && ce.fechaValidacion) return new Date(ce.fechaValidacion);
+        return empresa.ultimaValidacionCasilla ? new Date(empresa.ultimaValidacionCasilla) : undefined;
+      })(),
       estado: empresa.estado || EstadoEmpresa.EN_TRAMITE,
       tiposServicio: empresa.tiposServicio || empresa.tipos_servicio || [],
       estaActivo: empresa.estaActivo !== undefined ? empresa.estaActivo : true,

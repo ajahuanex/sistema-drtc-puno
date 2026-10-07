@@ -1,5 +1,5 @@
 """
-Servicio de sincronización automática y periódica de datos SUNAT para empresas (SIRRET).
+Servicio de sincronización automática y periódica de datos SUNAT para empresas (SIRRETT).
 Ejecuta la validación en un horario específico diario (por defecto 07:00 AM hora local de Perú / UTC-5)
 y permite la ejecución manual en cualquier momento por parte de administradores.
 Mantiene actualizados los estados (ACTIVO, HABIDO, razón social oficial, etc.) en MongoDB.

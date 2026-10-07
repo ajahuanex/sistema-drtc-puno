@@ -236,6 +236,8 @@ export const routes: Routes = [
         canActivate: [RoleGuard],
         data: { modulo: 'vehiculos' }
       },
+      { path: 'bajas', redirectTo: 'bajas-externas', pathMatch: 'full' },
+      { path: 'bajas-vehiculares', redirectTo: 'bajas-externas', pathMatch: 'full' },
 
       // CENTRO DE TRAMITES
       { 

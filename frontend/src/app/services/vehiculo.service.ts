@@ -666,8 +666,8 @@ export class VehiculoService {
 
       // Hoja 1: Instrucciones
       const instrucciones = [
-        ['PLANTILLA DE CARGA MASIVA DE VEHÍCULOS - SIRRET'],
-        ['Sistema Regional de Registros de Transporte (SIRRET)'],
+        [`PLANTILLA DE CARGA MASIVA DE VEHÍCULOS - ${environment.systemName}`],
+        [environment.systemFullName],
         [''],
         ['INSTRUCCIONES DE USO:'],
         ['1. Complete los datos en la hoja "DATOS" usando las columnas correspondientes'],
@@ -731,7 +731,7 @@ export class VehiculoService {
         ['• Expediente: Se relaciona con las resoluciones'],
         [''],
         ['Fecha de creación: ' + new Date().toLocaleDateString('es-PE')],
-        ['Versión del sistema: Sistema Regional de Registros de Transporte (SIRRET) v1.0.0'],
+        [`Versión del sistema: ${environment.systemFullName} v${environment.version || '1.0.0'}`],
         ['Total de campos: 36 (2 obligatorios, 34 opcionales)']
       ];
 
@@ -1145,7 +1145,7 @@ export class VehiculoService {
     ];
 
     const csvContent = [
-      '# PLANTILLA DE CARGA MASIVA DE VEHÍCULOS - SIRRET (36 CAMPOS)',
+      `# PLANTILLA DE CARGA MASIVA DE VEHÍCULOS - ${environment.systemName} (36 CAMPOS)`,
       '# CAMPO OBLIGATORIO: Solo Placa',
       '# FORMATO DE PLACA: ABC-123',
       '# FORMATO DE RUC: 11 dígitos',

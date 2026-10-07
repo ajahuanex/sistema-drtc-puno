@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   SISTEMA SIRRET - INICIO COMPLETO
+echo   SISTEMA SIRRETT - INICIO COMPLETO
 echo ========================================
 echo.
 
@@ -25,7 +25,7 @@ except Exception as e:
 
 echo.
 echo 🚀 Iniciando Backend (FastAPI)...
-start "Backend SIRRET" cmd /k "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+start "Backend SIRRETT" cmd /k "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 echo.
 echo ⏳ Esperando que el backend inicie...
@@ -54,7 +54,7 @@ else:
 
 echo.
 echo 🎨 Iniciando Frontend (Angular)...
-start "Frontend SIRRET" cmd /k "cd frontend && ng serve --host 0.0.0.0 --port 4200 --open"
+start "Frontend SIRRETT" cmd /k "cd frontend && ng serve --host 0.0.0.0 --port 4200 --open"
 
 echo.
 echo ========================================
