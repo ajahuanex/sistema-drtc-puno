@@ -100,15 +100,16 @@ export class TucStudioComponent implements OnInit {
   margenBottom = computed(() => this.config()?.margen_bottom_mm ?? 10.0);
   guiasReferencialesH = signal<boolean>(true);
 
-  // Configuración de la Línea Horizontal Principal Calibrada (editable en tamaño, grosor, color, posición y estilo)
+  // Configuración de la Línea Horizontal Superior (Límite de Inicio de Contenido)
+  vincularContenidoALimiteH = signal<boolean>(true);
+
   lineaHConfig = computed<LineaHorizontalConfig>(() => {
     const c = this.config();
     if (c?.linea_horizontal) {
       return c.linea_horizontal;
     }
     const f = this.formatoPapel();
-    const orient = this.orientacion();
-    const yDefault = f === 'DUAL_PVC' ? 54.0 : (orient === 'landscape' ? 105.0 : 148.5);
+    const yDefault = f === 'DUAL_PVC' ? 20.0 : 50.0;
     const anchoDefault = this.anchoHojaMm();
     return {
       activa: true,
@@ -116,10 +117,11 @@ export class TucStudioComponent implements OnInit {
       x_mm: 0.0,
       ancho_mm: anchoDefault,
       grosor_mm: 1.0,
-      color: '#d97706',
+      color: '#2563eb',
       estilo: 'dashed',
       imprimible: false,
-      etiqueta: 'Línea Horizontal / Eje Referencial'
+      etiqueta: 'Línea Límite Superior (Inicio de Contenido)',
+      limitar_contenido_superior: true
     };
   });
 
@@ -393,7 +395,8 @@ export class TucStudioComponent implements OnInit {
         const init = this.initialPositions.get(item.id);
         if (init) {
           item.x_mm = Math.max(0, Math.round((init.x + snapDeltaX) * 10) / 10);
-          item.y_mm = Math.max(0, Math.round((init.y + snapDeltaY) * 10) / 10);
+          const minYPermitido = (this.lineaHConfig().activa && item.tipo !== 'imagen' && item.tipo !== 'linea') ? this.lineaHConfig().y_mm : 0;
+          item.y_mm = Math.max(minYPermitido, Math.round((init.y + snapDeltaY) * 10) / 10);
         }
       }
       this.notificarCambio();
@@ -510,7 +513,8 @@ export class TucStudioComponent implements OnInit {
     }
   }
 
-  // --- MÉTODOS DE CALIBRACIÓN DE LÍNEA HORIZONTAL ---
+
+  // --- MÉTODOS DE CALIBRACIÓN DE LÍNEA HORIZONTAL SUPERIOR (LÍMITE DE INICIO) ---
   seleccionarLineaHorizontal(event?: MouseEvent): void {
     if (event) event.stopPropagation();
     this.lineaHSeleccionada.set(true);
@@ -531,6 +535,52 @@ export class TucStudioComponent implements OnInit {
     this.config.set({ ...c });
   }
 
+  // Obtiene el menor Y actual del contenido (excluyendo líneas horizontales decorativas)
+  obtenerMinYContenido(seccion: 'anverso' | 'reverso' = 'anverso'): number {
+    const c = this.config();
+    if (!c) return 0;
+    const vars = c.variables.filter(v => v.visible && v.tipo !== 'linea' && (c.modo_hojas === 'UNA_HOJA' || v.seccion === seccion));
+    if (vars.length === 0) return 0;
+    return Math.min(...vars.map(v => v.y_mm));
+  }
+
+  // Desplaza todo el contenido de variables para que inicie exactamente a partir de la Línea Horizontal Superior (Y)
+  alinearContenidoALimiteSuperior(seccion: 'anverso' | 'reverso' = 'anverso'): void {
+    const c = this.config();
+    if (!c) return;
+    const limiteY = this.lineaHConfig().y_mm;
+    const vars = c.variables.filter(v => v.visible && v.tipo !== 'linea' && (c.modo_hojas === 'UNA_HOJA' || v.seccion === seccion));
+    if (vars.length === 0) {
+      this.snackBar.open('No hay variables visibles para alinear', 'Cerrar', { duration: 2500 });
+      return;
+    }
+    const minY = Math.min(...vars.map(v => v.y_mm));
+    const delta = Math.round((limiteY - minY) * 10) / 10;
+    if (Math.abs(delta) < 0.05) {
+      this.snackBar.open(`El contenido ya inicia exactamente en Y = ${limiteY} mm`, 'OK', { duration: 2500 });
+      return;
+    }
+    for (const v of vars) {
+      if (!v.bloqueado) {
+        v.y_mm = Math.max(0, Math.round((v.y_mm + delta) * 10) / 10);
+      }
+    }
+    this.config.set({ ...c });
+    this.snackBar.open(`¡Contenido alineado con éxito! El bloque de variables ahora inicia en Y = ${limiteY} mm`, 'OK', { duration: 3000 });
+  }
+
+  // Desplaza en bloque el contenido verticalmente
+  desplazarContenidoBloque(deltaY: number, seccion: 'anverso' | 'reverso' = 'anverso'): void {
+    const c = this.config();
+    if (!c || Math.abs(deltaY) < 0.01) return;
+    const vars = c.variables.filter(v => v.visible && v.tipo !== 'linea' && (c.modo_hojas === 'UNA_HOJA' || v.seccion === seccion));
+    for (const v of vars) {
+      if (!v.bloqueado) {
+        v.y_mm = Math.max(0, Math.round((v.y_mm + deltaY) * 10) / 10);
+      }
+    }
+  }
+
   ajustarLineaH(prop: 'y_mm' | 'x_mm' | 'ancho_mm' | 'grosor_mm', delta: number): void {
     const c = this.config();
     if (!c) return;
@@ -545,6 +595,10 @@ export class TucStudioComponent implements OnInit {
       nuevoVal = Math.max(5.0, Math.min(this.anchoHojaMm() * 1.5, nuevoVal));
     } else if (prop === 'y_mm') {
       nuevoVal = Math.max(0, Math.min(this.altoHojaMm(), nuevoVal));
+      if (this.vincularContenidoALimiteH()) {
+        const deltaReal = Math.round((nuevoVal - valActual) * 10) / 10;
+        this.desplazarContenidoBloque(deltaReal);
+      }
     }
     c.linea_horizontal[prop] = nuevoVal;
     this.config.set({ ...c });
@@ -558,6 +612,11 @@ export class TucStudioComponent implements OnInit {
     }
     const num = parseFloat(valor);
     if (!isNaN(num)) {
+      if (prop === 'y_mm' && this.vincularContenidoALimiteH()) {
+        const valActual = c.linea_horizontal.y_mm ?? 0;
+        const deltaReal = Math.round((num - valActual) * 10) / 10;
+        this.desplazarContenidoBloque(deltaReal);
+      }
       c.linea_horizontal[prop] = num;
       this.config.set({ ...c });
     }
@@ -629,6 +688,14 @@ export class TucStudioComponent implements OnInit {
     }
     const startYMm = c.linea_horizontal.y_mm;
 
+    // Guardar mapa de posiciones iniciales de variables para arrastre sincronizado
+    const initialVarMap = new Map<string, number>();
+    for (const v of c.variables) {
+      if (v.visible && v.tipo !== 'linea' && !v.bloqueado) {
+        initialVarMap.set(v.id, v.y_mm);
+      }
+    }
+
     const onMouseMove = (moveEvent: MouseEvent) => {
       const pxPerMm = 3.779527559;
       const scale = (this.zoom() / 100) * pxPerMm;
@@ -636,7 +703,20 @@ export class TucStudioComponent implements OnInit {
       const step = this.rejilla() ? 0.5 : 0.1;
       const snapDeltaY = Math.round(deltaY / step) * step;
       const newY = Math.max(0, Math.min(this.altoHojaMm(), Math.round((startYMm + snapDeltaY) * 10) / 10));
+      const deltaReal = Math.round((newY - startYMm) * 10) / 10;
+
       c.linea_horizontal!.y_mm = newY;
+
+      // Si la vinculación está activa, desplazar en tiempo real todo el contenido
+      if (this.vincularContenidoALimiteH()) {
+        for (const v of c.variables) {
+          const initY = initialVarMap.get(v.id);
+          if (initY !== undefined) {
+            v.y_mm = Math.max(0, Math.round((initY + deltaReal) * 10) / 10);
+          }
+        }
+      }
+
       this.config.set({ ...c });
     };
 
@@ -644,6 +724,7 @@ export class TucStudioComponent implements OnInit {
       this.isDraggingLineaH.set(false);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      this.notificarCambio();
     };
 
     window.addEventListener('mousemove', onMouseMove);

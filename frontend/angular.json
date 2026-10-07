@@ -54,7 +54,8 @@
               "rgbcolor",
               "leaflet",
               "leaflet.markercluster",
-              "file-saver"
+              "file-saver",
+              "html2canvas"
             ]
           },
           "configurations": {

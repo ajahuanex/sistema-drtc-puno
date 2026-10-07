@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Base de datos MongoDB - Switch Local / Remoto
     USE_REMOTE_DB: bool = os.getenv("USE_REMOTE_DB", "false").lower() in ("true", "1", "yes", "remote")
     MONGODB_TARGET: str = os.getenv("MONGODB_TARGET", "local")  # "local" | "remote"
-    MONGODB_URL_LOCAL: str = os.getenv("MONGODB_URL_LOCAL", "mongodb://admin:ClaveSuperSegura2026!ok@localhost:27017/?authSource=admin")
+    MONGODB_URL_LOCAL: str = os.getenv("MONGODB_URL_LOCAL", "mongodb://admin:admin123@localhost:27017/?authSource=admin")
     MONGODB_URL_REMOTE: str = os.getenv("MONGODB_URL_REMOTE", "mongodb://admin_user:ClaveSuperSegura2026!ok@161.132.52.69:27017/?authSource=admin")
     MONGODB_URL: str = os.getenv("MONGODB_URL", "")
     DATABASE_NAME: str = os.getenv("DATABASE_NAME", "drtc_db")

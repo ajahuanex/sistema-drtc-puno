@@ -608,15 +608,16 @@ DEFAULT_TEMPLATES: List[Dict[str, Any]] = [
         "margen_top_mm": 10.0,
         "margen_bottom_mm": 10.0,
         "linea_horizontal": {
-            "activa": False,
-            "y_mm": 148.5,
+            "activa": True,
+            "y_mm": 50.0,
             "x_mm": 0.0,
             "ancho_mm": 210.0,
             "grosor_mm": 1.0,
-            "color": "#d97706",
+            "color": "#2563eb",
             "estilo": "dashed",
             "imprimible": False,
-            "etiqueta": "Eje Horizontal Referencial"
+            "etiqueta": "Línea Límite Superior (Inicio de Contenido)",
+            "limitar_contenido_superior": True
         },
         "variables": copy.deepcopy(DEFAULT_VARIABLES),
         "activa": True,
@@ -668,15 +669,16 @@ DEFAULT_TEMPLATES: List[Dict[str, Any]] = [
         "margen_top_mm": 10.0,
         "margen_bottom_mm": 10.0,
         "linea_horizontal": {
-            "activa": False,
-            "y_mm": 148.5,
+            "activa": True,
+            "y_mm": 50.0,
             "x_mm": 0.0,
             "ancho_mm": 210.0,
             "grosor_mm": 1.0,
-            "color": "#d97706",
+            "color": "#2563eb",
             "estilo": "dashed",
             "imprimible": False,
-            "etiqueta": "Eje Horizontal Referencial"
+            "etiqueta": "Línea Límite Superior (Inicio de Contenido)",
+            "limitar_contenido_superior": True
         },
         "variables": copy.deepcopy(DEFAULT_VARIABLES),
         "activa": False,

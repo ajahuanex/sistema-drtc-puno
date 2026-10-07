@@ -88,6 +88,7 @@ export interface LineaHorizontalConfig {
   estilo: 'solid' | 'dashed' | 'dotted';
   imprimible: boolean;
   etiqueta?: string;
+  limitar_contenido_superior?: boolean;
 }
 
 export interface PlantillaTucCalibradorConfig {

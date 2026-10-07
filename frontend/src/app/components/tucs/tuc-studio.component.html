@@ -9,29 +9,26 @@
         <mat-icon>arrow_back</mat-icon>
       </button>
 
-      <div class="brand-block">
+      <div class="brand-block" matTooltip="TUC Studio DRTC Puno">
         <div class="brand-icon">
           <mat-icon>badge</mat-icon>
         </div>
         <div class="brand-text">
-          <div class="brand-title-row">
-            <h1 class="brand-title">TUC Studio</h1>
-            <span class="badge-version">DRTC Puno</span>
-          </div>
+          <h1 class="brand-title">TUC Studio</h1>
         </div>
       </div>
 
       <!-- Template Selector & Catalog Management Toolbar -->
       <div class="template-selector-box">
-        <mat-icon class="tmpl-icon">auto_awesome_motion</mat-icon>
+        <mat-icon class="tmpl-icon" matTooltip="Plantillas">auto_awesome_motion</mat-icon>
         <div class="tmpl-select-wrapper">
-          <label class="tmpl-label">Plantilla:</label>
           <select class="tmpl-select"
                   [ngModel]="plantillaActualId()"
-                  (ngModelChange)="cambiarPlantilla($event)">
+                  (ngModelChange)="cambiarPlantilla($event)"
+                  matTooltip="Seleccionar plantilla activa">
             @for (tmpl of plantillas(); track tmpl.id) {
               <option [value]="tmpl.id">
-                {{ tmpl.activa ? '★ ' : '' }}{{ tmpl.nombre }} ({{ tmpl.formato_papel === 'A4' ? 'A4' : 'PVC' }})
+                {{ tmpl.activa ? '★ ' : '' }}{{ tmpl.nombre }}
               </option>
             }
           </select>
@@ -40,27 +37,24 @@
         <button type="button"
                 class="btn-tmpl-action btn-add-tmpl"
                 (click)="abrirModalGuardarComo()"
-                matTooltip="Guardar configuración actual como una nueva plantilla (BD + JSON)">
+                matTooltip="Guardar Como nueva plantilla">
           <mat-icon>bookmark_add</mat-icon>
-          <span>Guardar Como</span>
         </button>
 
         @if (!esPredeterminadaActual()) {
           <button type="button"
                   class="btn-tmpl-action btn-star"
                   (click)="activarComoPredeterminada()"
-                  matTooltip="Fijar esta plantilla como la predeterminada del sistema DRTC Puno">
+                  matTooltip="Fijar como predeterminada">
             <mat-icon>star_border</mat-icon>
-            <span>Fijar Default</span>
           </button>
         }
 
         <button type="button"
                 class="btn-tmpl-action"
                 (click)="exportarJson()"
-                matTooltip="Descargar copia de respaldo en formato JSON">
+                matTooltip="Descargar respaldo JSON">
           <mat-icon>file_download</mat-icon>
-          <span>JSON</span>
         </button>
 
         @if (plantillas().length > 1) {
@@ -71,24 +65,18 @@
             <mat-icon>delete_outline</mat-icon>
           </button>
         }
-
-        <div class="sync-badge" matTooltip="Sincronizado automáticamente en MongoDB y en backend/app/templates/tuc_plantillas_catalogo.json">
-          <span class="sync-dot"></span>
-          <span>BD & JSON OK</span>
-        </div>
       </div>
 
       <!-- Quick Vehicle Search with Autocomplete -->
       <div class="search-box">
-        <mat-icon class="search-icon">search</mat-icon>
         <input type="text"
                [ngModel]="searchPlaca()"
                (ngModelChange)="searchPlaca.set($event)"
                (keyup.enter)="cargarDatosVehiculoPrueba(searchPlaca())"
-               placeholder="Placa prueba (ej. VBE-959)..."
+               placeholder="Placa..."
                class="search-input" />
-        <button mat-button class="btn-load-placa" (click)="cargarDatosVehiculoPrueba(searchPlaca())">
-          Cargar
+        <button mat-icon-button class="btn-search-icon" (click)="cargarDatosVehiculoPrueba(searchPlaca())" matTooltip="Cargar vehículo de prueba">
+          <mat-icon>search</mat-icon>
         </button>
       </div>
 
@@ -98,17 +86,17 @@
                 class="format-tab-btn"
                 [class.active]="formatoPapel() === 'DUAL_PVC'"
                 (click)="cambiarFormatoPapel('DUAL_PVC', 'portrait')"
-                matTooltip="Formato tarjeta plástica / PVC térmico oficial (85.60 × 108.00 mm)">
+                matTooltip="Formato Tarjeta Dual PVC (85.60 × 108.00 mm)">
           <mat-icon>credit_card</mat-icon>
-          <span>Tarjeta Dual PVC</span>
+          <span>PVC</span>
         </button>
         <button type="button"
                 class="format-tab-btn"
                 [class.active]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
                 (click)="cambiarFormatoPapel('A4', 'portrait')"
-                matTooltip="Hoja A4 Vertical completa (210 × 297 mm)">
+                matTooltip="Hoja A4 Vertical (210 × 297 mm)">
           <mat-icon>description</mat-icon>
-          <span>A4 Vertical</span>
+          <span>A4 V</span>
         </button>
         <button type="button"
                 class="format-tab-btn"
@@ -116,7 +104,7 @@
                 (click)="cambiarFormatoPapel('A4', 'landscape')"
                 matTooltip="Hoja A4 Horizontal (297 × 210 mm)">
           <mat-icon>landscape</mat-icon>
-          <span>A4 Horizontal</span>
+          <span>A4 H</span>
         </button>
       </div>
 
@@ -126,17 +114,17 @@
                 class="hojas-tab-btn"
                 [class.active]="modoHojas() === 'UNA_HOJA'"
                 (click)="cambiarModoHojas('UNA_HOJA')"
-                matTooltip="Imprimir todo en 1 sola página">
+                matTooltip="Imprimir todo en 1 Sola Página">
           <mat-icon>auto_stories</mat-icon>
-          <span>1 Hoja</span>
+          <span>1H</span>
         </button>
         <button type="button"
                 class="hojas-tab-btn"
                 [class.active]="modoHojas() === 'DOS_HOJAS'"
                 (click)="cambiarModoHojas('DOS_HOJAS')"
-                matTooltip="Imprimir en 2 hojas separadas (Hoja 1: Anverso, Hoja 2: Reverso - Salto de página dúplex)">
+                matTooltip="Imprimir en 2 Hojas Separadas (Anverso / Reverso)">
           <mat-icon>filter_2</mat-icon>
-          <span>2 Hojas (Anverso/Reverso)</span>
+          <span>2H</span>
         </button>
       </div>
 
@@ -145,60 +133,55 @@
         <button type="button"
                 class="mode-btn"
                 [class.active]="modoVista() === 'tags'"
-                (click)="modoVista.set('tags')">
-          [Tags]
+                (click)="modoVista.set('tags')"
+                matTooltip="Modo Plantilla [Tags]">
+          Tags
         </button>
         <button type="button"
                 class="mode-btn"
                 [class.active]="modoVista() === 'reales'"
-                (click)="modoVista.set('reales')">
-          [Datos Reales]
+                (click)="modoVista.set('reales')"
+                matTooltip="Modo Vista Previa [Datos Reales]">
+          Datos
         </button>
       </div>
     </div>
 
     <!-- Actions & Print Button -->
     <div class="header-right">
-      <button mat-stroked-button class="btn-action-neutral" (click)="restablecerOficial()" matTooltip="Restablecer plantilla a coordenadas oficiales de DRTC Puno">
+      <button mat-icon-button class="btn-action-icon" (click)="restablecerOficial()" matTooltip="Restablecer plantilla a coordenadas oficiales de DRTC Puno">
         <mat-icon>restart_alt</mat-icon>
-        <span class="btn-text">Restablecer</span>
       </button>
 
-      <button mat-raised-button color="primary" class="btn-save" (click)="guardarConfiguracion()" [disabled]="isSaving()">
+      <button mat-raised-button color="primary" class="btn-save-compact" (click)="guardarConfiguracion()" [disabled]="isSaving()" matTooltip="Guardar plantilla en BD y JSON">
         @if (isSaving()) {
           <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
-          <span>Guardando...</span>
         } @else {
           <mat-icon>save</mat-icon>
-          <span>Guardar Plantilla</span>
+          <span>Guardar</span>
         }
       </button>
 
       <!-- Primary Action: Instant HTML Print -->
-      <button mat-raised-button class="btn-print-instant" (click)="imprimirHtmlInstantaneo()" [disabled]="isPrinting()" matTooltip="Abre la ventana de impresión nativa en menos de 0.05s">
+      <button mat-raised-button class="btn-print-compact" (click)="imprimirHtmlInstantaneo()" [disabled]="isPrinting()" matTooltip="Imprimir TUC en menos de 0.05s (F9)">
         <mat-icon>print</mat-icon>
-        <span>Imprimir TUC (F9)</span>
-        <span class="badge-speed">
-          <mat-icon style="font-size:12px;width:12px;height:12px;">bolt</mat-icon>
-          <span>0.05s</span>
-        </span>
+        <span>Imprimir</span>
       </button>
 
       <!-- Guardar en PDF directo -->
-      <button mat-raised-button class="btn-pdf-export" (click)="guardarEnPdf()" [disabled]="isGeneratingPdf()" matTooltip="Descargar TUC calibrado en formato PDF de alta fidelidad">
+      <button mat-raised-button class="btn-pdf-compact" (click)="guardarEnPdf()" [disabled]="isGeneratingPdf()" matTooltip="Descargar TUC en formato PDF de alta fidelidad">
         @if (isGeneratingPdf()) {
           <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
-          <span>Generando PDF...</span>
         } @else {
           <mat-icon>picture_as_pdf</mat-icon>
-          <span>Guardar en PDF</span>
+          <span>PDF</span>
         }
       </button>
 
       <!-- Impresión en Lote Multi-Hojas -->
-      <button mat-stroked-button class="btn-batch-pdf" (click)="abrirModalLotePdf()" matTooltip="Imprimir o exportar muchas TUCs en un solo documento de múltiples hojas / PDF">
+      <button mat-stroked-button class="btn-batch-compact" (click)="abrirModalLotePdf()" matTooltip="Imprimir o exportar muchas TUCs en lote multi-hojas / PDF">
         <mat-icon>dynamic_feed</mat-icon>
-        <span class="btn-text">Lote Multi-Hojas</span>
+        <span>Lote</span>
       </button>
     </div>
   </header>
@@ -568,19 +551,19 @@
         <div class="toolbar-left">
           <!-- Zoom Controls -->
           <div class="zoom-controls">
-            <button type="button" class="tool-btn" (click)="zoom.set(Math.max(25, zoom() - 15))" title="Alejar">
+            <button type="button" class="tool-btn" (click)="zoom.set(Math.max(25, zoom() - 15))" matTooltip="Alejar zoom">
               <mat-icon>zoom_out</mat-icon>
             </button>
             <span class="zoom-label">{{ zoom() }}%</span>
-            <button type="button" class="tool-btn" (click)="zoom.set(Math.min(200, zoom() + 15))" title="Acercar">
+            <button type="button" class="tool-btn" (click)="zoom.set(Math.min(200, zoom() + 15))" matTooltip="Acercar zoom">
               <mat-icon>zoom_in</mat-icon>
             </button>
             <button type="button"
                     class="tool-btn-text"
                     [class.btn-active-scale]="zoom() === 100"
                     (click)="zoom.set(100)"
-                    matTooltip="Visualizar a tamaño real físico (100% escala 1:1)">
-              100% Tamaño Real
+                    matTooltip="Tamaño real 100% (escala física 1:1)">
+              1:1
             </button>
             @if (formatoPapel() === 'A4') {
               <button type="button"
@@ -588,86 +571,130 @@
                       [class.btn-active-scale]="zoom() === 50"
                       (click)="zoom.set(50)"
                       matTooltip="Ajustar hoja completa A4 en pantalla (50%)">
-                Ver Hoja (50%)
+                50%
               </button>
             }
           </div>
 
           <div class="separator-v"></div>
 
-          <!-- Margins Quick Controls -->
+          <!-- Margins Quick Controls (Iconos compactos) -->
           <div class="margins-quick-toolbar">
-            <span class="mq-lbl">Margen Izq:</span>
-            <div class="mq-stepper">
-              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_izq_mm', -1)">-</button>
-              <span class="mq-val">{{ margenIzq() }}mm</span>
-              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_izq_mm', 1)">+</button>
+            <div class="mq-item" matTooltip="Margen Izquierdo (mm)">
+              <mat-icon class="mq-icon">align_horizontal_left</mat-icon>
+              <div class="mq-stepper">
+                <button type="button" class="mq-btn" (click)="ajustarMargen('margen_izq_mm', -1)">-</button>
+                <span class="mq-val">{{ margenIzq() }}</span>
+                <button type="button" class="mq-btn" (click)="ajustarMargen('margen_izq_mm', 1)">+</button>
+              </div>
             </div>
 
-            <span class="mq-lbl ml-2">Margen Der:</span>
-            <div class="mq-stepper">
-              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_der_mm', -1)">-</button>
-              <span class="mq-val">{{ margenDer() }}mm</span>
-              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_der_mm', 1)">+</button>
+            <div class="mq-item" matTooltip="Margen Derecho (mm)">
+              <mat-icon class="mq-icon">align_horizontal_right</mat-icon>
+              <div class="mq-stepper">
+                <button type="button" class="mq-btn" (click)="ajustarMargen('margen_der_mm', -1)">-</button>
+                <span class="mq-val">{{ margenDer() }}</span>
+                <button type="button" class="mq-btn" (click)="ajustarMargen('margen_der_mm', 1)">+</button>
+              </div>
             </div>
 
-            <span class="mq-lbl ml-2">Margen Sup:</span>
-            <div class="mq-stepper">
-              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_top_mm', -1)">-</button>
-              <span class="mq-val">{{ margenTop() }}mm</span>
-              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_top_mm', 1)">+</button>
+            <div class="mq-item" matTooltip="Margen Superior (mm)">
+              <mat-icon class="mq-icon">vertical_align_top</mat-icon>
+              <div class="mq-stepper">
+                <button type="button" class="mq-btn" (click)="ajustarMargen('margen_top_mm', -1)">-</button>
+                <span class="mq-val">{{ margenTop() }}</span>
+                <button type="button" class="mq-btn" (click)="ajustarMargen('margen_top_mm', 1)">+</button>
+              </div>
             </div>
 
-            <span class="mq-lbl ml-2">Margen Inf:</span>
-            <div class="mq-stepper">
-              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_bottom_mm', -1)">-</button>
-              <span class="mq-val">{{ margenBottom() }}mm</span>
-              <button type="button" class="mq-btn" (click)="ajustarMargen('margen_bottom_mm', 1)">+</button>
+            <div class="mq-item" matTooltip="Margen Inferior (mm)">
+              <mat-icon class="mq-icon">vertical_align_bottom</mat-icon>
+              <div class="mq-stepper">
+                <button type="button" class="mq-btn" (click)="ajustarMargen('margen_bottom_mm', -1)">-</button>
+                <span class="mq-val">{{ margenBottom() }}</span>
+                <button type="button" class="mq-btn" (click)="ajustarMargen('margen_bottom_mm', 1)">+</button>
+              </div>
             </div>
           </div>
 
           <div class="separator-v"></div>
 
-          <!-- Toggles -->
-          <div class="toggles-row">
-            <label class="toggle-lbl">
-              <input type="checkbox" [ngModel]="guiasMargenes()" (ngModelChange)="guiasMargenes.set($event)" />
-              <span>Líneas Márgenes</span>
-            </label>
-            <label class="toggle-lbl" matTooltip="Eje horizontal de referencia y pliegue/corte de la hoja o tarjeta">
-              <input type="checkbox" [ngModel]="guiasReferencialesH()" (ngModelChange)="guiasReferencialesH.set($event)" />
-              <span>Eje H Referencial</span>
-            </label>
-            <label class="toggle-lbl">
-              <input type="checkbox" [ngModel]="guiasSmart()" (ngModelChange)="guiasSmart.set($event)" />
-              <span>Guías Smart</span>
-            </label>
-            <label class="toggle-lbl">
-              <input type="checkbox" [ngModel]="reglasMm()" (ngModelChange)="reglasMm.set($event)" />
-              <span>Reglas mm</span>
-            </label>
-            <label class="toggle-lbl">
-              <input type="checkbox" [ngModel]="rejilla()" (ngModelChange)="rejilla.set($event)" />
-              <span>Rejilla 1mm</span>
-            </label>
+          <!-- Límite Superior (Inicio de Contenido) Compacto -->
+          <div class="limite-superior-quick-toolbar" matTooltip="Línea Horizontal Límite Superior: define a qué altura inicia el contenido">
+            <mat-icon class="lsq-icon-top">border_top</mat-icon>
+            <div class="mq-stepper">
+              <button type="button" class="mq-btn" (click)="ajustarLineaH('y_mm', -1)" matTooltip="-1 mm">-</button>
+              <span class="mq-val lsq-val">{{ lineaHConfig().y_mm }}mm</span>
+              <button type="button" class="mq-btn" (click)="ajustarLineaH('y_mm', 1)" matTooltip="+1 mm">+</button>
+            </div>
+
+            <button type="button"
+                    class="btn-align-content-to-limit"
+                    (click)="alinearContenidoALimiteSuperior()"
+                    matTooltip="Alinear y mover todo el contenido para que empiece en Y = {{ lineaHConfig().y_mm }}mm">
+              <mat-icon>vertical_align_top</mat-icon>
+            </button>
+
+            <button type="button"
+                    class="btn-toggle-link"
+                    [class.active]="vincularContenidoALimiteH()"
+                    (click)="vincularContenidoALimiteH.set(!vincularContenidoALimiteH())"
+                    [matTooltip]="vincularContenidoALimiteH() ? 'Vinculación activa: mover la línea desplaza el contenido' : 'Vinculación desactivada'">
+              <mat-icon>link</mat-icon>
+            </button>
+          </div>
+
+          <div class="separator-v"></div>
+
+          <!-- Toggles con Iconos Profesionales -->
+          <div class="toggles-toolbar-row">
+            <button type="button"
+                    class="toggle-icon-btn"
+                    [class.active]="guiasMargenes()"
+                    (click)="guiasMargenes.set(!guiasMargenes())"
+                    matTooltip="Guías de Márgenes">
+              <mat-icon>border_outer</mat-icon>
+            </button>
+            <button type="button"
+                    class="toggle-icon-btn"
+                    [class.active]="guiasReferencialesH()"
+                    (click)="guiasReferencialesH.set(!guiasReferencialesH())"
+                    matTooltip="Línea Límite / Eje H Referencial">
+              <mat-icon>horizontal_rule</mat-icon>
+            </button>
+            <button type="button"
+                    class="toggle-icon-btn"
+                    [class.active]="guiasSmart()"
+                    (click)="guiasSmart.set(!guiasSmart())"
+                    matTooltip="Guías Smart">
+              <mat-icon>auto_fix_high</mat-icon>
+            </button>
+            <button type="button"
+                    class="toggle-icon-btn"
+                    [class.active]="reglasMm()"
+                    (click)="reglasMm.set(!reglasMm())"
+                    matTooltip="Reglas Milimétricas">
+              <mat-icon>straighten</mat-icon>
+            </button>
+            <button type="button"
+                    class="toggle-icon-btn"
+                    [class.active]="rejilla()"
+                    (click)="rejilla.set(!rejilla())"
+                    matTooltip="Rejilla Milimétrica">
+              <mat-icon>grid_4x4</mat-icon>
+            </button>
           </div>
         </div>
 
         <div class="toolbar-right">
           @if (formatoPapel() === 'A4') {
-            <span class="format-spec">Formato:</span>
-            <span class="format-badge a4-badge">
-              HOJA A4 ({{ orientacion() === 'portrait' ? '210 × 297 mm' : '297 × 210 mm' }})
+            <span class="format-badge a4-badge" matTooltip="Hoja A4 ({{ orientacion() === 'portrait' ? '210×297mm' : '297×210mm' }})">
+              A4 {{ orientacion() === 'portrait' ? 'V' : 'H' }}
             </span>
-            <span class="empty-headers-badge" matTooltip="La hoja impresa no incluirá URL, títulos ni números de página del navegador">
-              <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle;margin-right:2px;">check_circle</mat-icon>
-              Encabezados y Pie Vacíos
-            </span>
-            <span class="real-size-badge">{{ modoHojas() === 'DOS_HOJAS' ? '2 Hojas Separadas' : '1 Sola Hoja' }}</span>
           } @else {
-            <span class="format-spec">ISO/IEC 7810 ID-1 Dual:</span>
-            <span class="format-badge">85.60 × 108.00 mm</span>
-            <span class="pvc-badge">PVC TÉRMICO DRTC</span>
+            <span class="format-badge" matTooltip="Tarjeta PVC Térmico (85.60×108.00mm)">
+              PVC
+            </span>
           }
         </div>
       </div>
@@ -782,6 +809,32 @@
                   </div>
                 }
 
+                <!-- LÍNEA HORIZONTAL SUPERIOR / LÍMITE DE INICIO DE CONTENIDO -->
+                @if (lineaHConfig().activa) {
+                  <div class="linea-horizontal-canvas"
+                       [class.is-selected]="lineaHSeleccionada()"
+                       [class.is-dragging]="isDraggingLineaH()"
+                       [style.top.mm]="lineaHConfig().y_mm"
+                       [style.left.mm]="lineaHConfig().x_mm || 0"
+                       [style.width.mm]="lineaHConfig().ancho_mm || anchoHojaMm()"
+                       (mousedown)="iniciarArrastreLineaH($event)"
+                       (click)="seleccionarLineaHorizontal($event)"
+                       matTooltip="Línea Límite Superior: arrastra con el ratón verticalmente para mover el inicio del contenido">
+                    <div class="linea-h-visual"
+                         [style.borderTopWidth.mm]="lineaHConfig().grosor_mm || 1"
+                         [style.borderTopStyle]="lineaHConfig().estilo || 'dashed'"
+                         [style.borderTopColor]="lineaHConfig().color || '#2563eb'"></div>
+                    <div class="linea-h-badge">
+                      <div class="lh-pill" [style.background]="lineaHConfig().color || '#2563eb'">
+                        <mat-icon style="font-size:12px;width:12px;height:12px;">border_top</mat-icon>
+                        <span>LÍMITE SUPERIOR: Y = {{ lineaHConfig().y_mm }}mm</span>
+                        @if (vincularContenidoALimiteH()) {
+                          <span class="lh-linked-tag" matTooltip="Mover la línea desplaza el contenido">VINCULADO</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
 
                 <!-- Decoración Tarjeta Dual PVC -->
                 @if (formatoPapel() === 'DUAL_PVC') {
@@ -919,7 +972,32 @@
                     </div>
                   }
 
-
+                  <!-- LÍNEA HORIZONTAL SUPERIOR / LÍMITE DE INICIO DE CONTENIDO -->
+                  @if (lineaHConfig().activa) {
+                    <div class="linea-horizontal-canvas"
+                         [class.is-selected]="lineaHSeleccionada()"
+                         [class.is-dragging]="isDraggingLineaH()"
+                         [style.top.mm]="lineaHConfig().y_mm"
+                         [style.left.mm]="lineaHConfig().x_mm || 0"
+                         [style.width.mm]="lineaHConfig().ancho_mm || anchoHojaMm()"
+                         (mousedown)="iniciarArrastreLineaH($event)"
+                         (click)="seleccionarLineaHorizontal($event)"
+                         matTooltip="Línea Límite Superior: arrastra con el ratón verticalmente para mover el inicio del contenido">
+                      <div class="linea-h-visual"
+                           [style.borderTopWidth.mm]="lineaHConfig().grosor_mm || 1"
+                           [style.borderTopStyle]="lineaHConfig().estilo || 'dashed'"
+                           [style.borderTopColor]="lineaHConfig().color || '#2563eb'"></div>
+                      <div class="linea-h-badge">
+                        <div class="lh-pill" [style.background]="lineaHConfig().color || '#2563eb'">
+                          <mat-icon style="font-size:12px;width:12px;height:12px;">border_top</mat-icon>
+                          <span>LÍMITE SUPERIOR: Y = {{ lineaHConfig().y_mm }}mm</span>
+                          @if (vincularContenidoALimiteH()) {
+                            <span class="lh-linked-tag" matTooltip="Mover la línea desplaza el contenido">VINCULADO</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
 
                   <!-- Elementos de Anverso -->
                   @for (v of varsAnverso(); track v.id) {
@@ -1178,7 +1256,74 @@
             </div>
           </div>
 
+          <!-- CONFIGURACIÓN DE LÍNEA HORIZONTAL LÍMITE SUPERIOR (INICIO DE CONTENIDO) -->
+          <div class="prop-group limite-superior-panel" [class.is-active-panel]="lineaHSeleccionada()">
+            <div class="group-title-with-toggle">
+              <div class="title-with-icon-small">
+                <mat-icon class="icon-accent-blue">border_top</mat-icon>
+                <label class="group-title">Línea Límite Superior (Inicio)</label>
+              </div>
+              <label class="toggle-lbl-small">
+                <input type="checkbox" [ngModel]="lineaHConfig().activa" (ngModelChange)="toggleLineaHorizontal()" />
+                <span>{{ lineaHConfig().activa ? 'Activa' : 'Inactiva' }}</span>
+              </label>
+            </div>
 
+            <p class="panel-hint-text">Define la coordenada vertical inicial (Y). El resto del contenido empezará a partir de esta línea.</p>
+
+            <div class="coord-grid">
+              <div class="coord-field">
+                <span class="coord-label">Posición Y (mm):</span>
+                <div class="num-control">
+                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', -1)">-1</button>
+                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', -0.5)">-0.5</button>
+                  <input type="number" step="0.5" [ngModel]="lineaHConfig().y_mm" (ngModelChange)="ajustarLineaHDirecto('y_mm', $event)" class="coord-input font-bold" />
+                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', 0.5)">+0.5</button>
+                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', 1)">+1</button>
+                </div>
+              </div>
+
+              <div class="coord-field">
+                <span class="coord-label">Grosor (mm):</span>
+                <div class="num-control">
+                  <button type="button" class="step-btn" (click)="ajustarLineaH('grosor_mm', -0.2)">-</button>
+                  <input type="number" step="0.2" [ngModel]="lineaHConfig().grosor_mm" (ngModelChange)="ajustarLineaHDirecto('grosor_mm', $event)" class="coord-input" />
+                  <button type="button" class="step-btn" (click)="ajustarLineaH('grosor_mm', 0.2)">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="actions-stack mt-2">
+              <button type="button"
+                      class="btn-action-primary-fill"
+                      (click)="alinearContenidoALimiteSuperior()"
+                      matTooltip="Mover todas las variables para que el inicio coincida con Y = {{ lineaHConfig().y_mm }}mm">
+                <mat-icon>vertical_align_top</mat-icon>
+                <span>Alinear Contenido a Y: {{ lineaHConfig().y_mm }}mm</span>
+              </button>
+
+              <div class="toggles-subrow mt-2">
+                <label class="toggle-lbl-compact">
+                  <input type="checkbox" [ngModel]="vincularContenidoALimiteH()" (ngModelChange)="vincularContenidoALimiteH.set($event)" />
+                  <span>Vincular y arrastrar contenido automáticamente</span>
+                </label>
+                <label class="toggle-lbl-compact">
+                  <input type="checkbox" [ngModel]="lineaHConfig().imprimible" (ngModelChange)="setLineaHImprimible($event)" />
+                  <span>Imprimir línea física en el documento</span>
+                </label>
+              </div>
+
+              <!-- Estilo de trazo -->
+              <div class="field-row mt-2">
+                <span class="field-lbl">Estilo:</span>
+                <div class="btn-group-toggle">
+                  <button type="button" class="btn-toggle" [class.active]="lineaHConfig().estilo === 'dashed'" (click)="setLineaHEstilo('dashed')">-- Trazos</button>
+                  <button type="button" class="btn-toggle" [class.active]="lineaHConfig().estilo === 'solid'" (click)="setLineaHEstilo('solid')">── Sólida</button>
+                  <button type="button" class="btn-toggle" [class.active]="lineaHConfig().estilo === 'dotted'" (click)="setLineaHEstilo('dotted')">•• Puntos</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- DETALLE DEL ELEMENTO SELECCIONADO -->
           @if (selectedVariable(); as sel) {
