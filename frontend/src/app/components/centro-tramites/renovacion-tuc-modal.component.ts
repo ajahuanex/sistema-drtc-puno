@@ -147,7 +147,7 @@ export interface RenovacionTucModalData {
                   <th style="width: 140px;">Número TUC</th>
                   <th>Datos Técnicos</th>
                   <th>Rutas Ratificadas</th>
-                  <th style="width: 320px; text-align: center;">Acciones de Impresión</th>
+                  <th style="width: 200px; text-align: center;">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -203,19 +203,9 @@ export interface RenovacionTucModalData {
                           mat-flat-button 
                           class="btn-action-primary" 
                           (click)="abrirGenerarTuc(v)"
-                          matTooltip="Abre la plantilla oficial: tarjeta física, configuración de márgenes, Google Docs">
+                          matTooltip="Abrir plantilla oficial y opciones de emisión">
                           <mat-icon>print</mat-icon>
                           <span>Plantilla Oficial</span>
-                        </button>
-
-                        <!-- Vista Directa A4 (Ctrl+P) -->
-                        <button 
-                          mat-stroked-button 
-                          class="btn-action-secondary" 
-                          (click)="imprimirTucA4(v.placa)"
-                          matTooltip="Abre la vista completa A4 con anverso y reverso para imprimir">
-                          <mat-icon>open_in_new</mat-icon>
-                          <span>Vista A4</span>
                         </button>
 
                         <!-- Descargar Word -->
@@ -654,16 +644,10 @@ export class RenovacionTucModalComponent {
 
     this.dialog.open(GenerarTucDialogComponent, {
       data: { vehiculo: vehiculoParam },
-      width: '1020px',
+      width: '1200px',
       maxWidth: '96vw',
       panelClass: 'glass-dialog-panel'
     });
-  }
-
-  imprimirTucA4(placa: string) {
-    const url = `${environment.apiUrl}/tucs/vista-impresion/${encodeURIComponent(placa)}`;
-    window.open(url, '_blank');
-    this.snackBar.open(`Vista A4 para ${placa} abierta en nueva pestaña. Use Ctrl+P para imprimir.`, 'OK', { duration: 3500 });
   }
 
   imprimirNotificacion(placa?: string) {
@@ -678,14 +662,13 @@ export class RenovacionTucModalComponent {
   }
 
   imprimirLoteA4() {
-    const placas = this.data.vehiculos.map(v => v.placa.trim().toUpperCase()).filter(Boolean).join(',');
-    if (!placas) {
+    const placas = this.data.vehiculos.map(v => v.placa.trim().toUpperCase()).filter(Boolean);
+    if (placas.length === 0) {
       this.snackBar.open('No hay placas válidas para la impresión de lote.', 'Cerrar', { duration: 3000 });
       return;
     }
-    const url = `${environment.apiUrl}/tucs/vista-impresion-lote?placas=${encodeURIComponent(placas)}`;
-    window.open(url, '_blank');
-    this.snackBar.open(`Lote de ${this.data.vehiculos.length} TUCs abierto en nueva pestaña. Presione Ctrl+P para imprimir todo el lote.`, 'OK', { duration: 4500 });
+    this.tucService.imprimirLoteDirecto(placas);
+    this.snackBar.open(`Iniciando impresión del lote (${placas.length} TUCs) según diseño oficial del calibrador...`, 'OK', { duration: 4000 });
   }
 
   descargarWord(placa: string) {

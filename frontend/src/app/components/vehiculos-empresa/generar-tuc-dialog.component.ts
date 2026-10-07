@@ -1,6 +1,7 @@
-import { Component, Inject, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnInit, signal, computed, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl, SafeHtml } from '@angular/platform-browser';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,7 +9,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TucService, GoogleDocsStatus, TucPlantillaConfig } from '../../services/tuc.service';
+import { TucService, GoogleDocsStatus, TucPlantillaConfig, PlantillaTucCalibradorConfig } from '../../services/tuc.service';
 import { VehiculoEmpresa } from '../../services/flota-empresa.service';
 import { environment } from '../../../environments/environment';
 
@@ -36,16 +37,31 @@ export interface GenerarTucDialogData {
       <div class="modal-header">
         <div class="header-left">
           <div class="header-icon-circle">
-            <mat-icon>description</mat-icon>
+            <mat-icon>print</mat-icon>
           </div>
           <div>
-            <h2 class="modal-title">Generación de TUC desde Plantilla Oficial</h2>
+            <div class="header-tag-row">
+              <span class="header-badge">PLANTILLA OFICIAL DRTC</span>
+              <span class="header-sub-badge" matTooltip="Plantilla designada en el Calibrador">
+                <mat-icon style="font-size: 11px; width: 11px; height: 11px;">tune</mat-icon>
+                {{ plantillaActivaNombre() }}
+              </span>
+              @if (hayModificaciones()) {
+                <span class="header-edit-badge" matTooltip="Hay campos modificados para esta impresión">
+                  <mat-icon style="font-size: 11px; width: 11px; height: 11px;">edit</mat-icon>
+                  {{ camposModificadosCount() }} editados
+                </span>
+              }
+            </div>
+            <h2 class="modal-title">Emisión e Impresión de TUC</h2>
             <p class="modal-subtitle">
-              Placa: <strong>{{ data.vehiculo.placa }}</strong> | TUC: <strong>{{ data.vehiculo.numero_tuc || 'S/N' }}</strong> | {{ data.vehiculo.razon_social }}
+              Placa: <strong>{{ datosEditados()['placa'] || data.vehiculo.placa }}</strong> &bull; 
+              TUC: <strong>{{ datosEditados()['numero_tuc'] || data.vehiculo.numero_tuc || 'S/N' }}</strong> &bull; 
+              {{ datosEditados()['empresa'] || data.vehiculo.razon_social }}
             </p>
           </div>
         </div>
-        <button mat-icon-button (click)="cerrar()" class="btn-close">
+        <button mat-icon-button (click)="cerrar()" class="btn-close" matTooltip="Cerrar ventana">
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -55,353 +71,466 @@ export interface GenerarTucDialogData {
         @if (isLoading()) {
           <div class="loading-state">
             <mat-spinner diameter="42"></mat-spinner>
-            <span>Cargando datos y cruzando información técnica...</span>
+            <span>Cargando datos técnicos y configuración del calibrador...</span>
           </div>
         } @else {
           <div class="main-layout">
             
-            <!-- PANEL IZQUIERDO: VISTA PREVIA DE LA TARJETA TUC -->
+            <!-- PANEL IZQUIERDO: VISTA PREVIA DE LA TARJETA TUC (SEGÚN CALIBRADOR) -->
             <div class="card-preview-container">
               <div class="preview-header">
-                <span class="preview-tag">
-                  <mat-icon style="font-size:15px;width:15px;height:15px;">badge</mat-icon>
-                  Vista Preliminar de la Tarjeta TUC
-                </span>
-                <span class="badge-resolucion">
-                  {{ tucData()?.datos?.nro_resolucion_primigenia || data.vehiculo.nro_resolucion_primigenia || '-' }}
-                </span>
-              </div>
-
-              <!-- CONTENIDO DE LA TARJETA FÍSICA -->
-              <div id="printable-tuc-card" class="tuc-card-sheet">
-                
-                <!-- SECCIÓN 1: VIGENCIA Y EMPRESA -->
-                <div class="tuc-row header-row">
-                  <div class="tuc-auth-dates">
-                    <span class="lbl-bold">AUTORIZACIÓN</span>
-                    <span>DEL: <strong>{{ tucData()?.datos?.fecha_del || '-' }}</strong></span>
-                    <span>AL: <strong>{{ tucData()?.datos?.fecha_al || '-' }}</strong></span>
-                  </div>
-                </div>
-
-                <div class="tuc-row rdr-row">
-                  <span class="lbl-bold">R.D.R. N°</span>
-                  <span class="val-mono"><strong>{{ tucData()?.datos?.nro_resolucion_primigenia || '-' }}</strong>-GRP/GRI/DRTC</span>
-                  <span>({{ tucData()?.datos?.fecha_resolucion_primigenia || '-' }})</span>
-                </div>
-
-                <div class="tuc-row empresa-row">
-                  <span class="empresa-name">{{ tucData()?.datos?.empresa || '-' }}</span>
-                </div>
-
-                <div class="tuc-row ruc-row">
-                  <span><strong>RUC :</strong> {{ tucData()?.datos?.ruc || '-' }}</span>
-                  <span><strong>Partida Registral:</strong> {{ tucData()?.datos?.partida || '-' }}</span>
-                </div>
-
-                <!-- SECCIÓN 2: TABLA DE DATOS TÉCNICOS -->
-                <table class="tuc-tech-table">
-                  <tr>
-                    <td class="cell-label">Placa :</td>
-                    <td class="cell-val placa-highlight"><strong>{{ tucData()?.datos?.placa || '-' }}</strong></td>
-                    <td class="cell-label">Color :</td>
-                    <td class="cell-val" colspan="3">{{ tucData()?.datos?.color || '-' }}</td>
-                  </tr>
-                  <tr>
-                    <td class="cell-label">Marca:</td>
-                    <td class="cell-val">{{ tucData()?.datos?.marca || '-' }}</td>
-                    <td class="cell-label">VIN/Serie :</td>
-                    <td class="cell-val" colspan="3">{{ tucData()?.datos?.vin || '-' }}</td>
-                  </tr>
-                  <tr>
-                    <td class="cell-label">Fab./Mod. :</td>
-                    <td class="cell-val">{{ tucData()?.datos?.anio || '-' }}</td>
-                    <td class="cell-label">Asientos :</td>
-                    <td class="cell-val">{{ tucData()?.datos?.asientos || '-' }}</td>
-                    <td class="cell-label">Alto:</td>
-                    <td class="cell-val">{{ tucData()?.datos?.alto || '-' }}</td>
-                    <td class="cell-label">Peso Neto :</td>
-                    <td class="cell-val">{{ tucData()?.datos?.peso_neto || '-' }}</td>
-                  </tr>
-                  <tr>
-                    <td class="cell-label">Categoría. :</td>
-                    <td class="cell-val">{{ tucData()?.datos?.categoria || '-' }}</td>
-                    <td class="cell-label">Ejes :</td>
-                    <td class="cell-val">{{ tucData()?.datos?.ejes || '-' }}</td>
-                    <td class="cell-label">Ancho:</td>
-                    <td class="cell-val">{{ tucData()?.datos?.ancho || '-' }}</td>
-                    <td class="cell-label">Carga Útil :</td>
-                    <td class="cell-val">{{ tucData()?.datos?.carga_util || '-' }}</td>
-                  </tr>
-                  <tr>
-                    <td colspan="4"></td>
-                    <td class="cell-label">Largo :</td>
-                    <td class="cell-val">{{ tucData()?.datos?.largo || '-' }}</td>
-                    <td class="cell-label">Peso Bruto :</td>
-                    <td class="cell-val">{{ tucData()?.datos?.peso_bruto || '-' }}</td>
-                  </tr>
-                </table>
-
-                <div class="divider-line"></div>
-
-                <!-- SECCIÓN 3: RUTAS AUTORIZADAS -->
-                <div class="tuc-rutas-box">
-                  <div class="rutas-title">RUTAS AUTORIZADAS:</div>
-                  @if (tucData()?.datos?.rutas_detalle && tucData()?.datos?.rutas_detalle.length > 0) {
-                    <div class="rutas-list">
-                      @for (r of tucData()?.datos?.rutas_detalle; track r.codigo) {
-                        <div class="ruta-item">
-                          <span class="ruta-cod">Ruta {{ r.codigo ? (r.codigo.toString().length === 1 ? '0' + r.codigo : r.codigo) : '01' }}:</span>
-                          @if (r.origen || r.destino) {
-                            <span class="ruta-origen">{{ r.origen }}</span>
-                            @if (r.itinerario) {
-                              <span class="ruta-itin"> - {{ r.itinerario }} - </span>
-                            } @else if (r.destino) {
-                              <span> - </span>
-                            }
-                            <span class="ruta-destino">{{ r.destino }}</span>
-                          } @else if (r.tramo) {
-                            <span class="ruta-destino">{{ r.tramo }}</span>
-                          }
-                          @if (r.frecuencia) {
-                            <span class="ruta-frec">{{ r.frecuencia }}</span>
-                          }
-                        </div>
-                      }
-                    </div>
-                  } @else {
-                    <div class="rutas-empty">{{ tucData()?.datos?.tabla_rutas_text || 'SIN RUTAS ASIGNADAS' }}</div>
+                <div class="preview-header-left">
+                  <span class="preview-tag">
+                    <mat-icon style="font-size:15px;width:15px;height:15px;color:#0284c7;">verified</mat-icon>
+                    Muestra Calibrada Oficial
+                  </span>
+                  <span class="badge-resolucion">
+                    {{ datosEditados()['nro_resolucion_primigenia'] || tucData()?.datos?.nro_resolucion_primigenia || data.vehiculo.nro_resolucion_primigenia || '-' }}
+                  </span>
+                  @if (hayModificaciones()) {
+                    <span class="badge-custom-active" matTooltip="La muestra refleja tus datos editados">
+                      ✓ Editada
+                    </span>
                   }
                 </div>
 
-                <div class="divider-line"></div>
+                <!-- CONTROLES DE ZOOM Y REFRESH DE LA MUESTRA -->
+                <div class="preview-header-controls">
+                  <button type="button" class="ctrl-btn" (click)="cambiarZoomPreview(-10)" matTooltip="Alejar zoom">
+                    <mat-icon>zoom_out</mat-icon>
+                  </button>
+                  <span class="zoom-value">{{ zoomPreview() }}%</span>
+                  <button type="button" class="ctrl-btn" (click)="cambiarZoomPreview(10)" matTooltip="Acercar zoom">
+                    <mat-icon>zoom_in</mat-icon>
+                  </button>
+                  <button type="button" class="ctrl-btn" (click)="resetZoomPreview()" matTooltip="Ajustar tamaño a vista">
+                    <mat-icon>fit_screen</mat-icon>
+                  </button>
+                  <button type="button" class="ctrl-btn" (click)="recargarPreview()" matTooltip="Recargar muestra">
+                    <mat-icon>refresh</mat-icon>
+                  </button>
+                </div>
+              </div>
 
-                <!-- SECCIÓN 4: ACTO RESOLUTIVO -->
-                @if (!tucData()?.datos?.es_fila_en_blanco && tucData()?.datos?.num_resolucion_acto) {
-                  <div class="tuc-footer-resolucion">
-                    <span>R.D.R N° <strong>{{ tucData()?.datos?.num_resolucion_acto }}</strong>-GRP/GRI/DRTC ({{ tucData()?.datos?.fecha_resolucion_acto || '-' }}) ({{ tucData()?.datos?.tipo_resolucion_acto }})</span>
+              <!-- CONTENEDOR DEL IFRAME CALIBRADO -->
+              <div class="tuc-iframe-wrapper">
+                @if (iframeCargando() || isUpdatingPreview()) {
+                  <div class="iframe-loading-overlay">
+                    <mat-spinner diameter="34"></mat-spinner>
+                    <span>{{ isUpdatingPreview() ? 'Actualizando muestra con datos editados...' : 'Generando muestra con coordenadas del calibrador...' }}</span>
                   </div>
-                } @else {
-                  <div class="tuc-footer-resolucion-vacia" style="height: 14px;"></div>
                 }
-
+                <div class="iframe-zoom-container" [style.transform]="'scale(' + (zoomPreview() / 100) + ')'">
+                  @if (iframeCustomHtml()) {
+                    <iframe 
+                      #previewIframe
+                      [srcdoc]="iframeCustomHtml()" 
+                      class="tuc-preview-iframe"
+                      (load)="onIframeLoad()"
+                      title="Muestra TUC Oficial DRTC">
+                    </iframe>
+                  } @else {
+                    <iframe 
+                      #previewIframe
+                      [src]="previewUrl()" 
+                      class="tuc-preview-iframe"
+                      (load)="onIframeLoad()"
+                      title="Muestra TUC Oficial DRTC">
+                    </iframe>
+                  }
+                </div>
               </div>
             </div>
 
-            <!-- PANEL DERECHO: OPCIONES DE GENERACIÓN -->
+            <!-- PANEL DERECHO: TABS DE EMISIÓN VS EDICIÓN DE CAMPOS -->
             <div class="actions-panel">
-              <h3 class="actions-title">Opciones de Emisión</h3>
-              <p class="actions-desc">Seleccione la modalidad deseada para emitir o imprimir el formato oficial de la TUC:</p>
-
-
-
-              <!-- OPCIÓN 1.5: IMPRIMIR NOTIFICACIÓN DE RESOLUCIÓN -->
-              <div class="action-card card-notif" style="border-color: #0284c7; background: rgba(2, 132, 199, 0.04);">
-                <div class="action-icon notif-icon" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;">
-                  <mat-icon>assignment</mat-icon>
-                </div>
-                <div class="action-info">
-                  <div class="web-header">
-                    <h4 class="action-h" style="color: #0284c7;">Imprimir Cédula de Notificación</h4>
-                    <span class="badge-recomendado" style="background: rgba(2,132,199,0.15); color: #0284c7;">📄 Documento Oficial</span>
-                  </div>
-                  <p class="action-p">Genera e imprime la <strong>Cédula de Notificación de Resolución</strong> (Renovación, Incremento, Sustitución, Duplicado, Canje) con la tabla de vehículo(s) involucrados en hoja A4.</p>
-                  <button mat-raised-button style="background: #0284c7; color: #fff;" (click)="abrirNotificacionImpresion()">
-                    <mat-icon>open_in_new</mat-icon>
-                    <span>Imprimir Notificación (Ctrl+P)</span>
-                  </button>
-                  <button mat-raised-button style="background: #0284c7; color: #fff; margin-left: 8px;" (click)="generarNotificacionGoogleDocs()" [disabled]="isGeneratingNotifDocs()">
-                    @if (isGeneratingNotifDocs()) {
-                       <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
-                       <span>Generando...</span>
-                    } @else {
-                       <mat-icon>cloud</mat-icon>
-                       <span>Generar en Google Docs</span>
-                    }
-                  </button>
-                </div>
-              </div>
-
-              <!-- OPCIÓN 2: DESCARGA WORD -->
-              <div class="action-card card-word">
-                <div class="action-icon word-icon">
-                  <mat-icon>article</mat-icon>
-                </div>
-                <div class="action-info">
-                  <h4 class="action-h">Descargar en Word (.docx)</h4>
-                  <p class="action-p">Genera el archivo Word oficial con las 25 etiquetas reemplazadas, listo para editar o archivar.</p>
-                  <button mat-raised-button class="btn-download-word" (click)="descargarDocx()" [disabled]="isGeneratingDocx()">
-                    @if (isGeneratingDocx()) {
-                      <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
-                      <span>Generando Word...</span>
-                    } @else {
-                      <mat-icon>download</mat-icon>
-                      <span>Descargar Plantilla (.docx)</span>
-                    }
-                  </button>
-                </div>
-              </div>
-
-              <!-- OPCIÓN 3: IMPRESIÓN DIRECTA / TARJETA FÍSICA -->
-              <div class="action-card card-print">
-                <div class="action-icon print-icon">
+              
+              <!-- TABS PRINCIPALES (50% / 50% GARANTIZADOS) -->
+              <div class="panel-tabs-bar">
+                <button type="button" 
+                        class="panel-tab-btn" 
+                        [class.active]="tabActiva() === 'emision'" 
+                        (click)="tabActiva.set('emision')">
                   <mat-icon>print</mat-icon>
-                </div>
-                <div class="action-info">
-                  <h4 class="action-h">Impresión Directa / Tarjeta Física</h4>
-                  <p class="action-p">Abre el cuadro de diálogo de impresión con las dimensiones calibradas para imprimir sobre el cartón.</p>
-                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button mat-raised-button class="btn-print-direct" (click)="imprimirTarjeta()">
+                  <span>Emisión e Impresión</span>
+                </button>
+                <button type="button" 
+                        class="panel-tab-btn btn-tab-edit" 
+                        [class.active]="tabActiva() === 'edicion'" 
+                        (click)="tabActiva.set('edicion')">
+                  <mat-icon>edit_note</mat-icon>
+                  <span>Editar Campos TUC</span>
+                  @if (hayModificaciones()) {
+                    <span class="tab-badge-count">{{ camposModificadosCount() }}</span>
+                  }
+                </button>
+              </div>
+
+              <!-- VISTA 1: OPCIONES DE EMISIÓN RÁPIDA -->
+              @if (tabActiva() === 'emision') {
+                
+                <!-- BANNER INFORMATIVO SI HAY CAMPOS EDITADOS -->
+                @if (hayModificaciones()) {
+                  <div class="modificaciones-banner">
+                    <div class="mb-info">
+                      <mat-icon>mode_edit</mat-icon>
+                      <span><strong>{{ camposModificadosCount() }}</strong> campos editados listos para imprimir</span>
+                    </div>
+                    <div class="mb-buttons">
+                      <button type="button" class="btn-mb-edit" (click)="tabActiva.set('edicion')">
+                        <mat-icon>tune</mat-icon> Modificar
+                      </button>
+                      <button type="button" class="btn-mb-reset" (click)="restablecerValoresOriginales()" matTooltip="Restablecer datos originales de la BD">
+                        <mat-icon>restart_alt</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                <!-- SECCIÓN 1: IMPRESIÓN DIRECTA / TARJETA FÍSICA -->
+                <div class="compact-card card-tuc">
+                  <div class="card-top">
+                    <div class="card-title-group">
+                      <div class="card-icon-badge tuc-badge">
+                        <mat-icon>print</mat-icon>
+                      </div>
+                      <div>
+                        <h4 class="card-h">Tarjeta TUC Oficial</h4>
+                        <span class="card-sub">Formato {{ configCalibrador()?.formato_papel || 'Calibrado' }} {{ hayModificaciones() ? '(Datos Editados)' : '' }}</span>
+                      </div>
+                    </div>
+                    <span class="pill-status pill-ready">{{ hayModificaciones() ? 'Edición Activa' : 'Diseño Calibrador' }}</span>
+                  </div>
+
+                  <div class="card-action-row">
+                    <button mat-flat-button class="btn-primary-action" (click)="imprimirTarjeta()" matTooltip="Imprime directamente la tarjeta TUC con el diseño y datos actuales">
                       <mat-icon>print</mat-icon>
                       <span>Imprimir Tarjeta Ahora</span>
                     </button>
-                    <button mat-raised-button style="background: #059669; color: #ffffff;" (click)="imprimirHtmlInstantaneo()" matTooltip="Impresión HTML ultra rápida instantánea (<0.05s)">
+                  </div>
+                  <div class="card-secondary-row">
+                    <button mat-stroked-button class="btn-secondary-action" (click)="imprimirHtmlInstantaneo()" matTooltip="Impresión HTML ultra rápida instantánea (<0.05s) en nueva ventana">
                       <mat-icon>bolt</mat-icon>
-                      <span>Impresión HTML Ultra Rápida (0.05s)</span>
+                      <span>Impresión Rápida (0.05s)</span>
                     </button>
-                    <button mat-stroked-button color="primary" (click)="abrirVistaImpresionA4()" matTooltip="Abre documento oficial A4 listo para imprimir">
-                      <mat-icon>open_in_new</mat-icon>
-                      <span>Vista Completa A4</span>
-                    </button>
-                    <button mat-stroked-button style="border-color: #1e3a8a; color: #1e3a8a;" (click)="abrirCalibradorStudio()" matTooltip="Abrir módulo TUC Studio para calibrar milimétricamente las variables y agregar nuevos campos">
+                    <button mat-stroked-button class="btn-secondary-action btn-studio" (click)="abrirCalibradorStudio()" matTooltip="Abrir TUC Studio para calibrar milimétricamente las variables">
                       <mat-icon>tune</mat-icon>
-                      <span>Calibrador de Plantilla y Variables</span>
+                      <span>Calibrador Studio</span>
                     </button>
                   </div>
                 </div>
-              </div>
 
-              <!-- OPCIÓN 4: GOOGLE DOCS EN LA NUBE -->
-              <div class="action-card card-google" [class.card-google-disabled]="!googleStatus()?.disponible">
-                <div class="action-icon google-icon">
-                  <mat-icon>cloud</mat-icon>
+                <!-- SECCIÓN 2: CÉDULA DE NOTIFICACIÓN DE RESOLUCIÓN -->
+                <div class="compact-card card-notif">
+                  <div class="card-top">
+                    <div class="card-title-group">
+                      <div class="card-icon-badge notif-badge">
+                        <mat-icon>assignment</mat-icon>
+                      </div>
+                      <div>
+                        <h4 class="card-h">Cédula de Notificación</h4>
+                        <span class="card-sub">Documento oficial de resolución</span>
+                      </div>
+                    </div>
+                    <span class="pill-status pill-doc">Hoja A4</span>
+                  </div>
+
+                  <div class="card-secondary-row">
+                    <button mat-flat-button class="btn-notif-print" (click)="abrirNotificacionImpresion()" matTooltip="Abre la Cédula de Notificación oficial en A4 lista para imprimir (Ctrl+P)">
+                      <mat-icon>open_in_new</mat-icon>
+                      <span>Imprimir Notificación (Ctrl+P)</span>
+                    </button>
+                    <button mat-stroked-button class="btn-secondary-action" (click)="generarNotificacionGoogleDocs()" [disabled]="isGeneratingNotifDocs()" matTooltip="Generar copia de la Cédula de Notificación en Google Docs">
+                      @if (isGeneratingNotifDocs()) {
+                        <mat-spinner diameter="14" class="inline-spinner"></mat-spinner>
+                        <span>Generando...</span>
+                      } @else {
+                        <mat-icon>cloud</mat-icon>
+                        <span>Google Docs</span>
+                      }
+                    </button>
+                  </div>
                 </div>
-                <div class="action-info">
-                  <div class="google-header">
-                    <h4 class="action-h">Copia en Google Docs (Nube)</h4>
-                    <span class="status-chip" [class.chip-active]="googleStatus()?.disponible">
-                      {{ googleStatus()?.disponible ? 'API Conectada' : 'Opcional / Standby' }}
+
+                <!-- SECCIÓN 3: ARCHIVOS Y NUBE -->
+                <div class="compact-card card-files">
+                  <div class="card-top">
+                    <div class="card-title-group">
+                      <div class="card-icon-badge files-badge">
+                        <mat-icon>folder_zip</mat-icon>
+                      </div>
+                      <div>
+                        <h4 class="card-h">Formatos y Nube</h4>
+                        <span class="card-sub">Descarga Word y sincronización</span>
+                      </div>
+                    </div>
+                    <span class="pill-status" [class.pill-connected]="googleStatus()?.disponible" [class.pill-offline]="!googleStatus()?.disponible">
+                      {{ googleStatus()?.disponible ? 'Drive Conectado' : 'Drive Standby' }}
                     </span>
                   </div>
-                  <p class="action-p">
-                    @if (googleStatus()?.disponible) {
-                      Clona la plantilla en Google Drive y rellena los datos en tiempo real mediante la Google Docs API.
-                    } @else {
-                      Para clonar automáticamente en su Google Drive, coloque el archivo <code>credentials.json</code> en <code>backend/config/</code>.
-                    }
-                  </p>
-                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                    <button mat-stroked-button class="btn-google-cloud" 
-                            (click)="generarGoogleDocs()" 
-                            [disabled]="!googleStatus()?.disponible || isGeneratingGoogle()">
-                      @if (isGeneratingGoogle()) {
-                        <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
-                        <span>Creando en Google Drive...</span>
+
+                  <div class="card-secondary-row">
+                    <button mat-stroked-button class="btn-secondary-action" (click)="descargarDocx()" [disabled]="isGeneratingDocx()" matTooltip="Descargar plantilla oficial en Word (.docx) con los datos actuales">
+                      @if (isGeneratingDocx()) {
+                        <mat-spinner diameter="14" class="inline-spinner"></mat-spinner>
+                        <span>Word...</span>
                       } @else {
-                        <mat-icon>open_in_new</mat-icon>
-                        <span>{{ data.vehiculo.link_tuc ? 'Regenerar en Google Docs' : 'Generar en Google Docs' }}</span>
+                        <mat-icon>description</mat-icon>
+                        <span>Word (.docx)</span>
                       }
                     </button>
 
-                    @if (data.vehiculo.link_tuc) {
-                      <a [href]="data.vehiculo.link_tuc" target="_blank" mat-stroked-button
-                         style="border-color:#1a73e8;color:#1a73e8;font-size:12px;height:36px;display:inline-flex;align-items:center;gap:4px;">
-                        <mat-icon style="font-size:16px;width:16px;height:16px;">description</mat-icon>
-                        <span>Ver TUC Vinculado</span>
-                      </a>
-                    }
+                    <button mat-stroked-button class="btn-secondary-action" (click)="generarGoogleDocs()" [disabled]="!googleStatus()?.disponible || isGeneratingGoogle()" matTooltip="Crear copia editable en Google Docs / Google Drive">
+                      @if (isGeneratingGoogle()) {
+                        <mat-spinner diameter="14" class="inline-spinner"></mat-spinner>
+                        <span>Creando...</span>
+                      } @else {
+                        <mat-icon>cloud_upload</mat-icon>
+                        <span>Google Docs</span>
+                      }
+                    </button>
 
-                    @if (googleStatus()?.plantilla_id) {
-                      <a [href]="'https://docs.google.com/document/d/' + (configPlantilla().plantilla_id || googleStatus()?.plantilla_id) + '/edit'" target="_blank"
-                         mat-button
-                         style="color:#5f6368;font-size:12px;height:36px;display:inline-flex;align-items:center;gap:4px;"
-                         matTooltip="Abrir plantilla oficial base en Google Docs">
-                        <mat-icon style="font-size:16px;width:16px;height:16px;">launch</mat-icon>
-                        <span>Ver Plantilla Base</span>
-                      </a>
-                    }
-
-                    <button mat-button type="button" (click)="toggleConfigPlantilla()"
-                            style="color:#1e3a8a;font-size:12px;height:36px;display:inline-flex;align-items:center;gap:4px;"
-                            matTooltip="Configurar ID de la plantilla y anchos de columnas">
-                      <mat-icon style="font-size:16px;width:16px;height:16px;">tune</mat-icon>
-                      <span>{{ mostrarConfigPlantilla() ? 'Ocultar Configuración' : 'Configurar Plantilla y Columnas' }}</span>
+                    <button mat-stroked-button class="btn-secondary-action btn-compact-cfg" (click)="toggleConfigPlantilla()" matTooltip="Ajustar ID de plantilla y ancho de columnas">
+                      <mat-icon>settings</mat-icon>
+                      <span>Ajustes</span>
                     </button>
                   </div>
 
-                  <!-- PANEL CONFIGURACIÓN DINÁMICA DE PLANTILLA Y MÁRGENES -->
+                  @if (data.vehiculo.link_tuc) {
+                    <div class="link-tuc-pill">
+                      <mat-icon>link</mat-icon>
+                      <a [href]="data.vehiculo.link_tuc" target="_blank">Ver TUC en Google Drive</a>
+                    </div>
+                  }
+
+                  <!-- PANEL CONFIGURACIÓN DINÁMICA DE PLANTILLA (COLAPSABLE) -->
                   @if (mostrarConfigPlantilla()) {
                     <div class="config-plantilla-box">
                       <div class="cfg-header">
-                        <h5>Ajustes de Plantilla y Dimensiones de Tabla</h5>
-                        <span class="cfg-hint">Guarda la ID de la plantilla y los anchos de columnas en la base de datos sin necesidad de tocar código.</span>
+                        <h5>Ajustes de Plantilla Google Docs</h5>
                       </div>
-
                       <div class="cfg-field-group">
-                        <label>ID de la Plantilla de Google Docs:</label>
                         <div class="cfg-id-row">
                           <input type="text" [ngModel]="configPlantilla().plantilla_id" (ngModelChange)="actualizarCampoConfig('plantilla_id', $event)" class="cfg-input input-id" placeholder="ID del documento..." />
-                          <a [href]="'https://docs.google.com/document/d/' + configPlantilla().plantilla_id + '/edit'" target="_blank" mat-stroked-button style="height:32px;font-size:11px;display:inline-flex;align-items:center;gap:3px;">
-                            <mat-icon style="font-size:14px;width:14px;height:14px;">open_in_new</mat-icon> Abrir
-                          </a>
+                          <button mat-stroked-button class="btn-save-cfg" (click)="guardarConfiguracion()" [disabled]="isSavingConfig()">
+                            <mat-icon style="font-size:14px;width:14px;height:14px;">save</mat-icon> Guardar
+                          </button>
                         </div>
-                      </div>
-
-                      <div class="cfg-presets-row">
-                        <span class="cfg-preset-lbl">Presets Rápidos:</span>
-                        <button type="button" class="btn-chip" (click)="aplicarPresetCentrado()">
-                          🎯 Centrado Reverso (99.2 pt)
-                        </button>
-                        <button type="button" class="btn-chip" (click)="aplicarPresetIzquierda()">
-                          📐 Clásica Izquierda (5 pt)
-                        </button>
-                      </div>
-
-                      <div class="cfg-columns-grid">
-                        <div class="cfg-col-item">
-                          <label>Margen Izq (pt):</label>
-                          <input type="number" [ngModel]="configPlantilla().col_margen_izq" (ngModelChange)="actualizarCampoConfig('col_margen_izq', $event)" step="0.5" class="cfg-input num" />
-                        </div>
-                        <div class="cfg-col-item">
-                          <label>Col 1 Código (pt):</label>
-                          <input type="number" [ngModel]="configPlantilla().col_codigo" (ngModelChange)="actualizarCampoConfig('col_codigo', $event)" step="1" class="cfg-input num" />
-                        </div>
-                        <div class="cfg-col-item">
-                          <label>Col 2 Tramo (pt):</label>
-                          <input type="number" [ngModel]="configPlantilla().col_tramo" (ngModelChange)="actualizarCampoConfig('col_tramo', $event)" step="1" class="cfg-input num" />
-                        </div>
-                        <div class="cfg-col-item">
-                          <label>Col 3 Frecuencia (pt):</label>
-                          <input type="number" [ngModel]="configPlantilla().col_frecuencia" (ngModelChange)="actualizarCampoConfig('col_frecuencia', $event)" step="1" class="cfg-input num" />
-                        </div>
-                        <div class="cfg-col-item">
-                          <label>Margen Der (pt):</label>
-                          <input type="number" [ngModel]="configPlantilla().col_margen_der" (ngModelChange)="actualizarCampoConfig('col_margen_der', $event)" step="0.5" class="cfg-input num" />
-                        </div>
-                      </div>
-
-                      <div class="cfg-check-row">
-                        <label class="cfg-checkbox-lbl">
-                          <input type="checkbox" [ngModel]="configPlantilla().auto_detectar_margen" (ngModelChange)="actualizarCampoConfig('auto_detectar_margen', $event)" />
-                          <span>Auto-detectar sangría de la regla horizontal centrada en la plantilla</span>
-                        </label>
-                      </div>
-
-                      <div class="cfg-actions-row">
-                        <button mat-flat-button color="primary" (click)="guardarConfiguracion()" [disabled]="isSavingConfig()" style="height:34px;font-size:12px;">
-                          @if (isSavingConfig()) {
-                            <mat-spinner diameter="14" class="inline-spinner"></mat-spinner>
-                            <span>Guardando en BD...</span>
-                          } @else {
-                            <mat-icon style="font-size:15px;width:15px;height:15px;">save</mat-icon>
-                            <span>Guardar Configuración en BD</span>
-                          }
-                        </button>
                       </div>
                     </div>
                   }
                 </div>
-              </div>
+
+                <!-- BOTÓN RÁPIDO PARA IR A EDITAR CAMPOS -->
+                <button type="button" class="btn-go-to-edit" (click)="tabActiva.set('edicion')">
+                  <mat-icon>edit_note</mat-icon>
+                  <span>¿Deseas corregir datos antes de imprimir? <strong>Editar Campos de la TUC →</strong></span>
+                </button>
+
+              } @else {
+                
+                <!-- VISTA 2: FORMULARIO DE EDICIÓN DINÁMICA DE TODOS LOS CAMPOS DE LA TUC -->
+                <div class="editor-container">
+                  <div class="editor-header">
+                    <div>
+                      <h4 class="editor-title">Editor de Campos de la TUC</h4>
+                      <p class="editor-subtitle">Modifica cualquier variable antes de imprimir. La muestra se actualizará automáticamente.</p>
+                    </div>
+                    <div class="editor-top-actions">
+                      <button type="button" class="btn-reset-edits" (click)="restablecerValoresOriginales()" [disabled]="!hayModificaciones()" matTooltip="Deshacer cambios y restaurar datos de la BD">
+                        <mat-icon>restart_alt</mat-icon> Restablecer
+                      </button>
+                      <button type="button" class="btn-apply-edits" (click)="aplicarEdicionAPreview()" [disabled]="isUpdatingPreview()" matTooltip="Refrescar la tarjeta en vivo con estos cambios">
+                        <mat-icon>refresh</mat-icon> Actualizar Muestra
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="editor-scroll-area">
+                    
+                    <!-- GRUPO 1: AUTORIZACIÓN Y RESOLUCIÓN -->
+                    <div class="edit-group">
+                      <div class="group-title">
+                        <mat-icon>event_available</mat-icon>
+                        <span>1. Autorización y Vigencia</span>
+                      </div>
+                      <div class="fields-grid grid-2">
+                        <div class="field-item">
+                          <label>Vigencia DEL:</label>
+                          <input type="text" [ngModel]="datosEditados()['fecha_del']" (ngModelChange)="actualizarCampo('fecha_del', $event)" placeholder="Ej. 29/09/2026" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Vigencia AL:</label>
+                          <input type="text" [ngModel]="datosEditados()['fecha_al']" (ngModelChange)="actualizarCampo('fecha_al', $event)" placeholder="Ej. 29/09/2030" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>R.D.R. Primigenia (N°):</label>
+                          <input type="text" [ngModel]="datosEditados()['nro_resolucion_primigenia']" (ngModelChange)="actualizarCampo('nro_resolucion_primigenia', $event)" placeholder="Ej. 0701-2026" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Fecha R.D.R.:</label>
+                          <input type="text" [ngModel]="datosEditados()['fecha_resolucion_primigenia']" (ngModelChange)="actualizarCampo('fecha_resolucion_primigenia', $event)" placeholder="Ej. 29/09/2026" class="edit-input" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- GRUPO 2: EMPRESA Y REGISTRO -->
+                    <div class="edit-group">
+                      <div class="group-title">
+                        <mat-icon>business</mat-icon>
+                        <span>2. Empresa y Datos Registrales</span>
+                      </div>
+                      <div class="fields-grid grid-1">
+                        <div class="field-item">
+                          <label>Empresa (Razón Social):</label>
+                          <input type="text" [ngModel]="datosEditados()['empresa']" (ngModelChange)="actualizarCampo('empresa', $event)" placeholder="Nombre o Razón Social oficial" class="edit-input font-bold" />
+                        </div>
+                      </div>
+                      <div class="fields-grid grid-2" style="margin-top: 6px;">
+                        <div class="field-item">
+                          <label>RUC :</label>
+                          <input type="text" [ngModel]="datosEditados()['ruc']" (ngModelChange)="actualizarCampo('ruc', $event)" placeholder="11 dígitos" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Partida Registral:</label>
+                          <input type="text" [ngModel]="datosEditados()['partida']" (ngModelChange)="actualizarCampo('partida', $event)" placeholder="Partida registral" class="edit-input" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- GRUPO 3: DATOS TÉCNICOS DEL VEHÍCULO -->
+                    <div class="edit-group">
+                      <div class="group-title">
+                        <mat-icon>directions_bus</mat-icon>
+                        <span>3. Datos Técnicos del Vehículo</span>
+                      </div>
+                      <div class="fields-grid grid-2">
+                        <div class="field-item">
+                          <label>Placa :</label>
+                          <input type="text" [ngModel]="datosEditados()['placa']" (ngModelChange)="actualizarCampo('placa', $event)" placeholder="Ej. C4X-964" class="edit-input font-mono font-bold text-primary" />
+                        </div>
+                        <div class="field-item">
+                          <label>Número TUC :</label>
+                          <input type="text" [ngModel]="datosEditados()['numero_tuc']" (ngModelChange)="actualizarCampo('numero_tuc', $event)" placeholder="Ej. T-012299" class="edit-input font-mono font-bold" />
+                        </div>
+                        <div class="field-item">
+                          <label>Marca:</label>
+                          <input type="text" [ngModel]="datosEditados()['marca']" (ngModelChange)="actualizarCampo('marca', $event)" placeholder="Ej. VOLVO / MERCEDES" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Modelo:</label>
+                          <input type="text" [ngModel]="datosEditados()['modelo']" (ngModelChange)="actualizarCampo('modelo', $event)" placeholder="Modelo del vehículo" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Color :</label>
+                          <input type="text" [ngModel]="datosEditados()['color']" (ngModelChange)="actualizarCampo('color', $event)" placeholder="Ej. BLANCO AZUL" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Categoría :</label>
+                          <input type="text" [ngModel]="datosEditados()['categoria']" (ngModelChange)="actualizarCampo('categoria', $event)" placeholder="M2 / M3 / M3-C3" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Año (Fab./Mod.):</label>
+                          <input type="text" [ngModel]="datosEditados()['anio']" (ngModelChange)="actualizarCampo('anio', $event)" placeholder="Ej. 2018" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>VIN / Serie / Chasis:</label>
+                          <input type="text" [ngModel]="datosEditados()['vin']" (ngModelChange)="actualizarCampo('vin', $event)" placeholder="Número de serie o VIN" class="edit-input font-mono" />
+                        </div>
+                        <div class="field-item">
+                          <label>Asientos :</label>
+                          <input type="text" [ngModel]="datosEditados()['asientos']" (ngModelChange)="actualizarCampo('asientos', $event)" placeholder="Ej. 30" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Ejes :</label>
+                          <input type="text" [ngModel]="datosEditados()['ejes']" (ngModelChange)="actualizarCampo('ejes', $event)" placeholder="Ej. 2" class="edit-input" />
+                        </div>
+                      </div>
+
+                      <div class="sub-divider">Dimensiones y Pesos (Metros / Toneladas)</div>
+                      <div class="fields-grid grid-3">
+                        <div class="field-item">
+                          <label>Alto (m):</label>
+                          <input type="text" [ngModel]="datosEditados()['alto']" (ngModelChange)="actualizarCampo('alto', $event)" placeholder="Ej. 3.45" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Ancho (m):</label>
+                          <input type="text" [ngModel]="datosEditados()['ancho']" (ngModelChange)="actualizarCampo('ancho', $event)" placeholder="Ej. 2.50" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Largo (m):</label>
+                          <input type="text" [ngModel]="datosEditados()['largo']" (ngModelChange)="actualizarCampo('largo', $event)" placeholder="Ej. 10.85" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Peso Neto (t):</label>
+                          <input type="text" [ngModel]="datosEditados()['peso_neto']" (ngModelChange)="actualizarCampo('peso_neto', $event)" placeholder="Ej. 8.5" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Carga Útil (t):</label>
+                          <input type="text" [ngModel]="datosEditados()['carga_util']" (ngModelChange)="actualizarCampo('carga_util', $event)" placeholder="Ej. 3.0" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Peso Bruto (t):</label>
+                          <input type="text" [ngModel]="datosEditados()['peso_bruto']" (ngModelChange)="actualizarCampo('peso_bruto', $event)" placeholder="Ej. 11.5" class="edit-input" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- GRUPO 4: RUTAS AUTORIZADAS -->
+                    <div class="edit-group">
+                      <div class="group-title">
+                        <mat-icon>alt_route</mat-icon>
+                        <span>4. Rutas Autorizadas (Texto / Tramos)</span>
+                      </div>
+                      <div class="field-item">
+                        <label>Líneas de rutas autorizadas (un renglón por cada ruta):</label>
+                        <textarea [ngModel]="datosEditados()['tabla_rutas_text']" 
+                                  (ngModelChange)="actualizarCampo('tabla_rutas_text', $event)" 
+                                  rows="3" 
+                                  class="edit-textarea" 
+                                  placeholder="Ej: Ruta 01: JULIACA - MACUSANI - SAN GABAN (05 DIARIAS)&#10;Ruta 02: JULIACA - MACUSANI (02 DIARIAS)"></textarea>
+                      </div>
+                    </div>
+
+                    <!-- GRUPO 5: ACTO RESOLUTIVO REVERSO -->
+                    <div class="edit-group">
+                      <div class="group-title">
+                        <mat-icon>verified_user</mat-icon>
+                        <span>5. Acto Resolutivo en Reverso (Opcional)</span>
+                      </div>
+                      <div class="fields-grid grid-3">
+                        <div class="field-item">
+                          <label>N° Resolución Acto:</label>
+                          <input type="text" [ngModel]="datosEditados()['num_resolucion_acto']" (ngModelChange)="actualizarCampo('num_resolucion_acto', $event)" placeholder="Ej. 0850-2026" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Fecha Acto:</label>
+                          <input type="text" [ngModel]="datosEditados()['fecha_resolucion_acto']" (ngModelChange)="actualizarCampo('fecha_resolucion_acto', $event)" placeholder="Ej. 29/09/2026" class="edit-input" />
+                        </div>
+                        <div class="field-item">
+                          <label>Tipo (I / S / R):</label>
+                          <input type="text" [ngModel]="datosEditados()['tipo_resolucion_acto']" (ngModelChange)="actualizarCampo('tipo_resolucion_acto', $event)" placeholder="Ej. I / S" class="edit-input" />
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <!-- BOTONES DE ACCIÓN DEL EDITOR -->
+                  <div class="editor-footer-actions">
+                    <button mat-stroked-button class="btn-cancel-edit" (click)="tabActiva.set('emision')">
+                      <mat-icon>arrow_back</mat-icon> Volver a Emisión
+                    </button>
+                    <button mat-stroked-button class="btn-update-sample" (click)="aplicarEdicionAPreview()" [disabled]="isUpdatingPreview()">
+                      <mat-icon>check_circle</mat-icon> Aplicar a Muestra
+                    </button>
+                    <button mat-flat-button class="btn-print-from-edit" (click)="imprimirDesdeEditor()">
+                      <mat-icon>print</mat-icon> Imprimir Tarjeta con estos Datos
+                    </button>
+                  </div>
+                </div>
+
+              }
 
             </div>
 
@@ -411,7 +540,10 @@ export interface GenerarTucDialogData {
 
       <!-- FOOTER -->
       <div class="modal-footer">
-        <button mat-button (click)="cerrar()">Cerrar</button>
+        <button mat-button class="btn-close-footer" (click)="cerrar()">
+          <mat-icon>close</mat-icon>
+          <span>Cerrar</span>
+        </button>
       </div>
 
     </div>
@@ -424,16 +556,17 @@ export interface GenerarTucDialogData {
       border-radius: 16px;
       overflow: hidden;
       font-family: 'Inter', system-ui, sans-serif;
-      max-height: 90vh;
+      max-height: 94vh;
     }
 
     .modal-header {
-      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
       color: #ffffff;
-      padding: 16px 20px;
+      padding: 12px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
       .header-left {
         display: flex;
@@ -441,27 +574,68 @@ export interface GenerarTucDialogData {
         gap: 12px;
 
         .header-icon-circle {
-          width: 38px;
-          height: 38px;
+          width: 40px;
+          height: 40px;
           border-radius: 10px;
-          background: rgba(255, 255, 255, 0.15);
+          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          mat-icon { color: #38bdf8; font-size: 22px; width: 22px; height: 22px; }
+          mat-icon { color: #ffffff; font-size: 22px; width: 22px; height: 22px; }
+          box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
         }
 
-        .modal-title { margin: 0; font-size: 16px; font-weight: 800; }
-        .modal-subtitle { margin: 2px 0 0; font-size: 12px; color: #cbd5e1; }
+        .header-tag-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 2px;
+        }
+
+        .header-badge {
+          font-size: 10px;
+          font-weight: 700;
+          color: #38bdf8;
+          background: rgba(56, 189, 248, 0.15);
+          padding: 1px 6px;
+          border-radius: 4px;
+          letter-spacing: 0.5px;
+        }
+
+        .header-sub-badge {
+          font-size: 10.5px;
+          font-weight: 500;
+          color: #cbd5e1;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .header-edit-badge {
+          font-size: 10px;
+          font-weight: 700;
+          color: #fbbf24;
+          background: rgba(245, 158, 11, 0.15);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+          padding: 1px 6px;
+          border-radius: 4px;
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+        }
+
+        .modal-title { margin: 0; font-size: 15px; font-weight: 800; color: #ffffff; }
+        .modal-subtitle { margin: 2px 0 0; font-size: 12px; color: #94a3b8; }
       }
 
-      .btn-close { color: #ffffff; opacity: 0.8; &:hover { opacity: 1; } }
+      .btn-close { color: #94a3b8; &:hover { color: #ffffff; background: rgba(255, 255, 255, 0.08); } }
     }
 
     .modal-body {
-      padding: 20px;
+      padding: 14px 18px;
       overflow-y: auto;
-      max-height: calc(90vh - 120px);
+      max-height: calc(94vh - 105px);
+      background: #f8fafc;
     }
 
     .loading-state {
@@ -477,10 +651,11 @@ export interface GenerarTucDialogData {
 
     .main-layout {
       display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 20px;
+      grid-template-columns: minmax(460px, 1.05fr) minmax(440px, 0.95fr);
+      gap: 18px;
+      align-items: start;
 
-      @media (max-width: 900px) {
+      @media (max-width: 980px) {
         grid-template-columns: 1fr;
       }
     }
@@ -489,178 +664,135 @@ export interface GenerarTucDialogData {
     .card-preview-container {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
 
       .preview-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        background: #ffffff;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+
+        .preview-header-left {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
 
         .preview-tag {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          font-size: 12px;
+          gap: 4px;
+          font-size: 11.5px;
           font-weight: 700;
-          color: #334155;
+          color: #0f172a;
           text-transform: uppercase;
+          letter-spacing: 0.3px;
         }
 
         .badge-resolucion {
           background: #eff6ff;
           color: #1d4ed8;
           border: 1px solid #bfdbfe;
-          border-radius: 6px;
-          font-size: 11px;
+          border-radius: 4px;
+          font-size: 10.5px;
           font-weight: 700;
-          padding: 2px 8px;
+          padding: 1px 6px;
           font-family: monospace;
         }
-      }
-    }
 
-    /* TUC SHEET (MIMICS PHYSICAL CARD) */
-    .tuc-card-sheet {
-      background: #fafaf9;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 10px;
-      padding: 16px 18px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      font-family: 'Roboto', Arial, sans-serif;
-      font-size: 10.5px;
-      line-height: 1.35;
-      color: #0f172a;
-
-      .tuc-row {
-        margin-bottom: 4px;
-      }
-
-      .header-row {
-        .tuc-auth-dates {
-          display: flex;
-          gap: 12px;
+        .badge-custom-active {
+          background: #fef3c7;
+          color: #b45309;
+          border: 1px solid #fde68a;
+          border-radius: 4px;
           font-size: 10px;
-          color: #1e293b;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 4px;
-        }
-      }
-
-      .lbl-bold { font-weight: 700; color: #334155; }
-      .val-mono { font-family: monospace; }
-
-      .empresa-name {
-        font-weight: 700;
-        color: #1e1b4b;
-        font-size: 11px;
-      }
-
-      .ruc-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 10px;
-        margin-bottom: 6px;
-      }
-
-      .tuc-tech-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 9.5px;
-        margin-top: 4px;
-
-        td {
-          padding: 2px 4px;
-          vertical-align: middle;
-        }
-
-        .cell-label {
           font-weight: 700;
-          color: #475569;
-          white-space: nowrap;
-          text-align: right;
+          padding: 1px 5px;
         }
 
-        .cell-val {
-          color: #0f172a;
+        .preview-header-controls {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+
+          .ctrl-btn {
+            width: 26px;
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #475569;
+            transition: all 0.15s;
+            mat-icon { font-size: 15px; width: 15px; height: 15px; }
+            &:hover { background: #f1f5f9; color: #0284c7; border-color: #cbd5e1; }
+          }
+
+          .zoom-value {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #334155;
+            padding: 0 4px;
+            min-width: 32px;
+            text-align: center;
+            font-family: monospace;
+          }
+        }
+      }
+
+      .tuc-iframe-wrapper {
+        position: relative;
+        height: 560px;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 6px 0;
+
+        .iframe-loading-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(248, 250, 252, 0.92);
+          backdrop-filter: blur(2px);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          z-index: 10;
+          color: #475569;
+          font-size: 12px;
           font-weight: 500;
         }
 
-        .placa-highlight {
-          color: #1d4ed8;
-          font-family: monospace;
-          font-size: 11px;
-        }
-      }
-
-      .divider-line {
-        height: 1px;
-        background: #cbd5e1;
-        margin: 8px 0;
-      }
-
-      .tuc-rutas-box {
-        font-size: 9.5px;
-        background: #ffffff;
-        padding: 6px 10px;
-        border-radius: 6px;
-        border: 1px solid #e2e8f0;
-
-        .rutas-title {
-          font-weight: 800;
-          color: #0284c7;
-          margin-bottom: 4px;
-          font-size: 9.5px;
-        }
-
-        .rutas-list {
+        .iframe-zoom-container {
+          transform-origin: top center;
+          transition: transform 0.15s ease-out;
+          width: 820px;
+          height: 1140px;
           display: flex;
-          flex-direction: column;
-          gap: 3px;
+          justify-content: center;
+          flex-shrink: 0;
         }
 
-        .ruta-item {
-          display: flex;
-          align-items: baseline;
-          flex-wrap: nowrap;
-          gap: 3px;
-          color: #334155;
-          font-size: 9.5px;
-          line-height: 1.35;
-
-          .ruta-cod {
-            font-weight: 700;
-            color: #000000;
-            white-space: nowrap;
-            margin-right: 4px;
-          }
-          .ruta-origen, .ruta-destino {
-            font-weight: 400;
-            color: #000000;
-          }
-          .ruta-itin {
-            font-weight: 400;
-            color: #616161;
-          }
-          .ruta-frec {
-            font-weight: 400;
-            color: #616161;
-            margin-left: auto;
-            white-space: nowrap;
-            padding-left: 8px;
-          }
+        .tuc-preview-iframe {
+          width: 820px;
+          height: 1140px;
+          border: none;
+          background: #ffffff;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+          border-radius: 4px;
         }
-
-        .rutas-empty {
-          color: #94a3b8;
-          font-style: italic;
-        }
-      }
-
-      .tuc-footer-resolucion {
-        font-size: 9px;
-        color: #475569;
-        text-align: center;
-        margin-top: 4px;
       }
     }
 
@@ -668,355 +800,614 @@ export interface GenerarTucDialogData {
     .actions-panel {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
 
-      .actions-title { margin: 0; font-size: 14px; font-weight: 800; color: #1e293b; }
-      .actions-desc { margin: 0 0 6px; font-size: 12px; color: #64748b; }
+      /* TABS BAR (50% / 50% GARANTIZADOS) */
+      .panel-tabs-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        background: #e2e8f0;
+        border-radius: 8px;
+        padding: 4px;
+        gap: 6px;
 
-      .action-card {
+        .panel-tab-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          border: none;
+          background: transparent;
+          font-size: 12.5px;
+          font-weight: 700;
+          color: #475569;
+          padding: 8px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+
+          mat-icon { font-size: 17px; width: 17px; height: 17px; flex-shrink: 0; }
+
+          &:hover { color: #0f172a; background: rgba(255, 255, 255, 0.5); }
+
+          &.active {
+            background: #ffffff;
+            color: #0284c7;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          }
+
+          &.btn-tab-edit.active {
+            color: #d97706;
+          }
+
+          .tab-badge-count {
+            background: #f59e0b;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: 4px;
+            flex-shrink: 0;
+          }
+        }
+      }
+
+      /* BANNER DE MODIFICACIONES ACTIVAS */
+      .modificaciones-banner {
+        background: #fef3c7;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 8px 10px;
         display: flex;
-        gap: 14px;
-        padding: 14px;
-        border-radius: 12px;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+
+        .mb-info {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          color: #92400e;
+          mat-icon { font-size: 16px; width: 16px; height: 16px; color: #d97706; }
+        }
+
+        .mb-buttons {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+
+          .btn-mb-edit {
+            background: #f59e0b;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            mat-icon { font-size: 13px; width: 13px; height: 13px; }
+            &:hover { background: #d97706; }
+          }
+
+          .btn-mb-reset {
+            background: transparent;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+            border-radius: 4px;
+            padding: 2px 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            mat-icon { font-size: 14px; width: 14px; height: 14px; }
+            &:hover { background: #fde68a; }
+          }
+        }
+      }
+
+      .compact-card {
+        background: #ffffff;
         border: 1px solid #e2e8f0;
-        background: #f8fafc;
-        transition: all 0.2s ease;
+        border-radius: 10px;
+        padding: 9px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        transition: all 0.15s ease;
 
         &:hover {
           border-color: #cbd5e1;
-          box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
-        .action-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
+        &.card-tuc { border-left: 3.5px solid #0284c7; }
+        &.card-notif { border-left: 3.5px solid #0891b2; }
+        &.card-files { border-left: 3.5px solid #6366f1; }
+
+        .card-top {
           display: flex;
+          justify-content: space-between;
           align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          mat-icon { font-size: 22px; width: 22px; height: 22px; }
-        }
 
-        .action-info {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-
-          .action-h { margin: 0; font-size: 13px; font-weight: 700; color: #1e293b; }
-          .action-p { margin: 0; font-size: 11.5px; color: #64748b; line-height: 1.4; code { background: #e2e8f0; padding: 1px 4px; border-radius: 4px; } }
-        }
-
-        &.card-web {
-          border-left: 4px solid #f59e0b;
-          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-          border-color: #fbbf24;
-          border-left-color: #f59e0b;
-          .web-icon { background: #fef3c7; color: #d97706; }
-
-          .web-header {
+          .card-title-group {
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-wrap: wrap;
           }
 
-          .badge-recomendado {
-            font-size: 10px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: #ffffff;
-            padding: 2px 8px;
-            border-radius: 10px;
-            letter-spacing: 0.3px;
-          }
-
-          .btn-vista-web {
-            align-self: flex-start;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 11.5px;
-            height: 36px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 3px 10px rgba(245, 158, 11, 0.3);
-            transition: all 0.2s ease;
-
-            &:hover {
-              transform: translateY(-1px);
-              box-shadow: 0 5px 16px rgba(245, 158, 11, 0.4);
-            }
-          }
-        }
-
-        &.card-word {
-          border-left: 4px solid #2563eb;
-          .word-icon { background: #dbeafe; color: #1d4ed8; }
-          .btn-download-word {
-            align-self: flex-start;
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 11.5px;
-            height: 34px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-          }
-        }
-
-        &.card-print {
-          border-left: 4px solid #059669;
-          .print-icon { background: #d1fae5; color: #047857; }
-          .btn-print-direct {
-            align-self: flex-start;
-            background: linear-gradient(135deg, #059669, #047857);
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 11.5px;
-            height: 34px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-          }
-        }
-
-        &.card-google {
-          border-left: 4px solid #7c3aed;
-          .google-icon { background: #ede9fe; color: #6d28d9; }
-
-          .google-header {
+          .card-icon-badge {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 4px;
+            justify-content: center;
+            mat-icon { font-size: 17px; width: 17px; height: 17px; }
+
+            &.tuc-badge { background: #e0f2fe; color: #0284c7; }
+            &.notif-badge { background: #cffafe; color: #0891b2; }
+            &.files-badge { background: #e0e7ff; color: #4f46e5; }
           }
 
-          .status-chip {
-            font-size: 10px;
-            font-weight: 700;
-            background: #f1f5f9;
-            color: #64748b;
-            padding: 1px 6px;
-            border-radius: 4px;
-            border: 1px solid #cbd5e1;
+          .card-h { margin: 0; font-size: 12.5px; font-weight: 700; color: #1e293b; }
+          .card-sub { font-size: 10px; color: #64748b; display: block; margin-top: 1px; }
 
-            &.chip-active {
-              background: #dcfce7;
-              color: #15803d;
-              border-color: #bbf7d0;
-            }
-          }
-
-          .btn-google-cloud {
-            align-self: flex-start;
-            font-weight: 700;
-            font-size: 11.5px;
-            height: 34px;
-            border-radius: 6px;
-            color: #6d28d9;
-            border-color: #c4b5fd;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-          }
-
-          &.card-google-disabled {
-            opacity: 0.9;
-            background: #fafafa;
-          }
-
-          .config-plantilla-box {
-            margin-top: 12px;
-            padding: 12px 14px;
-            background: #f8fafc;
-            border: 1px solid #cbd5e1;
+          .pill-status {
+            font-size: 9.5px;
+            font-weight: 600;
+            padding: 2px 6px;
             border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            white-space: nowrap;
 
-            .cfg-header {
+            &.pill-ready { background: #dcfce7; color: #16a34a; }
+            &.pill-doc { background: #f1f5f9; color: #475569; }
+            &.pill-connected { background: #dcfce7; color: #16a34a; }
+            &.pill-offline { background: #fef3c7; color: #b45309; }
+          }
+        }
+
+        .card-action-row {
+          display: flex;
+          width: 100%;
+        }
+
+        .card-secondary-row {
+          display: flex;
+          gap: 6px;
+          width: 100%;
+
+          .btn-secondary-action {
+            flex: 1;
+            min-width: 0;
+            height: 32px;
+            font-size: 11px;
+            font-weight: 600;
+            border-color: #cbd5e1;
+            color: #334155;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 8px;
+            mat-icon { font-size: 14px; width: 14px; height: 14px; margin-right: 2px; flex-shrink: 0; }
+            &:hover { background: #f8fafc; border-color: #94a3b8; color: #0f172a; }
+
+            &.btn-studio {
+              border-color: #93c5fd;
+              color: #1d4ed8;
+              &:hover { background: #eff6ff; }
+            }
+
+            &.btn-compact-cfg {
+              flex: 0.75;
+            }
+          }
+        }
+
+        .btn-primary-action {
+          width: 100%;
+          height: 36px;
+          font-size: 13px;
+          font-weight: 700;
+          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+          color: #ffffff;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+          &:hover { background: linear-gradient(135deg, #0369a1 0%, #075985 100%); }
+          mat-icon { font-size: 18px; width: 18px; height: 18px; margin-right: 2px; }
+        }
+
+        .btn-notif-print {
+          flex: 1.2;
+          min-width: 0;
+          height: 32px;
+          font-size: 11.5px;
+          font-weight: 600;
+          background: #0891b2;
+          color: #ffffff;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          padding: 0 8px;
+          mat-icon { font-size: 15px; width: 15px; height: 15px; margin-right: 2px; flex-shrink: 0; }
+          &:hover { background: #0e7490; }
+        }
+
+        .link-tuc-pill {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10.5px;
+          background: #eff6ff;
+          padding: 3px 8px;
+          border-radius: 6px;
+          margin-top: 2px;
+          mat-icon { font-size: 14px; width: 14px; height: 14px; color: #2563eb; flex-shrink: 0; }
+          a { color: #1d4ed8; text-decoration: none; font-weight: 600; &:hover { text-decoration: underline; } }
+        }
+
+        .config-plantilla-box {
+          margin-top: 4px;
+          padding: 6px 8px;
+          background: #f8fafc;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          .cfg-header h5 { margin: 0; font-size: 11px; font-weight: 700; color: #1e3a8a; }
+
+          .cfg-id-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+
+            .cfg-input {
+              flex: 1;
+              padding: 4px 6px;
+              font-size: 10.5px;
+              font-family: monospace;
+              border: 1px solid #cbd5e1;
+              border-radius: 4px;
+              &:focus { border-color: #2563eb; outline: none; }
+            }
+
+            .btn-save-cfg {
+              height: 26px;
+              font-size: 10.5px;
+              padding: 0 8px;
+              display: inline-flex;
+              align-items: center;
+              gap: 3px;
+            }
+          }
+        }
+      }
+
+      .btn-go-to-edit {
+        background: rgba(2, 132, 199, 0.06);
+        border: 1px dashed #0284c7;
+        color: #0369a1;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+        mat-icon { font-size: 16px; width: 16px; height: 16px; color: #0284c7; }
+        &:hover { background: rgba(2, 132, 199, 0.12); }
+      }
+
+      /* EDITOR DE CAMPOS */
+      .editor-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+
+        .editor-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+
+          .editor-title { margin: 0; font-size: 12.5px; font-weight: 800; color: #0f172a; }
+          .editor-subtitle { margin: 2px 0 0; font-size: 10.5px; color: #64748b; }
+
+          .editor-top-actions {
+            display: flex;
+            gap: 4px;
+
+            .btn-reset-edits {
+              background: #ffffff;
+              border: 1px solid #cbd5e1;
+              color: #64748b;
+              border-radius: 4px;
+              padding: 3px 6px;
+              font-size: 10.5px;
+              cursor: pointer;
+              display: inline-flex;
+              align-items: center;
+              gap: 3px;
+              mat-icon { font-size: 13px; width: 13px; height: 13px; }
+              &:hover:not(:disabled) { color: #b91c1c; border-color: #fca5a5; }
+              &:disabled { opacity: 0.5; cursor: not-allowed; }
+            }
+
+            .btn-apply-edits {
+              background: #0284c7;
+              color: #ffffff;
+              border: none;
+              border-radius: 4px;
+              padding: 3px 8px;
+              font-size: 10.5px;
+              font-weight: 600;
+              cursor: pointer;
+              display: inline-flex;
+              align-items: center;
+              gap: 3px;
+              mat-icon { font-size: 13px; width: 13px; height: 13px; }
+              &:hover:not(:disabled) { background: #0369a1; }
+              &:disabled { opacity: 0.6; }
+            }
+          }
+        }
+
+        .editor-scroll-area {
+          padding: 10px 12px;
+          max-height: 440px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+
+          .edit-group {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 10px;
+
+            .group-title {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 11.5px;
+              font-weight: 700;
+              color: #1e293b;
+              margin-bottom: 8px;
+              padding-bottom: 4px;
+              border-bottom: 1px dashed #cbd5e1;
+              mat-icon { font-size: 15px; width: 15px; height: 15px; color: #0284c7; }
+            }
+
+            .sub-divider {
+              font-size: 10px;
+              font-weight: 600;
+              color: #64748b;
+              text-transform: uppercase;
+              letter-spacing: 0.4px;
+              margin: 8px 0 6px;
+            }
+
+            .fields-grid {
+              display: grid;
+              gap: 6px;
+
+              &.grid-1 { grid-template-columns: 1fr; }
+              &.grid-2 { grid-template-columns: 1fr 1fr; }
+              &.grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+              @media (max-width: 600px) {
+                grid-template-columns: 1fr !important;
+              }
+            }
+
+            .field-item {
               display: flex;
               flex-direction: column;
               gap: 2px;
-              border-bottom: 1px solid #e2e8f0;
-              padding-bottom: 6px;
-
-              h5 {
-                margin: 0;
-                font-size: 12.5px;
-                font-weight: 700;
-                color: #1e3a8a;
-              }
-              .cfg-hint {
-                font-size: 10.5px;
-                color: #64748b;
-              }
-            }
-
-            .cfg-field-group {
-              display: flex;
-              flex-direction: column;
-              gap: 4px;
 
               label {
-                font-size: 11px;
-                font-weight: 600;
-                color: #334155;
-              }
-
-              .cfg-id-row {
-                display: flex;
-                gap: 8px;
-                align-items: center;
-
-                .cfg-input {
-                  flex: 1;
-                  padding: 5px 8px;
-                  font-size: 12px;
-                  font-family: monospace;
-                  border: 1px solid #cbd5e1;
-                  border-radius: 4px;
-                  background: #ffffff;
-                  color: #0f172a;
-
-                  &:focus {
-                    border-color: #2563eb;
-                    outline: none;
-                  }
-                }
-              }
-            }
-
-            .cfg-presets-row {
-              display: flex;
-              gap: 8px;
-              align-items: center;
-              flex-wrap: wrap;
-
-              .cfg-preset-lbl {
-                font-size: 11px;
+                font-size: 10px;
                 font-weight: 600;
                 color: #475569;
               }
 
-              .btn-chip {
-                background: #e2e8f0;
-                border: 1px solid #cbd5e1;
-                border-radius: 12px;
-                padding: 3px 9px;
-                font-size: 10.5px;
-                cursor: pointer;
-                color: #1e293b;
-                transition: all 0.2s;
-
-                &:hover {
-                  background: #cbd5e1;
-                  color: #0f172a;
-                }
-              }
-            }
-
-            .cfg-columns-grid {
-              display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
-              gap: 8px;
-
-              .cfg-col-item {
-                display: flex;
-                flex-direction: column;
-                gap: 2px;
-
-                label {
-                  font-size: 10px;
-                  font-weight: 600;
-                  color: #475569;
-                }
-
-                .cfg-input.num {
-                  padding: 4px 6px;
-                  font-size: 11.5px;
-                  border: 1px solid #cbd5e1;
-                  border-radius: 4px;
-                  background: #ffffff;
-                  color: #0f172a;
-                }
-              }
-            }
-
-            .cfg-check-row {
-              display: flex;
-              align-items: center;
-              gap: 6px;
-
-              .cfg-checkbox-lbl {
-                display: flex;
-                align-items: center;
-                gap: 6px;
+              .edit-input {
+                padding: 4px 6px;
                 font-size: 11px;
-                color: #334155;
-                cursor: pointer;
+                border: 1px solid #cbd5e1;
+                border-radius: 4px;
+                background: #ffffff;
+                color: #0f172a;
+                transition: border-color 0.15s;
+
+                &:focus {
+                  outline: none;
+                  border-color: #0284c7;
+                  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+                }
+
+                &.font-mono { font-family: monospace; }
+                &.font-bold { font-weight: 700; }
+                &.text-primary { color: #0284c7; }
+              }
+
+              .edit-textarea {
+                padding: 4px 6px;
+                font-size: 10.5px;
+                font-family: monospace;
+                border: 1px solid #cbd5e1;
+                border-radius: 4px;
+                background: #ffffff;
+                color: #0f172a;
+                resize: vertical;
+                line-height: 1.35;
+                &:focus {
+                  outline: none;
+                  border-color: #0284c7;
+                }
               }
             }
+          }
+        }
 
-            .cfg-actions-row {
-              display: flex;
-              justify-content: flex-end;
-              gap: 8px;
-              margin-top: 4px;
-            }
+        .editor-footer-actions {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          background: #f8fafc;
+          border-top: 1px solid #e2e8f0;
+
+          .btn-cancel-edit {
+            font-size: 11px;
+            height: 30px;
+            color: #475569;
+            mat-icon { font-size: 14px; width: 14px; height: 14px; margin-right: 2px; }
+          }
+
+          .btn-update-sample {
+            font-size: 11px;
+            height: 30px;
+            color: #0284c7;
+            border-color: #7dd3fc;
+            mat-icon { font-size: 14px; width: 14px; height: 14px; margin-right: 2px; }
+            &:hover { background: #f0f9ff; }
+          }
+
+          .btn-print-from-edit {
+            font-size: 11px;
+            height: 30px;
+            font-weight: 600;
+            background: #0284c7;
+            color: #ffffff;
+            mat-icon { font-size: 14px; width: 14px; height: 14px; margin-right: 2px; }
+            &:hover { background: #0369a1; }
           }
         }
       }
     }
 
     .modal-footer {
-      padding: 12px 20px;
+      padding: 8px 18px;
       display: flex;
       justify-content: flex-end;
       border-top: 1px solid #e2e8f0;
-      background: #f8fafc;
+      background: #ffffff;
+
+      .btn-close-footer {
+        color: #64748b;
+        font-weight: 600;
+        font-size: 12px;
+        mat-icon { font-size: 15px; width: 15px; height: 15px; margin-right: 4px; }
+        &:hover { color: #0f172a; background: #f1f5f9; }
+      }
     }
 
     .inline-spinner {
-      margin-right: 6px;
-    }
-
-    /* MEDIA PRINT RULES */
-    @media print {
-      body * {
-        visibility: hidden !important;
-      }
-      #printable-tuc-card, #printable-tuc-card * {
-        visibility: visible !important;
-      }
-      #printable-tuc-card {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        border: none !important;
-        box-shadow: none !important;
-        background: transparent !important;
-      }
+      margin-right: 4px;
     }
   `]
 })
 export class GenerarTucDialogComponent implements OnInit {
   isLoading = signal<boolean>(true);
+  iframeCargando = signal<boolean>(true);
   isGeneratingDocx = signal<boolean>(false);
   isGeneratingGoogle = signal<boolean>(false);
   isGeneratingNotifDocs = signal<boolean>(false);
+  isUpdatingPreview = signal<boolean>(false);
+
+  // Pestaña en panel derecho: 'emision' | 'edicion'
+  tabActiva = signal<'emision' | 'edicion'>('emision');
+
+  refreshKey = signal<number>(Date.now());
+  zoomPreview = signal<number>(65);
 
   tucData = signal<any>(null);
+  configCalibrador = signal<PlantillaTucCalibradorConfig | null>(null);
+  plantillaActivaNombre = computed(() => this.configCalibrador()?.nombre || 'Plantilla Oficial DRTC Puno');
+
+  // Datos editables de la TUC
+  datosEditados = signal<Record<string, any>>({
+    fecha_del: '',
+    fecha_al: '',
+    nro_resolucion_primigenia: '',
+    fecha_resolucion_primigenia: '',
+    empresa: '',
+    ruc: '',
+    partida: '',
+    placa: '',
+    numero_tuc: '',
+    color: '',
+    marca: '',
+    modelo: '',
+    anio: '',
+    categoria: '',
+    vin: '',
+    asientos: '',
+    ejes: '',
+    alto: '',
+    ancho: '',
+    largo: '',
+    peso_neto: '',
+    carga_util: '',
+    peso_bruto: '',
+    tabla_rutas_text: '',
+    num_resolucion_acto: '',
+    fecha_resolucion_acto: '',
+    tipo_resolucion_acto: ''
+  });
+
+  datosOriginales = signal<Record<string, any>>({});
+  iframeCustomHtml = signal<string | null>(null);
+
+  // Computado: cantidad de campos modificados
+  camposModificadosCount = computed(() => {
+    const edit = this.datosEditados();
+    const orig = this.datosOriginales();
+    let count = 0;
+    for (const key of Object.keys(edit)) {
+      if (String(edit[key] ?? '').trim() !== String(orig[key] ?? '').trim()) {
+        count++;
+      }
+    }
+    return count;
+  });
+
+  hayModificaciones = computed(() => this.camposModificadosCount() > 0);
+
   googleStatus = signal<GoogleDocsStatus | null>(null);
 
   mostrarConfigPlantilla = signal<boolean>(false);
@@ -1036,11 +1427,22 @@ export class GenerarTucDialogComponent implements OnInit {
     fuente_tamanio_dias: 4.5
   });
 
+  @ViewChild('previewIframe') previewIframe?: ElementRef<HTMLIFrameElement>;
+
+  private sanitizer = inject(DomSanitizer);
+  private tucService = inject(TucService);
+  private snackBar = inject(MatSnackBar);
+
+  previewUrl = computed<SafeResourceUrl>(() => {
+    const term = this.data.vehiculo.placa || this.data.vehiculo.id;
+    const key = this.refreshKey();
+    const url = `${environment.apiUrl}/tucs/render-html/${encodeURIComponent(term)}?auto_print=false&_t=${key}`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  });
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: GenerarTucDialogData,
-    private dialogRef: MatDialogRef<GenerarTucDialogComponent>,
-    private tucService: TucService,
-    private snackBar: MatSnackBar
+    private dialogRef: MatDialogRef<GenerarTucDialogComponent>
   ) {}
 
   ngOnInit(): void {
@@ -1054,12 +1456,62 @@ export class GenerarTucDialogComponent implements OnInit {
     this.tucService.getDatosImpresion(term).subscribe({
       next: (resp) => {
         this.tucData.set(resp);
+        const d = resp?.datos || {};
+        const initDatos: Record<string, any> = {
+          fecha_del: d.fecha_del || '',
+          fecha_al: d.fecha_al || '',
+          nro_resolucion_primigenia: d.nro_resolucion_primigenia || this.data.vehiculo.nro_resolucion_primigenia || '',
+          fecha_resolucion_primigenia: d.fecha_resolucion_primigenia || '',
+          empresa: d.empresa || this.data.vehiculo.razon_social || '',
+          ruc: d.ruc || this.data.vehiculo.ruc || '',
+          partida: d.partida || '',
+          placa: d.placa || this.data.vehiculo.placa || '',
+          numero_tuc: d.numero_tuc || this.data.vehiculo.numero_tuc || '',
+          color: d.color || this.data.vehiculo.color || '',
+          marca: d.marca || this.data.vehiculo.marca || '',
+          modelo: d.modelo || this.data.vehiculo.modelo || '',
+          anio: d.anio || this.data.vehiculo.anio_fabricacion || '',
+          categoria: d.categoria || this.data.vehiculo.categoria || 'M2',
+          vin: d.vin || '',
+          asientos: d.asientos || '',
+          ejes: d.ejes || '',
+          alto: d.alto || '',
+          ancho: d.ancho || '',
+          largo: d.largo || '',
+          peso_neto: d.peso_neto || '',
+          carga_util: d.carga_util || '',
+          peso_bruto: d.peso_bruto || '',
+          tabla_rutas_text: d.tabla_rutas_text || '',
+          num_resolucion_acto: d.num_resolucion_acto || '',
+          fecha_resolucion_acto: d.fecha_resolucion_acto || '',
+          tipo_resolucion_acto: d.tipo_resolucion_acto || ''
+        };
+        this.datosEditados.set({ ...initDatos });
+        this.datosOriginales.set({ ...initDatos });
         this.isLoading.set(false);
+
+        // Generar inmediatamente la muestra HTML para que el iframe tenga contenido real sin hoja en blanco
+        this.generarPreviewHtml(initDatos);
       },
       error: (err) => {
         this.isLoading.set(false);
         this.snackBar.open('Error al cargar datos técnicos del vehículo.', 'Cerrar', { duration: 4000 });
       }
+    });
+
+    // Cargar configuración activa del calibrador
+    this.tucService.getCalibradorConfig().subscribe({
+      next: (cfg) => {
+        if (cfg) {
+          this.configCalibrador.set(cfg);
+          if (cfg.formato_papel === 'A4') {
+            this.zoomPreview.set(58);
+          } else {
+            this.zoomPreview.set(100);
+          }
+        }
+      },
+      error: (e) => console.warn('No se pudo cargar config calibrador:', e)
     });
 
     this.tucService.getGoogleDocsStatus().subscribe({
@@ -1079,318 +1531,103 @@ export class GenerarTucDialogComponent implements OnInit {
     });
   }
 
-  toggleConfigPlantilla(): void {
-    this.mostrarConfigPlantilla.update(v => !v);
-  }
-
-  actualizarCampoConfig(campo: keyof TucPlantillaConfig, valor: any): void {
-    this.configPlantilla.update(cfg => ({
-      ...cfg,
-      [campo]: valor
-    }));
-  }
-
-  aplicarPresetCentrado(): void {
-    this.configPlantilla.update(cfg => ({
-      ...cfg,
-      col_margen_izq: 99.2,
-      col_codigo: 28.0,
-      col_tramo: 172.0,
-      col_frecuencia: 45.0,
-      col_margen_der: 105.0,
-      auto_detectar_margen: true
-    }));
-    this.snackBar.open('Preset Centrado aplicado (99.2 pt). Haga clic en Guardar para persistirlo.', 'OK', { duration: 3000 });
-  }
-
-  aplicarPresetIzquierda(): void {
-    this.configPlantilla.update(cfg => ({
-      ...cfg,
-      col_margen_izq: 5.0,
-      col_codigo: 28.0,
-      col_tramo: 172.0,
-      col_frecuencia: 45.0,
-      col_margen_der: 200.0,
-      auto_detectar_margen: false
-    }));
-    this.snackBar.open('Preset Izquierda aplicado (5 pt). Haga clic en Guardar para persistirlo.', 'OK', { duration: 3000 });
-  }
-
-  guardarConfiguracion(): void {
-    this.isSavingConfig.set(true);
-    this.tucService.guardarConfiguracionPlantilla(this.configPlantilla()).subscribe({
-      next: (saved) => {
-        this.isSavingConfig.set(false);
-        this.configPlantilla.set(saved);
-        if (this.googleStatus()) {
-          this.googleStatus.update(st => st ? { ...st, plantilla_id: saved.plantilla_id } : null);
-        }
-        this.snackBar.open('Configuración de plantilla guardada correctamente en la BD.', 'OK', { duration: 3500 });
-      },
-      error: (err) => {
-        this.isSavingConfig.set(false);
-        this.snackBar.open('Error al guardar configuración: ' + (err?.error?.detail || err?.message), 'Cerrar', { duration: 4500 });
-      }
-    });
-  }
-
-  descargarDocx(): void {
+  generarPreviewHtml(datosParaRender?: Record<string, any>): void {
     const term = this.data.vehiculo.placa || this.data.vehiculo.id;
-    this.isGeneratingDocx.set(true);
+    const datos = datosParaRender || this.datosEditados();
+    this.iframeCargando.set(true);
 
-    this.tucService.descargarDocxTuc(term).subscribe({
-      next: (blob) => {
-        this.isGeneratingDocx.set(false);
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `TUC_${this.data.vehiculo.placa || 'VEHICULO'}.docx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        this.snackBar.open('Documento Word (.docx) descargado exitosamente.', 'OK', { duration: 3500 });
+    this.tucService.renderHtmlCustom(term, datos, this.configCalibrador() || undefined).subscribe({
+      next: (html) => {
+        this.iframeCargando.set(false);
+        this.isUpdatingPreview.set(false);
+        this.iframeCustomHtml.set(html);
       },
       error: (err) => {
-        this.isGeneratingDocx.set(false);
-        const msg = err?.error?.detail || 'Error al descargar documento Word.';
-        this.snackBar.open(msg, 'Cerrar', { duration: 4000 });
+        console.error('Error al generar HTML de muestra:', err);
+        this.iframeCargando.set(false);
+        this.isUpdatingPreview.set(false);
       }
     });
+  }
+
+  onIframeLoad(): void {
+    this.iframeCargando.set(false);
+  }
+
+  recargarPreview(): void {
+    this.generarPreviewHtml(this.hayModificaciones() ? this.datosEditados() : this.datosOriginales());
+  }
+
+  cambiarZoomPreview(delta: number): void {
+    this.zoomPreview.update(z => Math.min(160, Math.max(30, z + delta)));
+  }
+
+  resetZoomPreview(): void {
+    const isA4 = this.configCalibrador()?.formato_papel === 'A4';
+    this.zoomPreview.set(isA4 ? 58 : 100);
+  }
+
+  actualizarCampo(campo: string, valor: any): void {
+    this.datosEditados.update(d => ({ ...d, [campo]: valor }));
+  }
+
+  aplicarEdicionAPreview(): void {
+    this.isUpdatingPreview.set(true);
+    this.generarPreviewHtml(this.datosEditados());
+    this.snackBar.open('✓ Muestra de TUC actualizada con los campos editados.', 'OK', { duration: 2500 });
+  }
+
+  restablecerValoresOriginales(): void {
+    const orig = { ...this.datosOriginales() };
+    this.datosEditados.set(orig);
+    this.generarPreviewHtml(orig);
+    this.snackBar.open('Valores originales restablecidos.', 'OK', { duration: 2500 });
+  }
+
+  imprimirDesdeEditor(): void {
+    this.aplicarEdicionAPreview();
+    setTimeout(() => {
+      this.imprimirTarjeta();
+    }, 400);
   }
 
   imprimirTarjeta(): void {
-    const cardElement = document.getElementById('printable-tuc-card');
-    if (!cardElement) {
-      window.print();
-      return;
+    // Si el iframe está listo (sea con src o srcdoc), imprimir directamente desde su contentWindow
+    try {
+      const frame = this.previewIframe?.nativeElement;
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+        return;
+      }
+    } catch (e) {
+      console.warn('Fallback a impresión directa:', e);
     }
-
-    const placa = this.data.vehiculo.placa || 'TUC';
-    const numTuc = this.data.vehiculo.numero_tuc || this.tucData()?.numero_tuc || 'S/N';
-    const cardHtml = cardElement.innerHTML;
-
-    // Crear iframe invisible para aislar completamente la impresión
-    let iframe = document.getElementById('tuc-print-iframe') as HTMLIFrameElement;
-    if (iframe) {
-      iframe.remove();
-    }
-
-    iframe = document.createElement('iframe');
-    iframe.id = 'tuc-print-iframe';
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
-      window.print();
-      return;
-    }
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>TUC ${placa} - ${numTuc} - DRTC Puno</title>
-        <meta charset="utf-8">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-        <style>
-          @page {
-            size: auto;
-            margin: 8mm 10mm;
-          }
-          * {
-            box-sizing: border-box;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          body {
-            font-family: 'Roboto', Arial, sans-serif;
-            margin: 0;
-            padding: 10px;
-            background: #ffffff;
-            color: #000000;
-          }
-          .print-card-wrapper {
-            max-width: 580px;
-            margin: 0 auto;
-            border: 2px solid #1e3a8a;
-            border-radius: 8px;
-            padding: 14px 18px;
-            background: #ffffff;
-          }
-          .print-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #1e3a8a;
-            padding-bottom: 6px;
-            margin-bottom: 10px;
-          }
-          .print-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #1e3a8a;
-            text-transform: uppercase;
-          }
-          .print-sub {
-            font-size: 9.5px;
-            color: #475569;
-          }
-          .tuc-row {
-            margin-bottom: 5px;
-            font-size: 10.5px;
-            line-height: 1.35;
-          }
-          .header-row {
-            display: flex;
-            justify-content: space-between;
-          }
-          .tuc-auth-dates {
-            display: flex;
-            gap: 12px;
-          }
-          .lbl-bold {
-            font-weight: 700;
-          }
-          .rdr-row {
-            font-size: 10px;
-            color: #1e293b;
-          }
-          .val-mono {
-            font-family: monospace;
-          }
-          .empresa-row {
-            font-size: 11px;
-            font-weight: 700;
-            color: #0f172a;
-            text-transform: uppercase;
-            margin-top: 3px;
-          }
-          .ruc-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 10px;
-            border-bottom: 1px dashed #94a3b8;
-            padding-bottom: 5px;
-            margin-bottom: 6px;
-          }
-          .tuc-tech-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 9.5px;
-            margin-bottom: 6px;
-          }
-          .tuc-tech-table td {
-            padding: 2px 3px;
-            vertical-align: middle;
-          }
-          .cell-label {
-            font-weight: 600;
-            color: #334155;
-            white-space: nowrap;
-          }
-          .cell-val {
-            color: #0f172a;
-          }
-          .placa-highlight {
-            font-weight: 700;
-            font-size: 11px;
-            color: #1e3a8a;
-          }
-          .divider-line {
-            height: 1px;
-            background: #cbd5e1;
-            margin: 6px 0;
-          }
-          .tuc-rutas-box {
-            background: #f8fafc;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            padding: 6px 8px;
-            margin-bottom: 6px;
-          }
-          .rutas-title {
-            font-size: 9.5px;
-            font-weight: 700;
-            color: #1e3a8a;
-            margin-bottom: 3px;
-          }
-          .rutas-list {
-            display: flex;
-            flex-direction: column;
-            gap: 2.5px;
-          }
-          .ruta-item {
-            font-size: 9px;
-            color: #1e293b;
-            display: flex;
-            gap: 5px;
-          }
-          .ruta-cod {
-            font-weight: 700;
-            white-space: nowrap;
-          }
-          .ruta-frec {
-            color: #475569;
-            font-style: italic;
-          }
-          .rutas-empty {
-            font-size: 9px;
-            color: #64748b;
-            font-style: italic;
-          }
-          .tuc-footer-resolucion {
-            font-size: 9px;
-            color: #334155;
-            text-align: center;
-            font-weight: 500;
-            padding-top: 3px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="print-card-wrapper">
-          <div class="print-header">
-            <div>
-              <div class="print-title">Gobierno Regional Puno - DRTC</div>
-              <div class="print-sub">Tarjeta Única de Circulación (TUC)</div>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-size:11.5px;font-weight:700;color:#1e3a8a;">TUC N° ${numTuc}</div>
-              <div style="font-size:9.5px;color:#64748b;">PLACA: ${placa}</div>
-            </div>
-          </div>
-          ${cardHtml}
-        </div>
-      </body>
-      </html>
-    `);
-    doc.close();
-
-    // Disparar la impresión en el iframe
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        iframe.remove();
-      }, 2000);
-    }, 350);
+    this.imprimirHtmlInstantaneo();
   }
 
-  abrirVistaImpresionA4(): void {
+  imprimirHtmlInstantaneo(): void {
     const term = this.data.vehiculo.placa || this.data.vehiculo.id;
-    const url = `${environment.apiUrl}/tucs/vista-impresion/${encodeURIComponent(term)}`;
-    window.open(url, '_blank');
-    this.snackBar.open('Vista de impresión A4 abierta en nueva pestaña. Usa Ctrl+P para imprimir.', 'OK', { duration: 3500 });
+    if (this.hayModificaciones()) {
+      this.tucService.renderHtmlCustom(term, this.datosEditados(), this.configCalibrador() || undefined).subscribe({
+        next: (html) => {
+          const win = window.open('', '_blank', 'width=850,height=1100');
+          if (win) {
+            win.document.open();
+            const htmlWithPrint = html.replace('<body>', '<body onload="window.print()">');
+            win.document.write(htmlWithPrint);
+            win.document.close();
+          }
+        },
+        error: () => this.tucService.imprimirHtmlDirecto(term)
+      });
+    } else {
+      this.tucService.imprimirHtmlDirecto(term);
+    }
+  }
+
+  abrirCalibradorStudio(): void {
+    window.open('/tucs/calibrador', '_blank');
   }
 
   abrirNotificacionImpresion(): void {
@@ -1422,6 +1659,36 @@ export class GenerarTucDialogComponent implements OnInit {
     });
   }
 
+  descargarDocx(): void {
+    const term = this.data.vehiculo.placa || this.data.vehiculo.id;
+    this.isGeneratingDocx.set(true);
+
+    const obs = this.hayModificaciones()
+      ? this.tucService.descargarDocxCustom(term, this.datosEditados())
+      : this.tucService.descargarDocxTuc(term);
+
+    obs.subscribe({
+      next: (blob) => {
+        this.isGeneratingDocx.set(false);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const placaName = this.datosEditados()['placa'] || this.data.vehiculo.placa || 'VEHICULO';
+        a.download = `TUC_${placaName}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.snackBar.open('Documento Word (.docx) descargado' + (this.hayModificaciones() ? ' con datos editados.' : '.'), 'OK', { duration: 3500 });
+      },
+      error: (err) => {
+        this.isGeneratingDocx.set(false);
+        const msg = err?.error?.detail || 'Error al descargar documento Word.';
+        this.snackBar.open(msg, 'Cerrar', { duration: 4000 });
+      }
+    });
+  }
+
   generarGoogleDocs(): void {
     if (!this.googleStatus()?.disponible) return;
 
@@ -1447,14 +1714,33 @@ export class GenerarTucDialogComponent implements OnInit {
     });
   }
 
-  imprimirHtmlInstantaneo(): void {
-    const term = this.data.vehiculo.placa || this.data.vehiculo.id;
-    this.tucService.imprimirHtmlDirecto(term);
+  toggleConfigPlantilla(): void {
+    this.mostrarConfigPlantilla.update(v => !v);
   }
 
-  abrirCalibradorStudio(): void {
-    this.dialogRef.close();
-    window.open('/tucs/calibrador', '_blank');
+  actualizarCampoConfig(campo: keyof TucPlantillaConfig, valor: any): void {
+    this.configPlantilla.update(cfg => ({
+      ...cfg,
+      [campo]: valor
+    }));
+  }
+
+  guardarConfiguracion(): void {
+    this.isSavingConfig.set(true);
+    this.tucService.guardarConfiguracionPlantilla(this.configPlantilla()).subscribe({
+      next: (saved) => {
+        this.isSavingConfig.set(false);
+        this.configPlantilla.set(saved);
+        if (this.googleStatus()) {
+          this.googleStatus.update(st => st ? { ...st, plantilla_id: saved.plantilla_id } : null);
+        }
+        this.snackBar.open('Configuración de plantilla guardada correctamente en la BD.', 'OK', { duration: 3500 });
+      },
+      error: (err) => {
+        this.isSavingConfig.set(false);
+        this.snackBar.open('Error al guardar configuración: ' + (err?.error?.detail || err?.message), 'Cerrar', { duration: 4500 });
+      }
+    });
   }
 
   cerrar(): void {

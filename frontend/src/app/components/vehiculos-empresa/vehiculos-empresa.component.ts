@@ -2001,7 +2001,7 @@ export class VehiculosEmpresaComponent implements OnInit {
       data: {
         vehiculo: item
       },
-      width: '1000px',
+      width: '1200px',
       maxWidth: '96vw',
       panelClass: 'glass-dialog-panel'
     });

@@ -1073,7 +1073,12 @@ class TucCalibradorService:
         return await TucCalibradorService.obtener_configuracion()
 
     @staticmethod
-    async def generar_html_impresion(placa_o_id: str, config_override: Optional[Dict[str, Any]] = None) -> str:
+    async def generar_html_impresion(
+        placa_o_id: str,
+        config_override: Optional[Dict[str, Any]] = None,
+        auto_print: bool = True,
+        datos_override: Optional[Dict[str, Any]] = None
+    ) -> str:
         """
         Genera el documento HTML completo, autónomo e instantáneo (<0.05s)
         con coordenadas milimétricas exactas listas para impresión física sobre el cartón TUC.
@@ -1146,6 +1151,74 @@ class TucCalibradorService:
         # Mapa de valores reales a inyectar (hereda todos los placeholders calculados o de ejemplo)
         valores_map = dict(placeholders)
 
+        tag_map_override = {
+            "fecha_del": "{{FECHA_DEL}}",
+            "fecha_al": "{{FECHA_AL}}",
+            "nro_resolucion_primigenia": "{{RES}}",
+            "nro_resolucion": "{{RES}}",
+            "res_primigenia": "{{RES}}",
+            "res": "{{RES}}",
+            "fecha_resolucion_primigenia": "{{FECHA_RES_P}}",
+            "fecha_res_p": "{{FECHA_RES_P}}",
+            "empresa": "{{EMPRESA}}",
+            "razon_social": "{{EMPRESA}}",
+            "ruc": "{{RUC}}",
+            "partida": "{{PARTIDA}}",
+            "partida_registral": "{{PARTIDA}}",
+            "placa": "{{PLACA}}",
+            "color": "{{COLOR}}",
+            "marca": "{{MARCA}}",
+            "modelo": "{{MODELO}}",
+            "vin": "{{VIN}}",
+            "anio": "{{ANIO}}",
+            "anio_fabricacion": "{{ANIO}}",
+            "asientos": "{{ASIENTOS}}",
+            "alto": "{{ALTO}}",
+            "peso_neto": "{{PESO_NETO}}",
+            "categoria": "{{CATEGORIA}}",
+            "ejes": "{{EJES}}",
+            "ancho": "{{ANCHO}}",
+            "carga_util": "{{CARGA_UTIL}}",
+            "largo": "{{LARGO}}",
+            "peso_bruto": "{{PESO_BRUTO}}",
+            "tabla_rutas_text": "{{TABLA_RUTAS}}",
+            "rutas": "{{TABLA_RUTAS}}",
+            "num_resolucion_acto": "{{NUM_RESOLUCION}}",
+            "num_resolucion": "{{NUM_RESOLUCION}}",
+            "fecha_resolucion_acto": "{{FECHA_RES}}",
+            "fecha_res": "{{FECHA_RES}}",
+            "tipo_resolucion_acto": "{{TIPO_RES}}",
+            "tipo_res": "{{TIPO_RES}}",
+            "numero_tuc": "{{NUMERO_TUC}}",
+            "tuc": "{{NUMERO_TUC}}"
+        }
+
+        # Aplicar datos editados si fueron enviados
+        if datos_override:
+            for k, val in datos_override.items():
+                if val is None:
+                    continue
+                val_str = str(val).strip()
+                if k.startswith("{{") and k.endswith("}}"):
+                    valores_map[k] = val_str
+                t_mapped = tag_map_override.get(k.lower())
+                if t_mapped:
+                    valores_map[t_mapped] = val_str
+                datos[k] = val_str
+
+            if "placa" in datos_override and datos_override["placa"]:
+                p_clean = str(datos_override["placa"]).strip().upper()
+                datos["placa"] = p_clean
+                valores_map["{{PLACA}}"] = p_clean
+            if "numero_tuc" in datos_override and datos_override["numero_tuc"]:
+                n_tuc = str(datos_override["numero_tuc"]).strip()
+                datos["numero_tuc"] = n_tuc
+                valores_map["{{NUMERO_TUC}}"] = n_tuc
+            if "tabla_rutas_text" in datos_override:
+                valores_map["{{TABLA_RUTAS}}"] = str(datos_override["tabla_rutas_text"]).strip()
+            elif "rutas" in datos_override:
+                valores_map["{{TABLA_RUTAS}}"] = str(datos_override["rutas"]).strip()
+
         modo_hojas = config.get("modo_hojas", "UNA_HOJA")
         margen_izq_mm = config.get("margen_izq_mm", 10.0)
         margen_der_mm = config.get("margen_der_mm", 10.0)
@@ -1195,7 +1268,7 @@ class TucCalibradorService:
                 opac = v.get("opacidad", 1.0)
                 w_str = f"width: {w}mm;" if w else "width: 18mm;"
                 h_str = f"height: {h}mm;" if h else "height: 15mm;"
-                img_style = f"position: absolute; left: {x}mm; top: {y}mm; {w_str} {h_str} object-fit: contain; opacity: {opac};"
+                img_style = f"position: absolute; left: {x}mm; top: {y}mm; {w_str} {h_str} max-width: {w or 18}mm; max-height: {h or 15}mm; object-fit: contain; opacity: {opac};"
                 tag_html = f'<img src="{img_src}" style="{img_style}" alt="{v.get("label", "Logo")}" />'
                 elementos_html.append(tag_html)
                 if seccion == "anverso":
@@ -1258,21 +1331,28 @@ class TucCalibradorService:
             # Si es la tabla de rutas, formatear adecuadamente
             if tag == "{{TABLA_RUTAS}}":
                 filas_rutas_html = []
-                for idx, r in enumerate(rutas_detalle):
-                    cod = str(r.get("codigo") or (idx + 1)).zfill(2)
-                    orig = r.get("origen", "")
-                    dest = r.get("destino", "")
-                    itin = r.get("itinerario", "")
-                    frec = r.get("frecuencia", "")
-                    tramo = r.get("tramo", "")
+                val_custom = valores_map.get("{{TABLA_RUTAS}}")
+                if datos_override and ("tabla_rutas_text" in datos_override or "rutas" in datos_override or "{{TABLA_RUTAS}}" in datos_override):
+                    for l in str(val_custom or "").split("\n"):
+                        l_clean = l.strip()
+                        if l_clean:
+                            filas_rutas_html.append(f'<div>{html_escape(l_clean)}</div>')
+                else:
+                    for idx, r in enumerate(rutas_detalle):
+                        cod = str(r.get("codigo") or (idx + 1)).zfill(2)
+                        orig = r.get("origen", "")
+                        dest = r.get("destino", "")
+                        itin = r.get("itinerario", "")
+                        frec = r.get("frecuencia", "")
+                        tramo = r.get("tramo", "")
 
-                    if orig or dest:
-                        itin_part = f' <span style="color:#616161;">- {itin} -</span> ' if itin else ' - '
-                        frec_part = f' <span style="color:#616161; margin-left: 6px;">{frec}</span>' if frec else ''
-                        fila = f'<div><strong>Ruta {cod}:</strong> <span>{orig}</span>{itin_part}<span>{dest}</span>{frec_part}</div>'
-                    else:
-                        fila = f'<div><strong>Ruta {cod}:</strong> <span>{tramo}</span></div>'
-                    filas_rutas_html.append(fila)
+                        if orig or dest:
+                            itin_part = f' <span style="color:#616161;">- {itin} -</span> ' if itin else ' - '
+                            frec_part = f' <span style="color:#616161; margin-left: 6px;">{frec}</span>' if frec else ''
+                            fila = f'<div><strong>Ruta {cod}:</strong> <span>{orig}</span>{itin_part}<span>{dest}</span>{frec_part}</div>'
+                        else:
+                            fila = f'<div><strong>Ruta {cod}:</strong> <span>{tramo}</span></div>'
+                        filas_rutas_html.append(fila)
 
                 if not filas_rutas_html and v.get("valor_ejemplo"):
                     filas_rutas_html.append(f'<div>{html_escape(str(v.get("valor_ejemplo")))}</div>')
@@ -1416,6 +1496,7 @@ class TucCalibradorService:
     {''.join(elementos_html)}
   </div>"""
 
+        onload_attr = ' onload="window.print()"' if auto_print else ""
         html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1498,7 +1579,7 @@ class TucCalibradorService:
     }}
   </style>
 </head>
-<body onload="window.print()">{body_content}
+<body{onload_attr}>{body_content}
 </body>
 </html>"""
         return html

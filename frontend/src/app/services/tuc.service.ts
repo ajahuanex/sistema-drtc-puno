@@ -469,5 +469,15 @@ export class TucService {
       }
     });
   }
+
+  renderHtmlCustom(placaOId: string, datosOverride: Record<string, any>, config?: PlantillaTucCalibradorConfig): Observable<string> {
+    const url = `${this.apiUrl}/render-html-custom/${encodeURIComponent(placaOId)}`;
+    return this.http.post(url, { datos_override: datosOverride, config, auto_print: false }, { responseType: 'text' });
+  }
+
+  descargarDocxCustom(placaOId: string, datosOverride: Record<string, any>): Observable<Blob> {
+    const url = `${this.apiUrl}/generar-documento-custom/${encodeURIComponent(placaOId)}`;
+    return this.http.post(url, { datos_override: datosOverride }, { responseType: 'blob' });
+  }
 }
 

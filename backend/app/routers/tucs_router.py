@@ -192,6 +192,25 @@ async def generar_documento_tuc(placa_o_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar documento Word: {str(e)}")
 
+class TucDocumentoCustomRequest(BaseModel):
+    datos_override: Optional[Dict[str, Any]] = None
+
+@router.post("/generar-documento-custom/{placa_o_id}", summary="Descargar documento Word (.docx) con datos personalizados")
+async def generar_documento_tuc_custom(placa_o_id: str, req: TucDocumentoCustomRequest):
+    try:
+        doc_info = await TucDocumentService.generar_docx_tuc(placa_o_id, placeholders_override=req.datos_override)
+        return StreamingResponse(
+            doc_info["buffer"],
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": f'attachment; filename="{doc_info["filename"]}"'
+            }
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar documento Word personalizado: {str(e)}")
+
 @router.get("/datos-impresion/{placa_o_id}", summary="Obtener datos consolidados y estructurados para vista previa de impresión")
 async def obtener_datos_impresion(placa_o_id: str):
     try:
@@ -790,14 +809,14 @@ async def restablecer_calibrador_config():
         raise HTTPException(status_code=500, detail=f"Error al restablecer calibrador: {str(e)}")
 
 @router.get("/render-html/{placa_o_id}", summary="Generar página HTML ultra rápida (<0.05s) para impresión directa de TUC", response_class=HTMLResponse)
-async def render_html_tuc(placa_o_id: str, plantilla_id: Optional[str] = None):
+async def render_html_tuc(placa_o_id: str, plantilla_id: Optional[str] = None, auto_print: bool = True):
     """
     Genera el HTML listo para imprimir o previsualizar con las coordenadas milimétricas calibradas.
     Permite invocar `window.print()` instantáneamente sin latencia de Word ni PDF.
     """
     try:
         cfg = await TucCalibradorService.obtener_configuracion(plantilla_id=plantilla_id) if plantilla_id else None
-        html = await TucCalibradorService.generar_html_impresion(placa_o_id, config_override=cfg)
+        html = await TucCalibradorService.generar_html_impresion(placa_o_id, config_override=cfg, auto_print=auto_print)
         return HTMLResponse(content=html)
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
@@ -816,6 +835,30 @@ async def render_html_preview_tuc(placa_o_id: str, config: Dict[str, Any]):
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar vista previa HTML: {str(e)}")
+
+class TucRenderCustomRequest(BaseModel):
+    config: Optional[Dict[str, Any]] = None
+    datos_override: Optional[Dict[str, Any]] = None
+    auto_print: Optional[bool] = False
+
+@router.post("/render-html-custom/{placa_o_id}", summary="Generar HTML con datos editados personalizados", response_class=HTMLResponse)
+async def render_html_custom_tuc(placa_o_id: str, req: TucRenderCustomRequest):
+    """
+    Genera el HTML aplicando los datos editados antes de la impresión sin alterar la base de datos.
+    """
+    try:
+        cfg = req.config or await TucCalibradorService.obtener_configuracion()
+        html = await TucCalibradorService.generar_html_impresion(
+            placa_o_id,
+            config_override=cfg,
+            auto_print=bool(req.auto_print),
+            datos_override=req.datos_override
+        )
+        return HTMLResponse(content=html)
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar HTML personalizado: {str(e)}")
 
 class TucLoteImpresionRequest(BaseModel):
     placas: List[str]

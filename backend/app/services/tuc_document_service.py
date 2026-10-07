@@ -686,7 +686,7 @@ class TucDocumentService:
             p.text = full_text
 
     @staticmethod
-    async def generar_docx_tuc(placa_o_id: str) -> Dict[str, Any]:
+    async def generar_docx_tuc(placa_o_id: str, placeholders_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Abre la plantilla oficial .docx y sustituye los campos con la data real,
         insertando la tabla de rutas estructurada con 4 columnas y bordes transparentes.
@@ -699,6 +699,50 @@ class TucDocumentService:
         placa = tuc_info["placa"]
         rutas_detalle = tuc_info["datos_estructurados"].get("rutas_detalle", [])
         es_fila_blanco = tuc_info["datos_estructurados"].get("es_fila_en_blanco", False)
+
+        tag_map = {
+            "fecha_del": "{{FECHA_DEL}}",
+            "fecha_al": "{{FECHA_AL}}",
+            "nro_resolucion_primigenia": "{{RES}}",
+            "nro_resolucion": "{{RES}}",
+            "res": "{{RES}}",
+            "fecha_resolucion_primigenia": "{{FECHA_RES_P}}",
+            "empresa": "{{EMPRESA}}",
+            "razon_social": "{{EMPRESA}}",
+            "ruc": "{{RUC}}",
+            "partida": "{{PARTIDA}}",
+            "placa": "{{PLACA}}",
+            "color": "{{COLOR}}",
+            "marca": "{{MARCA}}",
+            "vin": "{{VIN}}",
+            "anio": "{{ANIO}}",
+            "asientos": "{{ASIENTOS}}",
+            "alto": "{{ALTO}}",
+            "peso_neto": "{{PESO_NETO}}",
+            "categoria": "{{CATEGORIA}}",
+            "ejes": "{{EJES}}",
+            "ancho": "{{ANCHO}}",
+            "carga_util": "{{CARGA_UTIL}}",
+            "largo": "{{LARGO}}",
+            "peso_bruto": "{{PESO_BRUTO}}",
+            "tabla_rutas_text": "{{TABLA_RUTAS}}",
+            "rutas": "{{TABLA_RUTAS}}",
+            "num_resolucion_acto": "{{NUM_RESOLUCION}}",
+            "fecha_resolucion_acto": "{{FECHA_RES}}",
+            "tipo_resolucion_acto": "{{TIPO_RES}}"
+        }
+
+        if placeholders_override:
+            for k, v in placeholders_override.items():
+                if v is None:
+                    continue
+                v_str = str(v).strip()
+                if k.startswith("{{") and k.endswith("}}"):
+                    placeholders[k] = v_str
+                else:
+                    t = tag_map.get(k.lower())
+                    if t:
+                        placeholders[t] = v_str
 
         doc = docx.Document(TEMPLATE_PATH)
 

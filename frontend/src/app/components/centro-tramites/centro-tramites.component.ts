@@ -4104,8 +4104,7 @@ export class CentroTramites implements OnInit {
 
   imprimirTucIndividual(placa: string) {
     if (!placa) return;
-    const url = `${environment.apiUrl}/tucs/vista-impresion/${encodeURIComponent(placa)}`;
-    window.open(url, '_blank');
-    this.snackBar.open(`Vista A4 para ${placa} abierta en nueva pestaña. Presione Ctrl+P para imprimir.`, 'OK', { duration: 3500 });
+    this.tucService.imprimirHtmlDirecto(placa);
+    this.snackBar.open(`Abriendo impresión directa calibrada de ${placa}...`, 'OK', { duration: 3000 });
   }
 }
