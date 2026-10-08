@@ -9,7 +9,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TucService, GoogleDocsStatus, TucPlantillaConfig, PlantillaTucCalibradorConfig } from '../../services/tuc.service';
+import { TucService, GoogleDocsStatus, TucPlantillaConfig, PlantillaTucCalibradorConfig, VariablePlantillaTuc } from '../../services/tuc.service';
 import { VehiculoEmpresa } from '../../services/flota-empresa.service';
 import { environment } from '../../../environments/environment';
 
@@ -76,26 +76,31 @@ export interface GenerarTucDialogData {
         } @else {
           <div class="main-layout">
             
-            <!-- PANEL IZQUIERDO: VISTA PREVIA DE LA TARJETA TUC (SEGÚN CALIBRADOR) -->
+            <!-- PANEL IZQUIERDO: VISTA PREVIA DE LA TARJETA TUC (FORMA FÍSICA Y POSICIONES OFICIALES) -->
+            <!-- PANEL IZQUIERDO: VISTA PREVIA EXACTA DE TUC STUDIO -->
             <div class="card-preview-container">
               <div class="preview-header">
                 <div class="preview-header-left">
-                  <span class="preview-tag">
-                    <mat-icon style="font-size:15px;width:15px;height:15px;color:#0284c7;">verified</mat-icon>
-                    Muestra Calibrada Oficial
-                  </span>
-                  <span class="badge-resolucion">
-                    {{ datosEditados()['nro_resolucion_primigenia'] || tucData()?.datos?.nro_resolucion_primigenia || data.vehiculo.nro_resolucion_primigenia || '-' }}
+                  <mat-icon style="color: #0284c7; font-size: 17px; width: 17px; height: 17px;">verified</mat-icon>
+                  <span class="preview-tag-title">MUESTRA EXACTA DE IMPRESIÓN</span>
+                  <span class="badge-plantilla" matTooltip="Plantilla milimétrica activa en el sistema">
+                    {{ plantillaActivaNombre() }}
                   </span>
                   @if (hayModificaciones()) {
-                    <span class="badge-custom-active" matTooltip="La muestra refleja tus datos editados">
-                      ✓ Editada
+                    <span class="badge-custom-active" matTooltip="La muestra refleja tus datos editados en vivo">
+                      ✓ {{ camposModificadosCount() }} editados
                     </span>
                   }
                 </div>
 
-                <!-- CONTROLES DE ZOOM Y REFRESH DE LA MUESTRA -->
+                <!-- SELECTOR DE CARA Y CONTROLES DE ZOOM -->
                 <div class="preview-header-controls">
+                  <div class="cara-selector-group">
+                    <button type="button" class="cara-btn" [class.active]="vistaTarjetaModo() === 'anverso'" (click)="vistaTarjetaModo.set('anverso')">Anverso</button>
+                    <button type="button" class="cara-btn" [class.active]="vistaTarjetaModo() === 'reverso'" (click)="vistaTarjetaModo.set('reverso')">Reverso</button>
+                    <button type="button" class="cara-btn" [class.active]="vistaTarjetaModo() === 'dual'" (click)="vistaTarjetaModo.set('dual')">Ambas</button>
+                  </div>
+
                   <button type="button" class="ctrl-btn" (click)="cambiarZoomPreview(-10)" matTooltip="Alejar zoom">
                     <mat-icon>zoom_out</mat-icon>
                   </button>
@@ -103,41 +108,200 @@ export interface GenerarTucDialogData {
                   <button type="button" class="ctrl-btn" (click)="cambiarZoomPreview(10)" matTooltip="Acercar zoom">
                     <mat-icon>zoom_in</mat-icon>
                   </button>
-                  <button type="button" class="ctrl-btn" (click)="resetZoomPreview()" matTooltip="Ajustar tamaño a vista">
+                  <button type="button" class="ctrl-btn" (click)="resetZoomPreview()" matTooltip="Restablecer tamaño">
                     <mat-icon>fit_screen</mat-icon>
                   </button>
-                  <button type="button" class="ctrl-btn" (click)="recargarPreview()" matTooltip="Recargar muestra">
-                    <mat-icon>refresh</mat-icon>
+                  <button type="button" class="ctrl-btn btn-open-external" (click)="abrirCalibradorStudio()" matTooltip="Abrir en TUC Studio">
+                    <mat-icon>tune</mat-icon>
                   </button>
                 </div>
               </div>
 
-              <!-- CONTENEDOR DEL IFRAME CALIBRADO -->
-              <div class="tuc-iframe-wrapper">
-                @if (iframeCargando() || isUpdatingPreview()) {
-                  <div class="iframe-loading-overlay">
-                    <mat-spinner diameter="34"></mat-spinner>
-                    <span>{{ isUpdatingPreview() ? 'Actualizando muestra con datos editados...' : 'Generando muestra con coordenadas del calibrador...' }}</span>
-                  </div>
-                }
-                <div class="iframe-zoom-container" [style.transform]="'scale(' + (zoomPreview() / 100) + ')'">
-                  @if (iframeCustomHtml()) {
-                    <iframe 
-                      #previewIframe
-                      [srcdoc]="iframeCustomHtml()" 
-                      class="tuc-preview-iframe"
-                      (load)="onIframeLoad()"
-                      title="Muestra TUC Oficial DRTC">
-                    </iframe>
+              <!-- VIEWPORT DEL LIENZO EXACTO DE TUC STUDIO -->
+              <div class="tuc-canvas-viewport">
+                <div class="canvas-scale-wrapper" [style.transform]="'scale(' + (zoomPreview() / 100) + ')'">
+
+                  @if (vistaTarjetaModo() === 'dual') {
+                    <div class="sheets-dual-layout">
+                      <!-- HOJA 1: ANVERSO -->
+                      <div class="sheet-page-wrapper">
+                        <div class="sheet-page-header-tag">
+                          <mat-icon>file_copy</mat-icon>
+                          <span>PÁGINA 1: ANVERSO</span>
+                        </div>
+                        <div class="tuc-card-sheet"
+                             [class.format-dual-pvc]="formatoPapel() === 'DUAL_PVC'"
+                             [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
+                             [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'">
+                          
+                          @for (v of varsAnverso(); track v.id) {
+                            @if (v.visible) {
+                              <div class="positioned-var"
+                                   [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea'"
+                                   [class.has-two-lines]="v.max_lineas === 2"
+                                   [class.has-multiline]="v.max_lineas === 0"
+                                   [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
+                                   [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
+                                   [style.left.mm]="v.x_mm"
+                                   [style.top.mm]="v.y_mm"
+                                   [style.width.mm]="v.width_mm"
+                                   [style.height.mm]="v.height_mm"
+                                   [style.fontSize.pt]="v.font_size_pt"
+                                   [style.color]="v.color"
+                                   [style.textAlign]="v.align">
+                                @if (v.tipo === 'imagen') {
+                                  <img [src]="v.imagen_url" [alt]="v.label" [style.width.mm]="v.width_mm || 18" [style.height.mm]="v.height_mm || 15" [style.opacity]="v.opacidad ?? 1.0" class="canvas-img" />
+                                } @else if (v.tipo === 'qr') {
+                                  <img [src]="obtenerQrPreviewUrl(v)" [alt]="v.label" [style.width.mm]="v.width_mm || 14" [style.height.mm]="v.height_mm || 14" class="canvas-qr" />
+                                } @else if (v.tipo === 'linea') {
+                                  <div class="canvas-line-element"
+                                       [style.width.mm]="v.width_mm || 50"
+                                       [style.borderTopWidth.mm]="v.grosor_mm || v.height_mm || 1"
+                                       [style.borderTopStyle]="v.estilo_linea || 'solid'"
+                                       [style.borderTopColor]="v.color || '#000000'">
+                                  </div>
+                                } @else if (v.tag === '{{TABLA_RUTAS}}') {
+                                  <div class="rutas-table-render">
+                                    @if (rutasList().length > 0) {
+                                      @for (r of rutasList(); track $index) {
+                                        <div class="ruta-row">{{ r }}</div>
+                                      }
+                                    } @else {
+                                      <div class="r-empty">Ruta 01: JULIACA - PUTINA - ANANEA - LA RINCONADA</div>
+                                    }
+                                  </div>
+                                } @else {
+                                  <div class="var-rendered-content"
+                                       [class.clamp-2-lines]="v.max_lineas === 2"
+                                       [class.multiline-free]="v.max_lineas === 0"
+                                       [innerHTML]="obtenerHtmlRender(v)"></div>
+                                }
+                              </div>
+                            }
+                          }
+                        </div>
+                      </div>
+
+                      <!-- HOJA 2: REVERSO -->
+                      <div class="sheet-page-wrapper">
+                        <div class="sheet-page-header-tag reverso-tag">
+                          <mat-icon>find_in_page</mat-icon>
+                          <span>PÁGINA 2: REVERSO</span>
+                        </div>
+                        <div class="tuc-card-sheet"
+                             [class.format-dual-pvc]="formatoPapel() === 'DUAL_PVC'"
+                             [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
+                             [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'">
+                          
+                          @for (v of varsReverso(); track v.id) {
+                            @if (v.visible) {
+                              <div class="positioned-var"
+                                   [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea'"
+                                   [class.has-two-lines]="v.max_lineas === 2"
+                                   [class.has-multiline]="v.max_lineas === 0"
+                                   [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
+                                   [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
+                                   [style.left.mm]="v.x_mm"
+                                   [style.top.mm]="v.y_mm"
+                                   [style.width.mm]="v.width_mm"
+                                   [style.height.mm]="v.height_mm"
+                                   [style.fontSize.pt]="v.font_size_pt"
+                                   [style.color]="v.color"
+                                   [style.textAlign]="v.align">
+                                @if (v.tipo === 'imagen') {
+                                  <img [src]="v.imagen_url" [alt]="v.label" [style.width.mm]="v.width_mm || 18" [style.height.mm]="v.height_mm || 15" [style.opacity]="v.opacidad ?? 1.0" class="canvas-img" />
+                                } @else if (v.tipo === 'qr') {
+                                  <img [src]="obtenerQrPreviewUrl(v)" [alt]="v.label" [style.width.mm]="v.width_mm || 14" [style.height.mm]="v.height_mm || 14" class="canvas-qr" />
+                                } @else if (v.tipo === 'linea') {
+                                  <div class="canvas-line-element"
+                                       [style.width.mm]="v.width_mm || 50"
+                                       [style.borderTopWidth.mm]="v.grosor_mm || v.height_mm || 1"
+                                       [style.borderTopStyle]="v.estilo_linea || 'solid'"
+                                       [style.borderTopColor]="v.color || '#000000'">
+                                  </div>
+                                } @else if (v.tag === '{{TABLA_RUTAS}}') {
+                                  <div class="rutas-table-render">
+                                    @if (rutasList().length > 0) {
+                                      @for (r of rutasList(); track $index) {
+                                        <div class="ruta-row">{{ r }}</div>
+                                      }
+                                    } @else {
+                                      <div class="r-empty">Ruta 01: JULIACA - PUTINA - ANANEA - LA RINCONADA</div>
+                                    }
+                                  </div>
+                                } @else {
+                                  <div class="var-rendered-content"
+                                       [class.clamp-2-lines]="v.max_lineas === 2"
+                                       [class.multiline-free]="v.max_lineas === 0"
+                                       [innerHTML]="obtenerHtmlRender(v)"></div>
+                                }
+                              </div>
+                            }
+                          }
+                        </div>
+                      </div>
+                    </div>
                   } @else {
-                    <iframe 
-                      #previewIframe
-                      [src]="previewUrl()" 
-                      class="tuc-preview-iframe"
-                      (load)="onIframeLoad()"
-                      title="Muestra TUC Oficial DRTC">
-                    </iframe>
+                    <!-- MODO PÁGINA INDIVIDUAL (ANVERSO O REVERSO) -->
+                    <div class="sheet-page-wrapper">
+                      <div class="sheet-page-header-tag" [class.reverso-tag]="vistaTarjetaModo() === 'reverso'">
+                        <mat-icon>{{ vistaTarjetaModo() === 'reverso' ? 'find_in_page' : 'file_copy' }}</mat-icon>
+                        <span>{{ vistaTarjetaModo() === 'reverso' ? 'PÁGINA 2: REVERSO' : 'PÁGINA 1: ANVERSO' }}</span>
+                      </div>
+                      <div class="tuc-card-sheet"
+                           [class.format-dual-pvc]="formatoPapel() === 'DUAL_PVC'"
+                           [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
+                           [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'">
+                        
+                        @for (v of (vistaTarjetaModo() === 'reverso' ? varsReverso() : varsAnverso()); track v.id) {
+                          @if (v.visible) {
+                            <div class="positioned-var"
+                                 [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea'"
+                                 [class.has-two-lines]="v.max_lineas === 2"
+                                 [class.has-multiline]="v.max_lineas === 0"
+                                 [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
+                                 [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
+                                 [style.left.mm]="v.x_mm"
+                                 [style.top.mm]="v.y_mm"
+                                 [style.width.mm]="v.width_mm"
+                                 [style.height.mm]="v.height_mm"
+                                 [style.fontSize.pt]="v.font_size_pt"
+                                 [style.color]="v.color"
+                                 [style.textAlign]="v.align">
+                              @if (v.tipo === 'imagen') {
+                                <img [src]="v.imagen_url" [alt]="v.label" [style.width.mm]="v.width_mm || 18" [style.height.mm]="v.height_mm || 15" [style.opacity]="v.opacidad ?? 1.0" class="canvas-img" />
+                              } @else if (v.tipo === 'qr') {
+                                <img [src]="obtenerQrPreviewUrl(v)" [alt]="v.label" [style.width.mm]="v.width_mm || 14" [style.height.mm]="v.height_mm || 14" class="canvas-qr" />
+                              } @else if (v.tipo === 'linea') {
+                                <div class="canvas-line-element"
+                                     [style.width.mm]="v.width_mm || 50"
+                                     [style.borderTopWidth.mm]="v.grosor_mm || v.height_mm || 1"
+                                     [style.borderTopStyle]="v.estilo_linea || 'solid'"
+                                     [style.borderTopColor]="v.color || '#000000'">
+                                </div>
+                              } @else if (v.tag === '{{TABLA_RUTAS}}') {
+                                <div class="rutas-table-render">
+                                  @if (rutasList().length > 0) {
+                                    @for (r of rutasList(); track $index) {
+                                      <div class="ruta-row">{{ r }}</div>
+                                    }
+                                  } @else {
+                                    <div class="r-empty">Ruta 01: JULIACA - PUTINA - ANANEA - LA RINCONADA</div>
+                                  }
+                                </div>
+                              } @else {
+                                <div class="var-rendered-content"
+                                     [class.clamp-2-lines]="v.max_lineas === 2"
+                                     [class.multiline-free]="v.max_lineas === 0"
+                                     [innerHTML]="obtenerHtmlRender(v)"></div>
+                              }
+                            </div>
+                          }
+                        }
+                      </div>
+                    </div>
                   }
+
                 </div>
               </div>
             </div>
@@ -357,19 +521,19 @@ export interface GenerarTucDialogData {
                       <div class="fields-grid grid-2">
                         <div class="field-item">
                           <label>Vigencia DEL:</label>
-                          <input type="text" [ngModel]="datosEditados()['fecha_del']" (ngModelChange)="actualizarCampo('fecha_del', $event)" placeholder="Ej. 29/09/2026" class="edit-input" />
+                          <input id="input-edit-fecha_del" type="text" [ngModel]="datosEditados()['fecha_del']" (ngModelChange)="actualizarCampo('fecha_del', $event)" placeholder="Ej. 29/09/2026" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Vigencia AL:</label>
-                          <input type="text" [ngModel]="datosEditados()['fecha_al']" (ngModelChange)="actualizarCampo('fecha_al', $event)" placeholder="Ej. 29/09/2030" class="edit-input" />
+                          <input id="input-edit-fecha_al" type="text" [ngModel]="datosEditados()['fecha_al']" (ngModelChange)="actualizarCampo('fecha_al', $event)" placeholder="Ej. 29/09/2030" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>R.D.R. Primigenia (N°):</label>
-                          <input type="text" [ngModel]="datosEditados()['nro_resolucion_primigenia']" (ngModelChange)="actualizarCampo('nro_resolucion_primigenia', $event)" placeholder="Ej. 0701-2026" class="edit-input" />
+                          <input id="input-edit-nro_resolucion_primigenia" type="text" [ngModel]="datosEditados()['nro_resolucion_primigenia']" (ngModelChange)="actualizarCampo('nro_resolucion_primigenia', $event)" placeholder="Ej. 0701-2026" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Fecha R.D.R.:</label>
-                          <input type="text" [ngModel]="datosEditados()['fecha_resolucion_primigenia']" (ngModelChange)="actualizarCampo('fecha_resolucion_primigenia', $event)" placeholder="Ej. 29/09/2026" class="edit-input" />
+                          <input id="input-edit-fecha_resolucion_primigenia" type="text" [ngModel]="datosEditados()['fecha_resolucion_primigenia']" (ngModelChange)="actualizarCampo('fecha_resolucion_primigenia', $event)" placeholder="Ej. 29/09/2026" class="edit-input" />
                         </div>
                       </div>
                     </div>
@@ -383,17 +547,17 @@ export interface GenerarTucDialogData {
                       <div class="fields-grid grid-1">
                         <div class="field-item">
                           <label>Empresa (Razón Social):</label>
-                          <input type="text" [ngModel]="datosEditados()['empresa']" (ngModelChange)="actualizarCampo('empresa', $event)" placeholder="Nombre o Razón Social oficial" class="edit-input font-bold" />
+                          <input id="input-edit-empresa" type="text" [ngModel]="datosEditados()['empresa']" (ngModelChange)="actualizarCampo('empresa', $event)" placeholder="Nombre o Razón Social oficial" class="edit-input font-bold" />
                         </div>
                       </div>
                       <div class="fields-grid grid-2" style="margin-top: 6px;">
                         <div class="field-item">
                           <label>RUC :</label>
-                          <input type="text" [ngModel]="datosEditados()['ruc']" (ngModelChange)="actualizarCampo('ruc', $event)" placeholder="11 dígitos" class="edit-input" />
+                          <input id="input-edit-ruc" type="text" [ngModel]="datosEditados()['ruc']" (ngModelChange)="actualizarCampo('ruc', $event)" placeholder="11 dígitos" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Partida Registral:</label>
-                          <input type="text" [ngModel]="datosEditados()['partida']" (ngModelChange)="actualizarCampo('partida', $event)" placeholder="Partida registral" class="edit-input" />
+                          <input id="input-edit-partida" type="text" [ngModel]="datosEditados()['partida']" (ngModelChange)="actualizarCampo('partida', $event)" placeholder="Partida registral" class="edit-input" />
                         </div>
                       </div>
                     </div>
@@ -407,43 +571,43 @@ export interface GenerarTucDialogData {
                       <div class="fields-grid grid-2">
                         <div class="field-item">
                           <label>Placa :</label>
-                          <input type="text" [ngModel]="datosEditados()['placa']" (ngModelChange)="actualizarCampo('placa', $event)" placeholder="Ej. C4X-964" class="edit-input font-mono font-bold text-primary" />
+                          <input id="input-edit-placa" type="text" [ngModel]="datosEditados()['placa']" (ngModelChange)="actualizarCampo('placa', $event)" placeholder="Ej. C4X-964" class="edit-input font-mono font-bold text-primary" />
                         </div>
                         <div class="field-item">
                           <label>Número TUC :</label>
-                          <input type="text" [ngModel]="datosEditados()['numero_tuc']" (ngModelChange)="actualizarCampo('numero_tuc', $event)" placeholder="Ej. T-012299" class="edit-input font-mono font-bold" />
+                          <input id="input-edit-numero_tuc" type="text" [ngModel]="datosEditados()['numero_tuc']" (ngModelChange)="actualizarCampo('numero_tuc', $event)" placeholder="Ej. T-012299" class="edit-input font-mono font-bold" />
                         </div>
                         <div class="field-item">
                           <label>Marca:</label>
-                          <input type="text" [ngModel]="datosEditados()['marca']" (ngModelChange)="actualizarCampo('marca', $event)" placeholder="Ej. VOLVO / MERCEDES" class="edit-input" />
+                          <input id="input-edit-marca" type="text" [ngModel]="datosEditados()['marca']" (ngModelChange)="actualizarCampo('marca', $event)" placeholder="Ej. VOLVO / MERCEDES" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Modelo:</label>
-                          <input type="text" [ngModel]="datosEditados()['modelo']" (ngModelChange)="actualizarCampo('modelo', $event)" placeholder="Modelo del vehículo" class="edit-input" />
+                          <input id="input-edit-modelo" type="text" [ngModel]="datosEditados()['modelo']" (ngModelChange)="actualizarCampo('modelo', $event)" placeholder="Modelo del vehículo" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Color :</label>
-                          <input type="text" [ngModel]="datosEditados()['color']" (ngModelChange)="actualizarCampo('color', $event)" placeholder="Ej. BLANCO AZUL" class="edit-input" />
+                          <input id="input-edit-color" type="text" [ngModel]="datosEditados()['color']" (ngModelChange)="actualizarCampo('color', $event)" placeholder="Ej. BLANCO AZUL" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Categoría :</label>
-                          <input type="text" [ngModel]="datosEditados()['categoria']" (ngModelChange)="actualizarCampo('categoria', $event)" placeholder="M2 / M3 / M3-C3" class="edit-input" />
+                          <input id="input-edit-categoria" type="text" [ngModel]="datosEditados()['categoria']" (ngModelChange)="actualizarCampo('categoria', $event)" placeholder="M2 / M3 / M3-C3" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Año (Fab./Mod.):</label>
-                          <input type="text" [ngModel]="datosEditados()['anio']" (ngModelChange)="actualizarCampo('anio', $event)" placeholder="Ej. 2018" class="edit-input" />
+                          <input id="input-edit-anio" type="text" [ngModel]="datosEditados()['anio']" (ngModelChange)="actualizarCampo('anio', $event)" placeholder="Ej. 2018" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>VIN / Serie / Chasis:</label>
-                          <input type="text" [ngModel]="datosEditados()['vin']" (ngModelChange)="actualizarCampo('vin', $event)" placeholder="Número de serie o VIN" class="edit-input font-mono" />
+                          <input id="input-edit-vin" type="text" [ngModel]="datosEditados()['vin']" (ngModelChange)="actualizarCampo('vin', $event)" placeholder="Número de serie o VIN" class="edit-input font-mono" />
                         </div>
                         <div class="field-item">
                           <label>Asientos :</label>
-                          <input type="text" [ngModel]="datosEditados()['asientos']" (ngModelChange)="actualizarCampo('asientos', $event)" placeholder="Ej. 30" class="edit-input" />
+                          <input id="input-edit-asientos" type="text" [ngModel]="datosEditados()['asientos']" (ngModelChange)="actualizarCampo('asientos', $event)" placeholder="Ej. 30" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Ejes :</label>
-                          <input type="text" [ngModel]="datosEditados()['ejes']" (ngModelChange)="actualizarCampo('ejes', $event)" placeholder="Ej. 2" class="edit-input" />
+                          <input id="input-edit-ejes" type="text" [ngModel]="datosEditados()['ejes']" (ngModelChange)="actualizarCampo('ejes', $event)" placeholder="Ej. 2" class="edit-input" />
                         </div>
                       </div>
 
@@ -451,27 +615,27 @@ export interface GenerarTucDialogData {
                       <div class="fields-grid grid-3">
                         <div class="field-item">
                           <label>Alto (m):</label>
-                          <input type="text" [ngModel]="datosEditados()['alto']" (ngModelChange)="actualizarCampo('alto', $event)" placeholder="Ej. 3.45" class="edit-input" />
+                          <input id="input-edit-alto" type="text" [ngModel]="datosEditados()['alto']" (ngModelChange)="actualizarCampo('alto', $event)" placeholder="Ej. 3.45" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Ancho (m):</label>
-                          <input type="text" [ngModel]="datosEditados()['ancho']" (ngModelChange)="actualizarCampo('ancho', $event)" placeholder="Ej. 2.50" class="edit-input" />
+                          <input id="input-edit-ancho" type="text" [ngModel]="datosEditados()['ancho']" (ngModelChange)="actualizarCampo('ancho', $event)" placeholder="Ej. 2.50" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Largo (m):</label>
-                          <input type="text" [ngModel]="datosEditados()['largo']" (ngModelChange)="actualizarCampo('largo', $event)" placeholder="Ej. 10.85" class="edit-input" />
+                          <input id="input-edit-largo" type="text" [ngModel]="datosEditados()['largo']" (ngModelChange)="actualizarCampo('largo', $event)" placeholder="Ej. 10.85" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Peso Neto (t):</label>
-                          <input type="text" [ngModel]="datosEditados()['peso_neto']" (ngModelChange)="actualizarCampo('peso_neto', $event)" placeholder="Ej. 8.5" class="edit-input" />
+                          <input id="input-edit-peso_neto" type="text" [ngModel]="datosEditados()['peso_neto']" (ngModelChange)="actualizarCampo('peso_neto', $event)" placeholder="Ej. 8.5" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Carga Útil (t):</label>
-                          <input type="text" [ngModel]="datosEditados()['carga_util']" (ngModelChange)="actualizarCampo('carga_util', $event)" placeholder="Ej. 3.0" class="edit-input" />
+                          <input id="input-edit-carga_util" type="text" [ngModel]="datosEditados()['carga_util']" (ngModelChange)="actualizarCampo('carga_util', $event)" placeholder="Ej. 3.0" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Peso Bruto (t):</label>
-                          <input type="text" [ngModel]="datosEditados()['peso_bruto']" (ngModelChange)="actualizarCampo('peso_bruto', $event)" placeholder="Ej. 11.5" class="edit-input" />
+                          <input id="input-edit-peso_bruto" type="text" [ngModel]="datosEditados()['peso_bruto']" (ngModelChange)="actualizarCampo('peso_bruto', $event)" placeholder="Ej. 11.5" class="edit-input" />
                         </div>
                       </div>
                     </div>
@@ -484,7 +648,8 @@ export interface GenerarTucDialogData {
                       </div>
                       <div class="field-item">
                         <label>Líneas de rutas autorizadas (un renglón por cada ruta):</label>
-                        <textarea [ngModel]="datosEditados()['tabla_rutas_text']" 
+                        <textarea id="input-edit-tabla_rutas_text" 
+                                  [ngModel]="datosEditados()['tabla_rutas_text']" 
                                   (ngModelChange)="actualizarCampo('tabla_rutas_text', $event)" 
                                   rows="3" 
                                   class="edit-textarea" 
@@ -501,15 +666,15 @@ export interface GenerarTucDialogData {
                       <div class="fields-grid grid-3">
                         <div class="field-item">
                           <label>N° Resolución Acto:</label>
-                          <input type="text" [ngModel]="datosEditados()['num_resolucion_acto']" (ngModelChange)="actualizarCampo('num_resolucion_acto', $event)" placeholder="Ej. 0850-2026" class="edit-input" />
+                          <input id="input-edit-num_resolucion_acto" type="text" [ngModel]="datosEditados()['num_resolucion_acto']" (ngModelChange)="actualizarCampo('num_resolucion_acto', $event)" placeholder="Ej. 0850-2026" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Fecha Acto:</label>
-                          <input type="text" [ngModel]="datosEditados()['fecha_resolucion_acto']" (ngModelChange)="actualizarCampo('fecha_resolucion_acto', $event)" placeholder="Ej. 29/09/2026" class="edit-input" />
+                          <input id="input-edit-fecha_resolucion_acto" type="text" [ngModel]="datosEditados()['fecha_resolucion_acto']" (ngModelChange)="actualizarCampo('fecha_resolucion_acto', $event)" placeholder="Ej. 29/09/2026" class="edit-input" />
                         </div>
                         <div class="field-item">
                           <label>Tipo (I / S / R):</label>
-                          <input type="text" [ngModel]="datosEditados()['tipo_resolucion_acto']" (ngModelChange)="actualizarCampo('tipo_resolucion_acto', $event)" placeholder="Ej. I / S" class="edit-input" />
+                          <input id="input-edit-tipo_resolucion_acto" type="text" [ngModel]="datosEditados()['tipo_resolucion_acto']" (ngModelChange)="actualizarCampo('tipo_resolucion_acto', $event)" placeholder="Ej. I / S" class="edit-input" />
                         </div>
                       </div>
                     </div>
@@ -660,7 +825,7 @@ export interface GenerarTucDialogData {
       }
     }
 
-    /* PREVIEW CONTAINER */
+    /* PREVIEW CONTAINER CALIBRADO (LO QUE SALE EN IMPRESORA) */
     .card-preview-container {
       display: flex;
       flex-direction: column;
@@ -671,56 +836,86 @@ export interface GenerarTucDialogData {
         justify-content: space-between;
         align-items: center;
         background: #ffffff;
-        padding: 6px 12px;
+        padding: 7px 12px;
         border-radius: 8px;
         border: 1px solid #e2e8f0;
 
         .preview-header-left {
           display: flex;
           align-items: center;
-          gap: 6px;
-        }
+          gap: 8px;
 
-        .preview-tag {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 11.5px;
-          font-weight: 700;
-          color: #0f172a;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-        }
+          .preview-tag-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: 0.3px;
+          }
 
-        .badge-resolucion {
-          background: #eff6ff;
-          color: #1d4ed8;
-          border: 1px solid #bfdbfe;
-          border-radius: 4px;
-          font-size: 10.5px;
-          font-weight: 700;
-          padding: 1px 6px;
-          font-family: monospace;
-        }
+          .badge-plantilla {
+            font-size: 10px;
+            font-weight: 600;
+            color: #0284c7;
+            background: #e0f2fe;
+            border: 1px solid #bae6fd;
+            padding: 1px 6px;
+            border-radius: 4px;
+            max-width: 170px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
 
-        .badge-custom-active {
-          background: #fef3c7;
-          color: #b45309;
-          border: 1px solid #fde68a;
-          border-radius: 4px;
-          font-size: 10px;
-          font-weight: 700;
-          padding: 1px 5px;
+          .badge-custom-active {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fde68a;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+          }
         }
 
         .preview-header-controls {
           display: flex;
           align-items: center;
-          gap: 2px;
+          gap: 6px;
+
+          .cara-selector-group {
+            display: inline-flex;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+
+            .cara-btn {
+              padding: 3px 8px;
+              font-size: 11px;
+              font-weight: 600;
+              border: none;
+              background: transparent;
+              color: #475569;
+              border-radius: 4px;
+              cursor: pointer;
+              transition: all 0.15s ease;
+
+              &:hover {
+                color: #0f172a;
+              }
+
+              &.active {
+                background: #0284c7;
+                color: #ffffff;
+                box-shadow: 0 1px 3px rgba(2, 132, 199, 0.3);
+              }
+            }
+          }
 
           .ctrl-btn {
-            width: 26px;
-            height: 26px;
+            width: 27px;
+            height: 27px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -732,6 +927,11 @@ export interface GenerarTucDialogData {
             transition: all 0.15s;
             mat-icon { font-size: 15px; width: 15px; height: 15px; }
             &:hover { background: #f1f5f9; color: #0284c7; border-color: #cbd5e1; }
+
+            &.btn-open-external {
+              color: #0284c7;
+              &:hover { background: #e0f2fe; border-color: #0284c7; }
+            }
           }
 
           .zoom-value {
@@ -739,59 +939,193 @@ export interface GenerarTucDialogData {
             font-weight: 700;
             color: #334155;
             padding: 0 4px;
-            min-width: 32px;
+            min-width: 34px;
             text-align: center;
             font-family: monospace;
           }
         }
       }
 
-      .tuc-iframe-wrapper {
+      /* VIEWPORT NATIVO DE TUC STUDIO */
+      .tuc-canvas-viewport {
         position: relative;
-        height: 560px;
-        background: #f8fafc;
-        border: 1px solid #cbd5e1;
+        height: 600px;
+        background: #94a3b8;
+        background-image: 
+          linear-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+        background-size: 20px 20px;
+        border: 1px solid #64748b;
         border-radius: 8px;
-        overflow-x: hidden;
+        overflow-x: auto;
         overflow-y: auto;
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 6px 0;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 24px 16px;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.12);
 
-        .iframe-loading-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(248, 250, 252, 0.92);
-          backdrop-filter: blur(2px);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          z-index: 10;
-          color: #475569;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .iframe-zoom-container {
+        .canvas-scale-wrapper {
           transform-origin: top center;
-          transition: transform 0.15s ease-out;
-          width: 820px;
-          height: 1140px;
+          transition: transform 0.12s ease-out;
           display: flex;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .tuc-preview-iframe {
-          width: 820px;
-          height: 1140px;
-          border: none;
+        .sheets-dual-layout {
+          display: flex;
+          gap: 28px;
+          justify-content: center;
+          align-items: flex-start;
+        }
+
+        .sheet-page-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+
+          .sheet-page-header-tag {
+            background: #1e3a8a;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+
+            mat-icon {
+              font-size: 14px;
+              width: 14px;
+              height: 14px;
+            }
+
+            &.reverso-tag {
+              background: #0284c7;
+            }
+          }
+        }
+
+        .tuc-card-sheet {
           background: #ffffff;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
-          border-radius: 4px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+          position: relative;
+          overflow: hidden;
+          box-sizing: border-box;
+          user-select: text;
+          border: 1px solid #cbd5e1;
+
+          &.format-a4-portrait {
+            width: 210.0mm;
+            height: 297.0mm;
+            min-height: 297.0mm;
+          }
+
+          &.format-a4-landscape {
+            width: 297.0mm;
+            height: 210.0mm;
+            min-height: 210.0mm;
+          }
+
+          &.format-dual-pvc {
+            width: 85.6mm;
+            height: 108.0mm;
+            border-radius: 3.18mm;
+          }
+
+          .positioned-var {
+            position: absolute;
+            line-height: 1.2;
+            white-space: nowrap;
+            box-sizing: border-box;
+
+            &.is-graphic {
+              display: inline-block;
+              line-height: 0;
+
+              .canvas-img, .canvas-qr {
+                display: block;
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+                pointer-events: none;
+              }
+            }
+
+            .tuc-prefix {
+              display: inline;
+            }
+
+            .tuc-valor {
+              display: inline;
+            }
+
+            .tuc-suffix {
+              display: inline;
+            }
+
+            .tuc-quoted {
+              font-weight: 800 !important;
+              font-size: 1.15em !important;
+              display: inline !important;
+              color: inherit;
+              letter-spacing: -0.2px;
+            }
+
+            &.has-two-lines,
+            .var-rendered-content.clamp-2-lines {
+              white-space: normal !important;
+              display: -webkit-box !important;
+              -webkit-line-clamp: 2 !important;
+              -webkit-box-orient: vertical !important;
+              overflow: hidden !important;
+              word-break: break-word !important;
+              line-height: 1.15 !important;
+            }
+
+            &.has-multiline,
+            .var-rendered-content.multiline-free {
+              white-space: normal !important;
+              word-break: break-word !important;
+              line-height: 1.18 !important;
+            }
+
+            &.is-vertical {
+              writing-mode: vertical-rl !important;
+              text-orientation: mixed !important;
+              white-space: nowrap !important;
+            }
+
+            &.is-vertical-270 {
+              writing-mode: vertical-rl !important;
+              transform: rotate(180deg) !important;
+              white-space: nowrap !important;
+            }
+
+            .canvas-line-element {
+              position: relative;
+              height: 0;
+              pointer-events: none;
+            }
+
+            .rutas-table-render {
+              font-size: 5.5pt;
+              line-height: 1.25;
+
+              .ruta-row {
+                margin-bottom: 0.8mm;
+                color: #000000;
+              }
+
+              .r-empty {
+                color: #64748b;
+              }
+            }
+          }
         }
       }
     }
@@ -1352,12 +1686,21 @@ export class GenerarTucDialogComponent implements OnInit {
   // Pestaña en panel derecho: 'emision' | 'edicion'
   tabActiva = signal<'emision' | 'edicion'>('emision');
 
+  // Modo de visualización de la tarjeta física: 'dual' (ambas caras) | 'anverso' | 'reverso'
+  vistaTarjetaModo = signal<'dual' | 'anverso' | 'reverso'>('anverso');
+
   refreshKey = signal<number>(Date.now());
-  zoomPreview = signal<number>(65);
+  zoomPreview = signal<number>(55);
 
   tucData = signal<any>(null);
   configCalibrador = signal<PlantillaTucCalibradorConfig | null>(null);
   plantillaActivaNombre = computed(() => this.configCalibrador()?.nombre || 'Plantilla Oficial DRTC Puno');
+
+  // Variables por Sección exactamente igual a TUC Studio
+  varsAnverso = computed(() => this.configCalibrador()?.variables?.filter(v => v.visible && (v.seccion === 'anverso' || !v.seccion)) || []);
+  varsReverso = computed(() => this.configCalibrador()?.variables?.filter(v => v.visible && v.seccion === 'reverso') || []);
+  formatoPapel = computed(() => this.configCalibrador()?.formato_papel || 'A4');
+  orientacion = computed(() => this.configCalibrador()?.orientacion || 'portrait');
 
   // Datos editables de la TUC
   datosEditados = signal<Record<string, any>>({
@@ -1407,6 +1750,180 @@ export class GenerarTucDialogComponent implements OnInit {
   });
 
   hayModificaciones = computed(() => this.camposModificadosCount() > 0);
+
+  // Computado: lista reactiva de rutas para renderizar en el reverso
+  rutasList = computed<string[]>(() => {
+    const text = this.datosEditados()['tabla_rutas_text'] || '';
+    if (text && text.trim().length > 0) {
+      return text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+    }
+    const dt = this.tucData()?.datos?.rutas_detalle;
+    if (Array.isArray(dt) && dt.length > 0) {
+      return dt.map((r: any) => typeof r === 'string' ? r : `${r.codigo || ''} ${r.origen || ''} - ${r.destino || ''} (${r.frecuencia || ''})`.trim()).filter(Boolean);
+    }
+    const rPrim = this.datosEditados()['nro_resolucion_primigenia'] || this.data.vehiculo.nro_resolucion_primigenia;
+    return [
+      `Ruta: AMBITO REGIONAL PUNO (R.D.R. N° ${rPrim || '0701-2026'}-DRTC)`,
+      `Origen - Destino según autorización de flota matriz`
+    ];
+  });
+
+  // Placeholders reactivos combinando los datos de BD y los datos editados en vivo
+  placeholdersVehiculo = computed<Record<string, string>>(() => {
+    const d = this.datosEditados();
+    const base: Record<string, string> = { ...(this.tucData()?.placeholders || {}) };
+
+    if (d['numero_tuc'] !== undefined) base['{{NUMERO_TUC}}'] = String(d['numero_tuc'] || '');
+    if (d['placa'] !== undefined) base['{{PLACA}}'] = String(d['placa'] || '');
+    if (d['empresa'] !== undefined) base['{{EMPRESA}}'] = String(d['empresa'] || '');
+    if (d['ruc'] !== undefined) base['{{RUC}}'] = String(d['ruc'] || '');
+    if (d['partida'] !== undefined) base['{{PARTIDA_REGISTRAL}}'] = String(d['partida'] || '');
+    if (d['fecha_del'] !== undefined) {
+      base['{{FECHA_DEL}}'] = String(d['fecha_del'] || '');
+      base['{{FECHA_DEL_P2}}'] = String(d['fecha_del'] || '');
+    }
+    if (d['fecha_al'] !== undefined) {
+      base['{{FECHA_AL}}'] = String(d['fecha_al'] || '');
+      base['{{FECHA_AL_P2}}'] = String(d['fecha_al'] || '');
+    }
+    if (d['nro_resolucion_primigenia'] !== undefined) {
+      base['{{NUM_RESOLUCION_ORIG}}'] = String(d['nro_resolucion_primigenia'] || '');
+      base['{{NUM_RESOLUCION_ORIG_P2}}'] = String(d['nro_resolucion_primigenia'] || '');
+    }
+    if (d['fecha_resolucion_primigenia'] !== undefined) {
+      base['{{FECHA_RESOLUCION_ORIG}}'] = String(d['fecha_resolucion_primigenia'] || '');
+      base['{{FECHA_RESOLUCION_ORIG_P2}}'] = String(d['fecha_resolucion_primigenia'] || '');
+    }
+    if (d['marca'] !== undefined) base['{{MARCA}}'] = String(d['marca'] || '');
+    if (d['modelo'] !== undefined) base['{{MODELO}}'] = String(d['modelo'] || '');
+    if (d['anio'] !== undefined) base['{{ANIO_FABRICACION}}'] = String(d['anio'] || '');
+    if (d['categoria'] !== undefined) base['{{CATEGORIA}}'] = String(d['categoria'] || '');
+    if (d['color'] !== undefined) base['{{COLOR}}'] = String(d['color'] || '');
+    if (d['vin'] !== undefined) {
+      base['{{NUMERO_SERIE_CHASIS}}'] = String(d['vin'] || '');
+      base['{{NUMERO_VIN}}'] = String(d['vin'] || '');
+    }
+    if (d['asientos'] !== undefined) base['{{NUM_ASIENTOS}}'] = String(d['asientos'] || '');
+    if (d['ejes'] !== undefined) base['{{NUM_EJES}}'] = String(d['ejes'] || '');
+    if (d['alto'] !== undefined) base['{{ALTO}}'] = String(d['alto'] || '');
+    if (d['ancho'] !== undefined) base['{{ANCHO}}'] = String(d['ancho'] || '');
+    if (d['largo'] !== undefined) base['{{LONGITUD}}'] = String(d['largo'] || '');
+    if (d['peso_neto'] !== undefined) base['{{PESO_NETO}}'] = String(d['peso_neto'] || '');
+    if (d['carga_util'] !== undefined) base['{{CARGA_UTIL}}'] = String(d['carga_util'] || '');
+    if (d['peso_bruto'] !== undefined) base['{{PESO_BRUTO}}'] = String(d['peso_bruto'] || '');
+
+    if (d['num_resolucion_acto'] !== undefined) base['{{NUM_RESOLUCION_ACTO}}'] = String(d['num_resolucion_acto'] || '');
+    if (d['fecha_resolucion_acto'] !== undefined) base['{{FECHA_RESOLUCION_ACTO}}'] = String(d['fecha_resolucion_acto'] || '');
+    if (d['tipo_resolucion_acto'] !== undefined) base['{{TIPO_RESOLUCION_ACTO}}'] = String(d['tipo_resolucion_acto'] || '');
+
+    return base;
+  });
+
+  escapeHtml(str: string): string {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  formatearTextoConComillas(texto: string, resaltar: boolean = true): string {
+    if (!texto) return '';
+    if (!resaltar) return this.escapeHtml(texto);
+    const regex = /(".*?"|“.*?”|«.*?»)/g;
+    const partes = texto.split(regex);
+    return partes.map(parte => {
+      if (!parte) return '';
+      if ((parte.startsWith('"') && parte.endsWith('"')) ||
+          (parte.startsWith('“') && parte.endsWith('”')) ||
+          (parte.startsWith('«') && parte.endsWith('»'))) {
+        return `<span class="tuc-quoted">${this.escapeHtml(parte)}</span>`;
+      }
+      return this.escapeHtml(parte);
+    }).join('');
+  }
+
+  obtenerHtmlRender(v: VariablePlantillaTuc): SafeHtml {
+    const ph = this.placeholdersVehiculo();
+    let val = ph[v.tag] !== undefined ? ph[v.tag] : (v.valor_ejemplo || '');
+
+    const prefix = v.prefix !== undefined && v.prefix !== '' ? v.prefix : (v.etiqueta || '');
+    const suffix = v.suffix || '';
+    const baseSize = v.font_size_pt || 7.0;
+
+    const prefixWeight = v.prefix_font_weight || v.etiqueta_font_weight || 'bold';
+    const prefixSize = v.prefix_font_size_pt || baseSize;
+
+    const valorWeight = v.font_weight || 'normal';
+    const valorSize = baseSize;
+    const resaltar = v.resaltar_comillas !== false;
+
+    const suffixWeight = v.suffix_font_weight || 'normal';
+    const suffixSize = v.suffix_font_size_pt || baseSize;
+
+    const valHtml = this.formatearTextoConComillas(String(val), resaltar);
+
+    let htmlOut = '';
+    if (prefix) {
+      htmlOut += `<span class="tuc-prefix" style="font-weight: ${prefixWeight}; font-size: ${prefixSize}pt;">${this.escapeHtml(prefix)}</span>`;
+    }
+    if (valHtml) {
+      htmlOut += `<span class="tuc-valor" style="font-weight: ${valorWeight}; font-size: ${valorSize}pt;">${valHtml}</span>`;
+    }
+    if (suffix) {
+      htmlOut += `<span class="tuc-suffix" style="font-weight: ${suffixWeight}; font-size: ${suffixSize}pt;">${this.escapeHtml(suffix)}</span>`;
+    }
+
+    return this.sanitizer.bypassSecurityTrustHtml(htmlOut);
+  }
+
+  obtenerQrPreviewUrl(v: VariablePlantillaTuc): string {
+    const placa = this.datosEditados()['placa'] || this.data.vehiculo.placa || 'PE';
+    let raw = v.qr_contenido || `https://drtc-puno.gob.pe/verificar-tuc/${placa}`;
+    const ph = this.placeholdersVehiculo();
+    for (const [key, val] of Object.entries(ph)) {
+      raw = raw.replace(key, val);
+    }
+    raw = raw.replace('{{PLACA}}', placa);
+    return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(raw)}`;
+  }
+
+  // Computado: URL de código QR dinámico de alta fidelidad
+  qrPreviewUrl = computed<string>(() => {
+    const placa = this.datosEditados()['placa'] || this.data.vehiculo.placa || 'PE';
+    const nroTuc = this.datosEditados()['numero_tuc'] || this.data.vehiculo.numero_tuc || '000000';
+    const qrData = `DRTC-PUNO|TUC:${nroTuc}|PLACA:${placa}|VERIF:https://drtc-puno.gob.pe/tuc/${placa}`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=2&data=${encodeURIComponent(qrData)}`;
+  });
+
+  // Saber si un campo en particular fue editado por el usuario
+  esCampoModificado(campo: string): boolean {
+    const edit = String(this.datosEditados()[campo] ?? '').trim();
+    const orig = String(this.datosOriginales()[campo] ?? '').trim();
+    return edit !== orig;
+  }
+
+  // Redirigir al campo correspondiente en la pestaña de edición y enfocarlo
+  enfocarCampo(campo: string): void {
+    this.tabActiva.set('edicion');
+    setTimeout(() => {
+      const el = document.getElementById(`input-edit-${campo}`);
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+  }
+
+  // Manejo de error al cargar el escudo o imagen
+  onImgError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.style.display = 'none';
+    }
+  }
 
   googleStatus = signal<GoogleDocsStatus | null>(null);
 
@@ -1489,9 +2006,6 @@ export class GenerarTucDialogComponent implements OnInit {
         this.datosEditados.set({ ...initDatos });
         this.datosOriginales.set({ ...initDatos });
         this.isLoading.set(false);
-
-        // Generar inmediatamente la muestra HTML para que el iframe tenga contenido real sin hoja en blanco
-        this.generarPreviewHtml(initDatos);
       },
       error: (err) => {
         this.isLoading.set(false);
@@ -1505,7 +2019,7 @@ export class GenerarTucDialogComponent implements OnInit {
         if (cfg) {
           this.configCalibrador.set(cfg);
           if (cfg.formato_papel === 'A4') {
-            this.zoomPreview.set(58);
+            this.zoomPreview.set(55);
           } else {
             this.zoomPreview.set(100);
           }
@@ -1558,13 +2072,32 @@ export class GenerarTucDialogComponent implements OnInit {
     this.generarPreviewHtml(this.hayModificaciones() ? this.datosEditados() : this.datosOriginales());
   }
 
+  abrirVistaEnNuevaPestana(): void {
+    const term = this.data.vehiculo.placa || this.data.vehiculo.id;
+    if (this.hayModificaciones()) {
+      this.tucService.renderHtmlCustom(term, this.datosEditados(), this.configCalibrador() || undefined).subscribe({
+        next: (html) => {
+          const win = window.open('', '_blank');
+          if (win) {
+            win.document.open();
+            win.document.write(html);
+            win.document.close();
+          }
+        },
+        error: () => window.open(`${environment.apiUrl}/tucs/render-html/${encodeURIComponent(term)}?auto_print=false`, '_blank')
+      });
+    } else {
+      window.open(`${environment.apiUrl}/tucs/render-html/${encodeURIComponent(term)}?auto_print=false`, '_blank');
+    }
+  }
+
   cambiarZoomPreview(delta: number): void {
     this.zoomPreview.update(z => Math.min(160, Math.max(30, z + delta)));
   }
 
   resetZoomPreview(): void {
-    const isA4 = this.configCalibrador()?.formato_papel === 'A4';
-    this.zoomPreview.set(isA4 ? 58 : 100);
+    const isA4 = this.formatoPapel() === 'A4';
+    this.zoomPreview.set(isA4 ? 55 : 100);
   }
 
   actualizarCampo(campo: string, valor: any): void {
@@ -1572,44 +2105,32 @@ export class GenerarTucDialogComponent implements OnInit {
   }
 
   aplicarEdicionAPreview(): void {
-    this.isUpdatingPreview.set(true);
-    this.generarPreviewHtml(this.datosEditados());
-    this.snackBar.open('✓ Muestra de TUC actualizada con los campos editados.', 'OK', { duration: 2500 });
+    this.snackBar.open('✓ Muestra de TUC actualizada en vivo con los campos editados.', 'OK', { duration: 2500 });
+  }
+
+  aplicarEdicionAPreviewSilenciosa(): void {
+    // La reactividad de Signals actualiza placeholdersVehiculo automáticamente
   }
 
   restablecerValoresOriginales(): void {
     const orig = { ...this.datosOriginales() };
     this.datosEditados.set(orig);
-    this.generarPreviewHtml(orig);
     this.snackBar.open('Valores originales restablecidos.', 'OK', { duration: 2500 });
   }
 
   imprimirDesdeEditor(): void {
-    this.aplicarEdicionAPreview();
-    setTimeout(() => {
-      this.imprimirTarjeta();
-    }, 400);
+    this.imprimirTarjeta();
   }
 
   imprimirTarjeta(): void {
-    // Si el iframe está listo (sea con src o srcdoc), imprimir directamente desde su contentWindow
-    try {
-      const frame = this.previewIframe?.nativeElement;
-      if (frame && frame.contentWindow) {
-        frame.contentWindow.focus();
-        frame.contentWindow.print();
-        return;
-      }
-    } catch (e) {
-      console.warn('Fallback a impresión directa:', e);
-    }
     this.imprimirHtmlInstantaneo();
   }
 
   imprimirHtmlInstantaneo(): void {
     const term = this.data.vehiculo.placa || this.data.vehiculo.id;
+    const cfg = this.configCalibrador();
     if (this.hayModificaciones()) {
-      this.tucService.renderHtmlCustom(term, this.datosEditados(), this.configCalibrador() || undefined).subscribe({
+      this.tucService.renderHtmlCustom(term, this.datosEditados(), cfg || undefined).subscribe({
         next: (html) => {
           const win = window.open('', '_blank', 'width=850,height=1100');
           if (win) {
@@ -1619,10 +2140,17 @@ export class GenerarTucDialogComponent implements OnInit {
             win.document.close();
           }
         },
-        error: () => this.tucService.imprimirHtmlDirecto(term)
+        error: () => {
+          if (cfg) this.tucService.imprimirHtmlConConfig(term, cfg);
+          else this.tucService.imprimirHtmlDirecto(term);
+        }
       });
     } else {
-      this.tucService.imprimirHtmlDirecto(term);
+      if (cfg) {
+        this.tucService.imprimirHtmlConConfig(term, cfg);
+      } else {
+        this.tucService.imprimirHtmlDirecto(term);
+      }
     }
   }
 

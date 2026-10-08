@@ -1234,27 +1234,11 @@ class TucCalibradorService:
             key=lambda item: (item.get("seccion", "anverso"), float(item.get("y_mm", 0.0)), float(item.get("x_mm", 0.0)))
         )
 
-        desplazamientos_seccion = {"anverso": 0.0, "reverso": 0.0}
-        ultimo_bottom_multilinea = {"anverso": 0.0, "reverso": 0.0}
-        ultimo_multilinea_y_orig = {"anverso": -1.0, "reverso": -1.0}
-
         for v in variables_ordenadas:
             seccion = v.get("seccion", "anverso")
             tipo = v.get("tipo", "texto")
-            x = v.get("x_mm", 0.0)
-            y_orig = float(v.get("y_mm", 0.0))
-
-            # Si el elemento está situado debajo de un multilínea previo, verificar si debe bajar
-            if y_orig > ultimo_multilinea_y_orig.get(seccion, -1.0):
-                y_calc = y_orig + desplazamientos_seccion.get(seccion, 0.0)
-                limite_ant = ultimo_bottom_multilinea.get(seccion, 0.0)
-                if limite_ant > 0 and y_calc < limite_ant + 0.4:
-                    delta_necesario = round((limite_ant + 0.4) - y_calc, 2)
-                    desplazamientos_seccion[seccion] += delta_necesario
-                    y_calc += delta_necesario
-                y = y_calc
-            else:
-                y = y_orig
+            x = float(v.get("x_mm", 0.0))
+            y = float(v.get("y_mm", 0.0))
 
             w = v.get("width_mm")
             h = v.get("height_mm")
@@ -1405,20 +1389,6 @@ class TucCalibradorService:
                 else:
                     wrap_style = f"white-space: normal; line-height: {line_height}; word-break: break-word;"
 
-                # Registrar si este elemento es multilínea para que los de abajo bajen y no se sobreencimen
-                num_filas = 1
-                if max_lineas == 2:
-                    num_filas = 2
-                elif max_lineas == 0:
-                    longitud_aprox = len(str(val)) if val else 0
-                    ancho_disp = v.get("width_mm") or 55.0
-                    if longitud_aprox * 1.6 > ancho_disp:
-                        num_filas = 2
-
-                if num_filas > 1:
-                    alto_efectivo_mm = num_filas * (base_size * 0.3528 * line_height) + 0.6
-                    ultimo_bottom_multilinea[seccion] = max(ultimo_bottom_multilinea.get(seccion, 0.0), y + alto_efectivo_mm)
-                    ultimo_multilinea_y_orig[seccion] = y_orig
 
             if not val_html.strip():
                 continue

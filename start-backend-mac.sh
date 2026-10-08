@@ -119,37 +119,62 @@ cd "$BACKEND_DIR" || exit 1
 # 3. Validar / configurar entorno virtual Python
 echo -e "\n${BLUE}[1/3] Verificando entorno virtual de Python...${NC}"
 
-VENV_PATH="$BACKEND_DIR/venv"
-if [ ! -d "$VENV_PATH" ]; then
-    echo -e "${YELLOW}No se encontró venv en $VENV_PATH. Creando nuevo entorno...${NC}"
-    if command -v python3 >/dev/null 2>&1; then
-        python3 -m venv "$VENV_PATH"
-        echo -e "${GREEN}✓ Entorno virtual creado exitosamente con python3.${NC}"
-    elif command -v python >/dev/null 2>&1; then
-        python -m venv "$VENV_PATH"
-        echo -e "${GREEN}✓ Entorno virtual creado exitosamente con python.${NC}"
-    else
-        echo -e "${RED}❌ Error: 'python3' ni 'python' están instalados o en el PATH.${NC}"
-        exit 1
-    fi
-fi
-
-# Activar entorno virtual
-if [ -f "$VENV_PATH/bin/activate" ]; then
-    # shellcheck disable=SC1091
-    source "$VENV_PATH/bin/activate"
-    echo -e "${GREEN}✓ Entorno virtual activado (${VENV_PATH}/bin/activate)${NC}"
-elif [ -f "$VENV_PATH/Scripts/activate" ]; then
-    # shellcheck disable=SC1091
-    source "$VENV_PATH/Scripts/activate"
-    echo -e "${GREEN}✓ Entorno virtual activado (${VENV_PATH}/Scripts/activate)${NC}"
+# Detectar comando python disponible
+PYTHON_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
 else
-    echo -e "${RED}❌ Error: No se encontró script de activación en $VENV_PATH/bin/activate ni en $VENV_PATH/Scripts/activate${NC}"
+    echo -e "${RED}❌ Error: 'python3' ni 'python' están instalados o en el PATH.${NC}"
     exit 1
 fi
 
+VENV_DIR="venv"
+VENV_ACTIVATED=false
+
+# 1. Si existe entorno virtual local, activarlo
+if [ -f "$VENV_DIR/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    source "$VENV_DIR/bin/activate"
+    echo -e "${GREEN}✓ Entorno virtual activado ($VENV_DIR/bin/activate)${NC}"
+    VENV_ACTIVATED=true
+elif [ -f "$VENV_DIR/Scripts/activate" ]; then
+    # shellcheck disable=SC1091
+    source "$VENV_DIR/Scripts/activate"
+    echo -e "${GREEN}✓ Entorno virtual activado ($VENV_DIR/Scripts/activate)${NC}"
+    VENV_ACTIVATED=true
+elif [ -f ".venv/bin/activate" ]; then
+    source ".venv/bin/activate"
+    echo -e "${GREEN}✓ Entorno virtual activado (.venv/bin/activate)${NC}"
+    VENV_ACTIVATED=true
+elif [ -f ".venv/Scripts/activate" ]; then
+    source ".venv/Scripts/activate"
+    echo -e "${GREEN}✓ Entorno virtual activado (.venv/Scripts/activate)${NC}"
+    VENV_ACTIVATED=true
+fi
+
+# 2. Si no hay venv activo, verificar si el Python actual ya tiene dependencias
+if [ "$VENV_ACTIVATED" = false ]; then
+    if $PYTHON_BIN -c "import uvicorn, fastapi" >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ Utilizando Python del entorno actual ($($PYTHON_BIN --version 2>&1)) con dependencias listas.${NC}"
+    else
+        echo -e "${YELLOW}No se encontró venv ni dependencias instaladas. Creando entorno virtual en ./$VENV_DIR...${NC}"
+        $PYTHON_BIN -m venv "$VENV_DIR"
+        if [ -f "$VENV_DIR/bin/activate" ]; then
+            source "$VENV_DIR/bin/activate"
+        elif [ -f "$VENV_DIR/Scripts/activate" ]; then
+            source "$VENV_DIR/Scripts/activate"
+        else
+            echo -e "${RED}❌ Error: No se encontró script de activación tras crear el entorno virtual.${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}✓ Entorno virtual creado y activado.${NC}"
+    fi
+fi
+
 # Verificar uvicorn
-if ! python -c "import uvicorn, fastapi" >/dev/null 2>&1; then
+if ! python -c "import uvicorn, fastapi" >/dev/null 2>&1 && ! $PYTHON_BIN -c "import uvicorn, fastapi" >/dev/null 2>&1; then
     echo -e "${YELLOW}⚠️  Faltan dependencias en el entorno virtual. Instalando de requirements.txt...${NC}"
     pip install -r requirements.txt
     if [ $? -ne 0 ]; then
@@ -220,4 +245,5 @@ echo -e "   • Detener servidor:   ${YELLOW}Ctrl + C${NC}"
 echo -e "${CYAN}======================================================${NC}\n"
 
 # Iniciar Uvicorn
-exec python -m uvicorn app.main:app --host "$HOST" --port "$PORT" --reload
+exec "${PYTHON_BIN:-python}" -m uvicorn app.main:app --host "$HOST" --port "$PORT" --reload
+
