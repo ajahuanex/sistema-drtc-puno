@@ -386,46 +386,90 @@ export class TucService {
     return `${this.apiUrl}/render-html/${encodeURIComponent(placaOId)}`;
   }
 
-  imprimirHtmlDirecto(placaOId: string): void {
-    const url = this.getUrlRenderHtml(placaOId);
-    const win = window.open(url, '_blank', 'width=850,height=1100');
-    if (win) {
-      win.focus();
+  imprimirHtmlSilencioso(htmlContent: string): void {
+    const id = 'tuc-hidden-print-iframe';
+    const oldIframe = document.getElementById(id);
+    if (oldIframe) {
+      oldIframe.remove();
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.id = id;
+    iframe.setAttribute('style', 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;opacity:0;pointer-events:none;z-index:-9999;');
+    document.body.appendChild(iframe);
+
+    // Evitar que onload="window.print()" choque con nuestra invocación controlada
+    let htmlModificado = htmlContent.replace(/onload="window\.print\(\)"/gi, '');
+    const scriptCierre = `
+      <script>
+        window.addEventListener('afterprint', function() {
+          try {
+            const frame = window.frameElement;
+            if (frame) setTimeout(function() { frame.remove(); }, 100);
+          } catch(e) {}
+        });
+      </script>
+    `;
+
+    if (htmlModificado.includes('</body>')) {
+      htmlModificado = htmlModificado.replace('</body>', `${scriptCierre}</body>`);
+    } else {
+      htmlModificado += scriptCierre;
+    }
+
+    const win = iframe.contentWindow;
+    if (!win) return;
+
+    const doc = win.document;
+    doc.open();
+    doc.write(htmlModificado);
+    doc.close();
+
+    const ejecutarPrint = () => {
+      try {
+        win.focus();
+        win.print();
+      } catch (err) {
+        console.error('Error al ejecutar impresión en iframe silencioso:', err);
+      } finally {
+        setTimeout(() => {
+          const el = document.getElementById(id);
+          if (el) el.remove();
+        }, 6000);
+      }
+    };
+
+    if (doc.readyState === 'complete') {
+      setTimeout(ejecutarPrint, 180);
+    } else {
+      iframe.onload = () => {
+        setTimeout(ejecutarPrint, 180);
+      };
     }
   }
 
-  imprimirHtmlConConfig(placaOId: string, config: PlantillaTucCalibradorConfig): void {
-    const win = window.open('', '_blank', 'width=850,height=1100');
-    if (win) {
-      win.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head><title>Impresión TUC</title></head>
-        <body style="font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #ffffff; color: #475569;">
-          <div style="text-align: center;">
-            <div style="font-size: 16px; font-weight: bold; margin-bottom: 6px;">Preparando documento TUC...</div>
-          </div>
-        </body>
-        </html>
-      `);
-    }
+  imprimirHtmlDirecto(placaOId: string): void {
+    const url = `${this.apiUrl}/render-html/${encodeURIComponent(placaOId)}?auto_print=false`;
+    this.http.get(url, { responseType: 'text' }).subscribe({
+      next: (html) => {
+        this.imprimirHtmlSilencioso(html);
+      },
+      error: (err) => {
+        console.error('Error al obtener HTML para impresión silenciosa:', err);
+        const win = window.open(this.getUrlRenderHtml(placaOId), '_blank', 'width=850,height=1100');
+        if (win) win.focus();
+      }
+    });
+  }
 
+  imprimirHtmlConConfig(placaOId: string, config: PlantillaTucCalibradorConfig): void {
     const url = `${this.apiUrl}/render-html-preview/${encodeURIComponent(placaOId)}`;
     this.http.post(url, config, { responseType: 'text' }).subscribe({
       next: (html) => {
-        if (win && !win.closed) {
-          win.document.open();
-          win.document.write(html);
-          win.document.close();
-        } else {
-          this.imprimirHtmlDirecto(placaOId);
-        }
+        this.imprimirHtmlSilencioso(html);
       },
       error: (err) => {
         console.error('Error al generar HTML de impresión con configuración:', err);
-        if (win && !win.closed) {
-          win.close();
-        }
         this.imprimirHtmlDirecto(placaOId);
       }
     });
@@ -437,35 +481,12 @@ export class TucService {
   }
 
   imprimirLoteDirecto(placas: string[], config?: PlantillaTucCalibradorConfig): void {
-    const win = window.open('', '_blank', 'width=950,height=1100');
-    if (win) {
-      win.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head><title>Impresión Lote de TUCs</title></head>
-        <body style="font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #ffffff; color: #475569;">
-          <div style="text-align: center;">
-            <div style="font-size: 16px; font-weight: bold; margin-bottom: 6px;">Preparando lote de ${placas.length} TUCs...</div>
-            <div style="font-size: 13px; color: #64748b;">Generando hojas para impresión o PDF en bloque</div>
-          </div>
-        </body>
-        </html>
-      `);
-    }
-
     this.imprimirLoteHtml(placas, config).subscribe({
       next: (html) => {
-        if (win && !win.closed) {
-          win.document.open();
-          win.document.write(html);
-          win.document.close();
-        }
+        this.imprimirHtmlSilencioso(html);
       },
       error: (err) => {
-        console.error('Error al generar lote HTML:', err);
-        if (win && !win.closed) {
-          win.close();
-        }
+        console.error('Error al generar lote HTML silencioso:', err);
       }
     });
   }

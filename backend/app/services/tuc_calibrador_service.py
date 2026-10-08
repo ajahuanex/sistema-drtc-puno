@@ -1548,6 +1548,15 @@ class TucCalibradorService:
       }}
     }}
   </style>
+  <script>
+    window.addEventListener('afterprint', function() {
+      try {
+        if (window.opener || window.history.length === 1) {
+          window.close();
+        }
+      } catch(e) {}
+    });
+  </script>
 </head>
 <body{onload_attr}>{body_content}
 </body>
@@ -1668,6 +1677,15 @@ class TucCalibradorService:
       }}
     }}
   </style>
+  <script>
+    window.addEventListener('afterprint', function() {
+      try {
+        if (window.opener || window.history.length === 1) {
+          window.close();
+        }
+      } catch(e) {}
+    });
+  </script>
 </head>
 <body onload="window.print()">
 {contenido_total}

@@ -2132,13 +2132,7 @@ export class GenerarTucDialogComponent implements OnInit {
     if (this.hayModificaciones()) {
       this.tucService.renderHtmlCustom(term, this.datosEditados(), cfg || undefined).subscribe({
         next: (html) => {
-          const win = window.open('', '_blank', 'width=850,height=1100');
-          if (win) {
-            win.document.open();
-            const htmlWithPrint = html.replace('<body>', '<body onload="window.print()">');
-            win.document.write(htmlWithPrint);
-            win.document.close();
-          }
+          this.tucService.imprimirHtmlSilencioso(html);
         },
         error: () => {
           if (cfg) this.tucService.imprimirHtmlConConfig(term, cfg);
