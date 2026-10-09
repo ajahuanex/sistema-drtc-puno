@@ -29,6 +29,7 @@ class TipoTramite(str, Enum):
 class Resolucion(BaseModel):
     id: Optional[str] = None
     nroResolucion: str  # Número de resolución actual (HIJA si existe, sino PADRE)
+    siglas: Optional[str] = None  # Siglas institucionales (ej: GRP/GRI/DRTC, GRP/DRTC, GR PUNO/GRI/DRTC)
     ruc: str  # RUC de la empresa
     empresaId: str
     
@@ -77,6 +78,7 @@ class Resolucion(BaseModel):
 
 class ResolucionCreate(BaseModel):
     nroResolucion: str
+    siglas: Optional[str] = None
     empresaId: str
     fechaEmision: Optional[datetime] = None
     fechaVigenciaInicio: Optional[datetime] = None
@@ -94,6 +96,7 @@ class ResolucionCreate(BaseModel):
     observaciones: Optional[str] = None
 
 class ResolucionUpdate(BaseModel):
+    siglas: Optional[str] = None
     fechaVigenciaInicio: Optional[datetime] = None
     fechaVigenciaFin: Optional[datetime] = None
     aniosVigencia: Optional[int] = None
@@ -125,6 +128,7 @@ class ResolucionFiltros(BaseModel):
 class ResolucionResponse(BaseModel):
     id: Optional[str] = None  # Opcional para compatibilidad
     nroResolucion: str
+    siglas: Optional[str] = None
     empresaId: str
     fechaEmision: Optional[datetime] = None
     fechaVigenciaInicio: Optional[datetime] = None

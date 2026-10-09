@@ -29,7 +29,7 @@ class ResolucionPrimigeniaService:
         return str(uuid.uuid4())
 
     async def create_resolucion_primigenia(self, resolucion_data: ResolucionPrimigeniaCreate) -> ResolucionPrimigenia:
-        from app.utils.resolucion_utils import normalizar_numero_resolucion
+        from app.utils.resolucion_utils import normalizar_numero_resolucion, determinar_siglas_resolucion
         resolucion_data.nro_resolucion = normalizar_numero_resolucion(resolucion_data.nro_resolucion)
 
         # 1. Verificar número duplicado
@@ -40,6 +40,8 @@ class ResolucionPrimigeniaService:
         # 2. Convertir Pydantic a dict
         data_dict = resolucion_data.model_dump(by_alias=False)
         data_dict["nro_resolucion"] = resolucion_data.nro_resolucion
+        if not data_dict.get("siglas"):
+            data_dict["siglas"] = determinar_siglas_resolucion(data_dict.get("nro_resolucion"))
         data_dict["fecha_registro"] = datetime.utcnow()
         data_dict["esta_activo"] = True
         
@@ -116,12 +118,15 @@ class ResolucionPrimigeniaService:
         if doc:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("siglas"):
+                from app.utils.resolucion_utils import determinar_siglas_resolucion
+                doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
             doc["estado"] = self._calcular_estado_efectivo(doc)
             return ResolucionPrimigenia(**doc)
         return None
 
     async def get_resolucion_by_numero(self, nro_resolucion: str) -> Optional[ResolucionPrimigenia]:
-        from app.utils.resolucion_utils import normalizar_numero_resolucion
+        from app.utils.resolucion_utils import normalizar_numero_resolucion, determinar_siglas_resolucion
         nro_norm = normalizar_numero_resolucion(nro_resolucion)
         
         doc = await self.collection.find_one({
@@ -134,11 +139,14 @@ class ResolucionPrimigeniaService:
         if doc:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("siglas"):
+                doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
             doc["estado"] = self._calcular_estado_efectivo(doc)
             return ResolucionPrimigenia(**doc)
         return None
 
     async def get_resoluciones_by_ruc(self, ruc_empresa: str) -> List[ResolucionPrimigenia]:
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         cursor = self.collection.find({
             "ruc_empresa": ruc_empresa.strip(),
             "esta_activo": True
@@ -148,6 +156,8 @@ class ResolucionPrimigeniaService:
         for doc in docs:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("siglas"):
+                doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
             if not doc.get("fecha_resolucion") and doc.get("fecha_emision"):
                 doc["fecha_resolucion"] = doc["fecha_emision"]
             if not doc.get("tipo_autorizacion"):
@@ -157,6 +167,7 @@ class ResolucionPrimigeniaService:
         return [ResolucionPrimigenia(**doc) for doc in docs]
 
     async def get_resoluciones_con_filtros(self, filtros: Dict[str, Any]) -> List[ResolucionPrimigenia]:
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         query: Dict[str, Any] = {"esta_activo": True}
         
         if filtros.get("ruc_empresa"):
@@ -192,6 +203,8 @@ class ResolucionPrimigeniaService:
         for doc in docs:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("siglas"):
+                doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
             if not doc.get("fecha_resolucion") and doc.get("fecha_emision"):
                 doc["fecha_resolucion"] = doc["fecha_emision"]
             if not doc.get("tipo_autorizacion"):
@@ -214,8 +227,10 @@ class ResolucionPrimigeniaService:
             return actual
 
         if "nro_resolucion" in update_dict and update_dict["nro_resolucion"]:
-            from app.utils.resolucion_utils import normalizar_numero_resolucion
+            from app.utils.resolucion_utils import normalizar_numero_resolucion, determinar_siglas_resolucion
             update_dict["nro_resolucion"] = normalizar_numero_resolucion(update_dict["nro_resolucion"])
+            if not update_dict.get("siglas"):
+                update_dict["siglas"] = determinar_siglas_resolucion(update_dict["nro_resolucion"])
 
         update_dict["fecha_actualizacion"] = datetime.utcnow()
         

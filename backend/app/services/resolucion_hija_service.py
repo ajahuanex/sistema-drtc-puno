@@ -27,6 +27,7 @@ class ResolucionHijaService:
         return str(uuid.uuid4())
 
     async def create_resolucion_hija(self, data: ResolucionHijaCreate) -> ResolucionHija:
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         # 1. Validar que no exista otra resolución hija con el mismo número
         existente = await self.get_resolucion_hija_by_numero(data.nro_resolucion)
         if existente:
@@ -34,6 +35,8 @@ class ResolucionHijaService:
 
         # 2. Convertir Pydantic a dict
         hija_dict = data.model_dump(by_alias=False)
+        if not hija_dict.get("siglas"):
+            hija_dict["siglas"] = determinar_siglas_resolucion(hija_dict.get("nro_resolucion"))
         hija_dict["fecha_registro"] = datetime.utcnow()
         hija_dict["esta_activo"] = True
 
@@ -58,6 +61,8 @@ class ResolucionHijaService:
         doc_creado = await self.collection.find_one({"_id": result.inserted_id})
         if doc_creado and "_id" in doc_creado and "id" not in doc_creado:
             doc_creado["id"] = str(doc_creado.pop("_id"))
+        if doc_creado and not doc_creado.get("siglas"):
+            doc_creado["siglas"] = determinar_siglas_resolucion(doc_creado.get("nro_resolucion"))
 
         # 5. INTEGRACIÓN AUTOMÁTICA: Actualizar la primigenia vinculada
         if primigenia:
@@ -86,6 +91,7 @@ class ResolucionHijaService:
         return ResolucionHija(**doc_creado)
 
     async def get_resolucion_hija_by_id(self, hija_id: str) -> Optional[ResolucionHija]:
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         or_conditions = [{"id": hija_id}]
         if ObjectId.is_valid(hija_id):
             or_conditions.append({"_id": ObjectId(hija_id)})
@@ -94,10 +100,13 @@ class ResolucionHijaService:
         if doc:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("siglas"):
+                doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
             return ResolucionHija(**doc)
         return None
 
     async def get_resolucion_hija_by_numero(self, nro_resolucion: str) -> Optional[ResolucionHija]:
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         nro_clean = nro_resolucion.strip()
         core = re.sub(r'^[Rr]-?', '', re.sub(r'-[ISRMOCFE]$', '', nro_clean, flags=re.I)).strip()
         parts = core.split('-')
@@ -118,10 +127,13 @@ class ResolucionHijaService:
         if doc:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("siglas"):
+                doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
             return ResolucionHija(**doc)
         return None
 
     async def get_hijas_by_primigenia(self, nro_resolucion_primigenia: str) -> List[ResolucionHija]:
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         cursor = self.collection.find({
             "nro_resolucion_primigenia": nro_resolucion_primigenia.strip(),
             "esta_activo": True
@@ -131,10 +143,13 @@ class ResolucionHijaService:
         for doc in docs:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("siglas"):
+                doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
 
         return [ResolucionHija(**doc) for doc in docs]
 
     async def get_hijas_by_ruc(self, ruc_empresa: str) -> List[ResolucionHija]:
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         cursor = self.collection.find({
             "ruc_empresa": ruc_empresa.strip(),
             "esta_activo": True
@@ -144,10 +159,13 @@ class ResolucionHijaService:
         for doc in docs:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("siglas"):
+                doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
 
         return [ResolucionHija(**doc) for doc in docs]
 
     async def get_resoluciones_hijas_con_filtros(self, filtros: Dict[str, Any]) -> List[ResolucionHija]:
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         query: Dict[str, Any] = {"esta_activo": True}
 
         if filtros.get("ruc_empresa"):
@@ -175,6 +193,8 @@ class ResolucionHijaService:
         for doc in docs:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("siglas"):
+                doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
 
         return [ResolucionHija(**doc) for doc in docs]
 
@@ -183,6 +203,7 @@ class ResolucionHijaService:
         hija_id: str,
         update_data: ResolucionHijaUpdate
     ) -> Optional[ResolucionHija]:
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         actual = await self.get_resolucion_hija_by_id(hija_id)
         if not actual:
             return None
@@ -190,6 +211,9 @@ class ResolucionHijaService:
         update_dict = update_data.model_dump(exclude_unset=True)
         if not update_dict:
             return actual
+
+        if "nro_resolucion" in update_dict and not update_dict.get("siglas"):
+            update_dict["siglas"] = determinar_siglas_resolucion(update_dict["nro_resolucion"])
 
         update_dict["fecha_actualizacion"] = datetime.utcnow()
 

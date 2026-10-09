@@ -291,35 +291,40 @@ class TucDocumentService:
                 tipo_hija = "R"
 
         # 2. Normalizar tipo de trámite a sigla oficial DRTC
+        # REGLA: Esta resolución hija SOLAMENTE aparece cuando es Sustitución (S) o Incremento (I)
+        # (o en Duplicado si su origen fue S o I). Si el vehículo fue registrado en una resolución
+        # primigenia (autorización nueva/renovación), es obvio que no tiene resolución hija y debe estar en blanco.
         sigla = ""
         es_en_blanco = False
 
-        if tipo_hija in ["I", "INCREMENTO", "INCREMENTO DE FLOTA"]:
+        # Si el número registrado como 'hija' es idéntico a la primigenia, o no existe resolución hija:
+        if not nro_hija_raw or (nro_primigenia_raw and clean_num_resolucion(nro_hija_raw) == clean_num_resolucion(nro_primigenia_raw)):
+            es_en_blanco = True
+        elif tipo_hija in ["I", "INCREMENTO", "INCREMENTO DE FLOTA"]:
             sigla = "I"
         elif tipo_hija in ["S", "SUSTITUCION", "SUSTITUCIÓN", "SUSTITUCION DE VEHICULO"]:
             sigla = "S"
-        elif tipo_hija in ["M", "MODIFICACION", "MODIFICACIÓN"]:
-            sigla = "M"
-        elif tipo_hija in ["FE", "FE DE ERRATAS", "ERRATA"]:
-            sigla = "FE"
-        elif tipo_hija in ["R", "RENOVACION", "RENOVACIÓN", "AUTORIZACION", "AUTORIZACIÓN", "AUTORIZACION NUEVA"] or not nro_hija_raw:
-            es_en_blanco = True
         else:
+            # Cualquier otro trámite (Primigenia, Nueva, Renovación, Modificación menor, etc.) queda totalmente en blanco
             es_en_blanco = True
 
-        if es_en_blanco or not nro_hija_raw:
+        if es_en_blanco or not nro_hija_raw or not sigla:
             return {
                 "es_en_blanco": True,
                 "num_resolucion": "",
                 "fecha_resolucion": "",
                 "tipo_resolucion": "",
                 "sigla": "",
+                "siglas_institucion": "",
+                "num_resolucion_completo": "",
                 "texto_completo": ""
             }
 
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         num_res_clean = clean_num_resolucion(nro_hija_raw)
         fecha_res_clean = format_fecha(fecha_hija)
-        texto = f"R.D.R N° {num_res_clean}-GRP/GRI/DRTC ({fecha_res_clean}) ({sigla})"
+        siglas_acto = determinar_siglas_resolucion(nro_hija_raw)
+        texto = f"R.D.R N° {num_res_clean}-{siglas_acto} ({fecha_res_clean}) ({sigla})"
 
         return {
             "es_en_blanco": False,
@@ -327,6 +332,8 @@ class TucDocumentService:
             "fecha_resolucion": fecha_res_clean,
             "tipo_resolucion": sigla,
             "sigla": sigla,
+            "siglas_institucion": siglas_acto,
+            "num_resolucion_completo": f"{num_res_clean}-{siglas_acto}",
             "texto_completo": texto
         }
 
@@ -446,8 +453,10 @@ class TucDocumentService:
         fecha_al = "-"
         fecha_res_p = "-"
         nro_res_p = clean_num_resolucion(nro_primigenia_raw)
+        siglas_res_p = ""
 
         if res_prim:
+            siglas_res_p = res_prim.get("siglas") or ""
             fecha_del = format_fecha(res_prim.get("fecha_inicio_vigencia") or res_prim.get("fecha_resolucion"))
             fecha_al = format_fecha(res_prim.get("fecha_fin_vigencia"))
             fecha_res_p = format_fecha(res_prim.get("fecha_resolucion") or res_prim.get("fecha_emision"))
@@ -455,6 +464,10 @@ class TucDocumentService:
                 nro_res_p = clean_num_resolucion(res_prim.get("nro_resolucion"))
         else:
             fecha_al = format_fecha(vehiculo.get("fecha_vigencia_hasta"))
+
+        if not siglas_res_p and nro_res_p and nro_res_p != "-":
+            from app.utils.resolucion_utils import determinar_siglas_resolucion
+            siglas_res_p = determinar_siglas_resolucion(nro_res_p or nro_primigenia_raw)
 
         # 5. Obtener detalle de las rutas asociadas a la resolución primigenia y al vehículo
         rutas_objs = []
@@ -600,12 +613,34 @@ class TucDocumentService:
         num_resolucion_final = acto_reverso["num_resolucion"]
         fecha_res_final = acto_reverso["fecha_resolucion"]
         tipo_res_final = acto_reverso["sigla"]
+        siglas_acto = acto_reverso.get("siglas_institucion") or ""
+        num_res_acto_completo = acto_reverso.get("num_resolucion_completo") or ""
+        res_prim_completa = f"{nro_res_p}-{siglas_res_p}" if (nro_res_p and nro_res_p != "-" and siglas_res_p) else nro_res_p
 
-        # Mapeo completo de las 25 etiquetas oficiales
+        # 7. Determinar si corresponde texto condicional "DUPLICADO" o "RENOVACIÓN"
+        tuc_doc = await db.tucs.find_one({"placa": {"$regex": f"^{re.escape(placa)}$", "$options": "i"}}) if (db is not None and placa) else None
+        tipo_tramite_raw = (
+            vehiculo.get("tipo_resolucion_hija") or 
+            vehiculo.get("tipo_tramite_origen") or 
+            vehiculo.get("tramite") or 
+            (tuc_doc.get("motivoEmision") if tuc_doc else "") or 
+            (tuc_doc.get("tipoTramite") if tuc_doc else "") or 
+            ""
+        ).strip().upper()
+
+        es_duplicado = tipo_tramite_raw in ["D", "DUPLICADO"] or "DUPLICADO" in tipo_tramite_raw
+        es_renovacion = tipo_tramite_raw in ["R", "RENOVACION", "RENOVACIÓN"] or "RENOVACION" in tipo_tramite_raw or "RENOVACIÓN" in tipo_tramite_raw
+
+        texto_duplicado = "DUPLICADO" if es_duplicado else ""
+        texto_renovacion = "RENOVACIÓN" if es_renovacion else ""
+
+        # Mapeo completo de las etiquetas oficiales
         placeholders = {
             "{{FECHA_DEL}}": fecha_del,
             "{{FECHA_AL}}": fecha_al,
             "{{RES}}": nro_res_p,
+            "{{SIGLAS_RES_P}}": siglas_res_p,
+            "{{RES_CON_SIGLAS}}": res_prim_completa,
             "{{FECHA_RES_P}}": fecha_res_p,
             "{{EMPRESA}}": razon_social,
             "{{RUC}}": ruc,
@@ -626,8 +661,12 @@ class TucDocumentService:
             "{{PESO_BRUTO}}": peso_bruto,
             "{{TABLA_RUTAS}}": tabla_rutas_text,
             "{{NUM_RESOLUCION}}": num_resolucion_final,
+            "{{SIGLAS_RES_ACTO}}": siglas_acto,
+            "{{NUM_RESOLUCION_ACTO_CON_SIGLAS}}": num_res_acto_completo,
             "{{FECHA_RES}}": fecha_res_final,
-            "{{TIPO_RES}}": tipo_res_final
+            "{{TIPO_RES}}": tipo_res_final,
+            "{{DUPLICADO}}": texto_duplicado,
+            "{{RENOVACION}}": texto_renovacion
         }
 
         datos_estructurados = {
@@ -639,6 +678,12 @@ class TucDocumentService:
             "fecha_del": fecha_del,
             "fecha_al": fecha_al,
             "nro_resolucion_primigenia": nro_res_p,
+            "tipo_tramite": tipo_tramite_raw,
+            "es_duplicado": es_duplicado,
+            "es_renovacion": es_renovacion,
+            "es_fila_en_blanco": es_fila_en_blanco,
+            "siglas_resolucion_primigenia": siglas_res_p,
+            "resolucion_primigenia_completa": res_prim_completa,
             "fecha_resolucion_primigenia": fecha_res_p,
             "color": color,
             "marca": marca,
@@ -656,6 +701,8 @@ class TucDocumentService:
             "rutas_detalle": rutas_para_frontend,
             "tabla_rutas_text": tabla_rutas_text,
             "num_resolucion_acto": num_resolucion_final,
+            "siglas_resolucion_acto": siglas_acto,
+            "resolucion_acto_completa": num_res_acto_completo,
             "fecha_resolucion_acto": fecha_res_final,
             "tipo_resolucion_acto": tipo_res_final,
             "es_fila_en_blanco": es_fila_en_blanco,

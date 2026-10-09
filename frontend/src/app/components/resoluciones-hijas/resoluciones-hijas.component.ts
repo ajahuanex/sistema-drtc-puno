@@ -229,7 +229,12 @@ import {
               <div class="detail-grid">
                 <div class="detail-item">
                   <span class="detail-label">N° Resolución Hija</span>
-                  <span class="detail-value bold-text color-teal">{{ det.nro_resolucion }}</span>
+                  <span class="detail-value bold-text color-teal">
+                    {{ det.nro_resolucion }}
+                    @if (det.siglas) {
+                      <span class="siglas-badge" style="margin-left: 0.5rem; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; background: rgba(14,165,233,0.12); color: #0284c7; font-weight: 600;">{{ det.siglas }}</span>
+                    }
+                  </span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">N° Primigenia Matriz</span>
@@ -465,6 +470,7 @@ import {
                       @if (columnaVisible('flota_ingresante')) { <th>Flota Ingresante</th> }
                       @if (columnaVisible('flota_saliente')) { <th>Flota Saliente</th> }
                       @if (columnaVisible('observaciones')) { <th>Observaciones</th> }
+                      @if (columnaVisible('siglas')) { <th>Siglas Organismo</th> }
                       @if (columnaVisible('link_documento')) { <th>Drive</th> }
                       @if (columnaVisible('acciones')) { <th>Acciones</th> }
                     </tr>
@@ -559,6 +565,15 @@ import {
                             <span class="obs-text" [matTooltip]="item.observaciones || ''">
                               {{ item.observaciones || '-' }}
                             </span>
+                          </td>
+                        }
+                        @if (columnaVisible('siglas')) {
+                          <td>
+                            @if (item.siglas) {
+                              <span class="siglas-badge" style="font-size: 0.78rem; padding: 2px 6px; border-radius: 4px; background: rgba(14,165,233,0.12); color: #0284c7; font-weight: 600;">{{ item.siglas }}</span>
+                            } @else {
+                              <span class="sin-datos">-</span>
+                            }
                           </td>
                         }
                         @if (columnaVisible('link_documento')) {
@@ -1219,6 +1234,7 @@ export class ResolucionesHijasComponent implements OnInit {
     link_documento: [''],
     vehiculos_ingresantes: [''],
     vehiculos_salientes: [''],
+    siglas: [''],
     observaciones: ['']
   });
 
@@ -1346,6 +1362,7 @@ export class ResolucionesHijasComponent implements OnInit {
     { key: 'flota_ingresante', label: 'Flota Ingresante', required: false },
     { key: 'flota_saliente', label: 'Flota Saliente', required: false },
     { key: 'observaciones', label: 'Observaciones', required: false },
+    { key: 'siglas', label: 'Siglas Organismo', required: false },
     { key: 'link_documento', label: 'Drive', required: false },
     { key: 'acciones', label: 'Acciones', required: true }
   ];
@@ -1490,6 +1507,7 @@ export class ResolucionesHijasComponent implements OnInit {
       link_documento: item.link_documento || '',
       vehiculos_ingresantes: (item.vehiculos_ingresantes || []).join(', '),
       vehiculos_salientes: (item.vehiculos_salientes || []).join(', '),
+      siglas: item.siglas || '',
       observaciones: item.observaciones || ''
     });
 
@@ -1532,6 +1550,7 @@ export class ResolucionesHijasComponent implements OnInit {
 
     const dto = {
       nro_resolucion: formVal.nro_resolucion,
+      siglas: formVal.siglas || undefined,
       nro_resolucion_primigenia: formVal.nro_resolucion_primigenia,
       ruc_empresa: formVal.ruc_empresa,
       tipo_acto: formVal.tipo_acto,

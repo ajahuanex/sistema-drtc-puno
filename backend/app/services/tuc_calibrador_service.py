@@ -13,6 +13,7 @@ import qrcode
 
 from app.dependencies.db import get_database
 from app.services.tuc_document_service import TucDocumentService
+from app.utils.resolucion_utils import determinar_siglas_resolucion
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +150,7 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
         "align": "left",
         "visible": True,
         "prefix": "R.D.R. N° ",
+        "suffix": "-GR PUNO/GRI/DRTC",
         "valor_ejemplo": "0392-2023"
     },
     {
@@ -501,7 +503,7 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
     {
         "id": "num_resolucion",
         "tag": "{{NUM_RESOLUCION}}",
-        "label": "N° Resolución Hija / Acto",
+        "label": "N° Resolución Hija / Acto Reverso",
         "categoria": "acto_reverso",
         "seccion": "reverso",
         "x_mm": 26.0,
@@ -512,13 +514,17 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
         "color": "#000000",
         "align": "left",
         "visible": True,
+        "bloqueado": False,
         "prefix": "R.D.R N° ",
+        "suffix": "-GR PUNO/GRI/DRTC",
+        "suffix2": " (15/03/2024)",
+        "suffix3": " (S)",
         "valor_ejemplo": "0452-2024"
     },
     {
         "id": "fecha_res",
         "tag": "{{FECHA_RES}}",
-        "label": "Fecha Resolución Hija",
+        "label": "Fecha Resolución Hija (Integrada en Sufijo 2)",
         "categoria": "acto_reverso",
         "seccion": "reverso",
         "x_mm": 56.0,
@@ -527,7 +533,8 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
         "font_weight": "normal",
         "color": "#000000",
         "align": "left",
-        "visible": True,
+        "visible": False,
+        "bloqueado": False,
         "prefix": "(",
         "suffix": ")",
         "valor_ejemplo": "15/03/2024"
@@ -535,7 +542,7 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
     {
         "id": "tipo_res",
         "tag": "{{TIPO_RES}}",
-        "label": "Sigla Trámite (I, S, o Blanco)",
+        "label": "Sigla Trámite (Integrada en Sufijo 3)",
         "categoria": "acto_reverso",
         "seccion": "reverso",
         "x_mm": 72.0,
@@ -544,10 +551,49 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
         "font_weight": "bold",
         "color": "#000000",
         "align": "left",
-        "visible": True,
+        "visible": False,
+        "bloqueado": False,
         "prefix": "(",
         "suffix": ")",
         "valor_ejemplo": "S"
+    },
+
+    # --- SELLOS DE TRÁMITE OFICIALES ---
+    {
+        "id": "sello_duplicado",
+        "tag": "{{DUPLICADO}}",
+        "label": "Sello Vertical DUPLICADO (Rojo)",
+        "categoria": "sellos",
+        "seccion": "anverso",
+        "x_mm": 78.0,
+        "y_mm": 35.0,
+        "font_size_pt": 7.0,
+        "font_weight": "bold",
+        "color": "#eb0a0a",
+        "align": "left",
+        "visible": True,
+        "bloqueado": False,
+        "es_dinamica": False,
+        "orientacion_texto": "vertical_270",
+        "rotacion": 270,
+        "valor_ejemplo": "DUPLICADO"
+    },
+    {
+        "id": "sello_renovacion",
+        "tag": "{{RENOVACION}}",
+        "label": "Sello RENOVACIÓN (Azul)",
+        "categoria": "sellos",
+        "seccion": "reverso",
+        "x_mm": 65.0,
+        "y_mm": 50.0,
+        "font_size_pt": 7.0,
+        "font_weight": "bold",
+        "color": "#067cea",
+        "align": "left",
+        "visible": True,
+        "bloqueado": False,
+        "es_dinamica": False,
+        "valor_ejemplo": "RENOVACIÓN"
     },
     # --- ELEMENTOS GRÁFICOS (LOGO Y QR) ---
     {
@@ -1106,7 +1152,15 @@ class TucCalibradorService:
                 tag = v.get("tag")
                 val_ej = v.get("valor_ejemplo")
                 if tag and val_ej is not None:
-                    sample_placeholders[tag] = str(val_ej)
+                    # DUPLICADO, RENOVACION y resolución hija no deben activarse por defecto en muestra base (resolución primigenia)
+                    if tag in (
+                        "{{DUPLICADO}}", "{{RENOVACION}}",
+                        "{{NUM_RESOLUCION}}", "{{FECHA_RES}}", "{{TIPO_RES}}",
+                        "{{SIGLAS_RES_ACTO}}", "{{NUM_RESOLUCION_ACTO_CON_SIGLAS}}"
+                    ):
+                        sample_placeholders[tag] = ""
+                    else:
+                        sample_placeholders[tag] = str(val_ej)
 
             placa_efectiva = term.upper() if (term and term.upper() != "VBE-959") else sample_placeholders.get("{{PLACA}}", "VBE-959")
             sample_placeholders["{{PLACA}}"] = placa_efectiva
@@ -1218,6 +1272,39 @@ class TucCalibradorService:
                 valores_map["{{TABLA_RUTAS}}"] = str(datos_override["tabla_rutas_text"]).strip()
             elif "rutas" in datos_override:
                 valores_map["{{TABLA_RUTAS}}"] = str(datos_override["rutas"]).strip()
+
+            # Reglas condicionales según tipo_tramite recibido en override
+            tramite_override = str(datos_override.get("tipo_tramite") or datos_override.get("tramite") or "").strip().upper()
+            if tramite_override:
+                if tramite_override in ("D", "DUPLICADO") or "DUPLICADO" in tramite_override:
+                    valores_map["{{DUPLICADO}}"] = "DUPLICADO"
+                    if "{{RENOVACION}}" not in datos_override:
+                        valores_map["{{RENOVACION}}"] = ""
+                elif tramite_override in ("R", "RENOVACION", "RENOVACIÓN") or "RENOVACION" in tramite_override:
+                    valores_map["{{RENOVACION}}"] = "RENOVACIÓN"
+                    if "{{DUPLICADO}}" not in datos_override:
+                        valores_map["{{DUPLICADO}}"] = ""
+                    es_fila_en_blanco = True
+                    valores_map["{{NUM_RESOLUCION}}"] = ""
+                    valores_map["{{FECHA_RES}}"] = ""
+                    valores_map["{{TIPO_RES}}"] = ""
+                elif tramite_override in ("N", "NUEVA", "AUTORIZACION", "AUTORIZACION_NUEVA"):
+                    valores_map["{{DUPLICADO}}"] = ""
+                    valores_map["{{RENOVACION}}"] = ""
+                    es_fila_en_blanco = True
+                    valores_map["{{NUM_RESOLUCION}}"] = ""
+                    valores_map["{{FECHA_RES}}"] = ""
+                    valores_map["{{TIPO_RES}}"] = ""
+                elif tramite_override in ("I", "INCREMENTO"):
+                    valores_map["{{DUPLICADO}}"] = ""
+                    valores_map["{{RENOVACION}}"] = ""
+                    es_fila_en_blanco = False
+                    valores_map["{{TIPO_RES}}"] = "I"
+                elif tramite_override in ("S", "SUSTITUCION", "SUSTITUCIÓN"):
+                    valores_map["{{DUPLICADO}}"] = ""
+                    valores_map["{{RENOVACION}}"] = ""
+                    es_fila_en_blanco = False
+                    valores_map["{{TIPO_RES}}"] = "S"
 
         modo_hojas = config.get("modo_hojas", "UNA_HOJA")
         margen_izq_mm = config.get("margen_izq_mm", 10.0)
@@ -1350,6 +1437,13 @@ class TucCalibradorService:
                 # Prefijo y Sufijo con negrita y tamaño independientes
                 prefix = v.get("prefix") if v.get("prefix") is not None else v.get("etiqueta", "")
                 suffix = v.get("suffix", "")
+
+                # Sufijo dinámico de siglas institucionales oficiales DRTC para variables de resolución
+                if tag in ("{{RES}}", "{{NUM_RESOLUCION}}") and val:
+                    if not suffix or any(s in suffix for s in ("DRTC", "GRP", "GR PUNO")):
+                        sigla_oficial = determinar_siglas_resolucion(str(val))
+                        suffix = f"-{sigla_oficial}"
+
                 base_size = v.get("font_size_pt", 7.0)
 
                 prefix_weight = v.get("prefix_font_weight") or v.get("etiqueta_font_weight", "bold")
@@ -1362,8 +1456,32 @@ class TucCalibradorService:
                 suffix_weight = v.get("suffix_font_weight", "normal")
                 suffix_size = v.get("suffix_font_size_pt") or base_size
 
+                val_clean = str(val).strip() if val is not None else ""
+
+                # REGLA CRÍTICA: Si el valor está vacío o es '-', no renderizar nada (evita prefijos/sufijos fantasma)
+                if not val_clean or val_clean == "-":
+                    continue
+
                 # Formatear el valor aplicando resaltado de comillas (negrita y +1 tamaño)
-                val_formateado = formatear_comillas_y_estilos(str(val), resaltar_comillas=resaltar_com) if val else ""
+                val_formateado = formatear_comillas_y_estilos(val_clean, resaltar_comillas=resaltar_com)
+
+                suffix2 = v.get("suffix2") or ""
+                suffix3 = v.get("suffix3") or ""
+
+                # Para num_resolucion, integrar automáticamente fecha y trámite como 2do y 3er sufijo
+                if tag == "{{NUM_RESOLUCION}}":
+                    fecha_val = valores_map.get("{{FECHA_RES}}") or ""
+                    tipo_val = valores_map.get("{{TIPO_RES}}") or ""
+                    if fecha_val:
+                        if not suffix2:
+                            suffix2 = f" ({fecha_val})"
+                        elif "{{FECHA_RES}}" in suffix2:
+                            suffix2 = suffix2.replace("{{FECHA_RES}}", fecha_val)
+                    if tipo_val:
+                        if not suffix3:
+                            suffix3 = f" ({tipo_val})"
+                        elif "{{TIPO_RES}}" in suffix3:
+                            suffix3 = suffix3.replace("{{TIPO_RES}}", tipo_val)
 
                 partes_html = []
                 if prefix:
@@ -1374,6 +1492,14 @@ class TucCalibradorService:
                 if suffix:
                     suffix_escaped = html_escape(suffix)
                     partes_html.append(f'<span class="tuc-suffix" style="font-weight: {suffix_weight}; font-size: {suffix_size}pt;">{suffix_escaped}</span>')
+                if suffix2:
+                    s2_weight = v.get("suffix2_font_weight", "normal")
+                    s2_size = v.get("suffix2_font_size_pt") or base_size
+                    partes_html.append(f' <span class="tuc-suffix2" style="font-weight: {s2_weight}; font-size: {s2_size}pt;">{html_escape(suffix2)}</span>')
+                if suffix3:
+                    s3_weight = v.get("suffix3_font_weight", "bold")
+                    s3_size = v.get("suffix3_font_size_pt") or base_size
+                    partes_html.append(f' <span class="tuc-suffix3" style="font-weight: {s3_weight}; font-size: {s3_size}pt;">{html_escape(suffix3)}</span>')
 
                 val_html = "".join(partes_html)
 
@@ -1427,21 +1553,30 @@ class TucCalibradorService:
             else:
                 elementos_reverso.append(tag_html)
 
-        # Línea horizontal personalizada imprimible de la plantilla
-        lh = config.get("linea_horizontal") or {}
-        if lh.get("activa", False) and lh.get("imprimible", False):
-            lh_y = float(lh.get("y_mm", 54.0))
-            lh_x = float(lh.get("x_mm", 0.0))
-            lh_w = float(lh.get("ancho_mm") or ancho_mm)
-            lh_grosor = float(lh.get("grosor_mm", 1.0))
-            lh_color = lh.get("color", "#000000")
-            lh_estilo = lh.get("estilo", "solid")
-            lh_html = f'<div class="tuc-linea-horizontal-impresa" style="position: absolute; left: {lh_x}mm; top: {lh_y}mm; width: {lh_w}mm; border-top: {lh_grosor}mm {lh_estilo} {lh_color}; height: 0; pointer-events: none; z-index: 10;"></div>'
-            elementos_html.append(lh_html)
-            if lh_y <= anverso_alto_mm:
-                elementos_anverso.append(lh_html)
-            else:
-                elementos_reverso.append(lh_html)
+        # Línea horizontal personalizada imprimible de la plantilla (Independiente Anverso y Reverso)
+        lh_anv = config.get("linea_horizontal_anverso") or config.get("linea_horizontal") or {}
+        if lh_anv.get("activa", False) and lh_anv.get("imprimible", False):
+            lh_y = float(lh_anv.get("y_mm", 54.0))
+            lh_x = float(lh_anv.get("x_mm", 0.0))
+            lh_w = float(lh_anv.get("ancho_mm") or ancho_mm)
+            lh_grosor = float(lh_anv.get("grosor_mm", 1.0))
+            lh_color = lh_anv.get("color", "#000000")
+            lh_estilo = lh_anv.get("estilo", "solid")
+            lh_html_anv = f'<div class="tuc-linea-horizontal-impresa" style="position: absolute; left: {lh_x}mm; top: {lh_y}mm; width: {lh_w}mm; border-top: {lh_grosor}mm {lh_estilo} {lh_color}; height: 0; pointer-events: none; z-index: 10;"></div>'
+            elementos_html.append(lh_html_anv)
+            elementos_anverso.append(lh_html_anv)
+
+        lh_rev = config.get("linea_horizontal_reverso") or {}
+        if lh_rev.get("activa", False) and lh_rev.get("imprimible", False):
+            lh_rev_y = float(lh_rev.get("y_mm", 18.0))
+            lh_rev_x = float(lh_rev.get("x_mm", 0.0))
+            lh_rev_w = float(lh_rev.get("ancho_mm") or ancho_mm)
+            lh_rev_grosor = float(lh_rev.get("grosor_mm", 1.0))
+            lh_rev_color = lh_rev.get("color", "#000000")
+            lh_rev_estilo = lh_rev.get("estilo", "solid")
+            lh_html_rev = f'<div class="tuc-linea-horizontal-impresa" style="position: absolute; left: {lh_rev_x}mm; top: {lh_rev_y}mm; width: {lh_rev_w}mm; border-top: {lh_rev_grosor}mm {lh_rev_estilo} {lh_rev_color}; height: 0; pointer-events: none; z-index: 10;"></div>'
+            elementos_html.append(lh_html_rev)
+            elementos_reverso.append(lh_html_rev)
 
         # Pliegue para tarjeta dual (solo en formato DUAL_PVC y UNA_HOJA)
         if formato_papel == "A4" or modo_hojas == "DOS_HOJAS":
@@ -1549,13 +1684,13 @@ class TucCalibradorService:
     }}
   </style>
   <script>
-    window.addEventListener('afterprint', function() {
-      try {
-        if (window.opener || window.history.length === 1) {
+    window.addEventListener('afterprint', function() {{
+      try {{
+        if (window.opener || window.history.length === 1) {{
           window.close();
-        }
-      } catch(e) {}
-    });
+        }}
+      }} catch(e) {{}}
+    }});
   </script>
 </head>
 <body{onload_attr}>{body_content}
@@ -1678,13 +1813,13 @@ class TucCalibradorService:
     }}
   </style>
   <script>
-    window.addEventListener('afterprint', function() {
-      try {
-        if (window.opener || window.history.length === 1) {
+    window.addEventListener('afterprint', function() {{
+      try {{
+        if (window.opener || window.history.length === 1) {{
           window.close();
-        }
-      } catch(e) {}
-    });
+        }}
+      }} catch(e) {{}}
+    }});
   </script>
 </head>
 <body onload="window.print()">

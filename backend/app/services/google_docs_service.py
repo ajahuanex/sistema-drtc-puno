@@ -160,7 +160,6 @@ class GoogleDocsTucService:
             # 2. Reemplazar los marcadores de texto plano (excluyendo {{TABLA_RUTAS}} para manejarlo como tabla)
             requests = []
 
-            # Si es renovación o sin trámite modificatorio, la fila de la resolución del reverso va toda en blanco
             if es_fila_en_blanco:
                 requests.append({
                     'replaceAllText': {
@@ -178,6 +177,30 @@ class GoogleDocsTucService:
                             'matchCase': False
                         },
                         'replaceText': ' '
+                    }
+                })
+            else:
+                siglas_acto = placeholders.get("{{SIGLAS_RES_ACTO}}")
+                if siglas_acto and siglas_acto != "GRP/GRI/DRTC":
+                    requests.append({
+                        'replaceAllText': {
+                            'containsText': {
+                                'text': '{{NUM_RESOLUCION}}-GRP/GRI/DRTC',
+                                'matchCase': False
+                            },
+                            'replaceText': f'{{{{NUM_RESOLUCION}}}}-{siglas_acto}'
+                        }
+                    })
+
+            siglas_res_p = placeholders.get("{{SIGLAS_RES_P}}")
+            if siglas_res_p and siglas_res_p != "GRP/GRI/DRTC":
+                requests.append({
+                    'replaceAllText': {
+                        'containsText': {
+                            'text': '{{RES}}-GRP/GRI/DRTC',
+                            'matchCase': False
+                        },
+                        'replaceText': f'{{{{RES}}}}-{siglas_res_p}'
                     }
                 })
 

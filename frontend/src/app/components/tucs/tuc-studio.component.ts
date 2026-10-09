@@ -69,6 +69,24 @@ export class TucStudioComponent implements OnInit {
   guiasMargenes = signal<boolean>(true);
   reglasMm = signal<boolean>(true);
   rejilla = signal<boolean>(true);
+  mostrarEtiquetasFlotantes = signal<boolean>(false); // Opcional (desactivado por defecto para no estorbar la edición de texto)
+  sidebarIzquierdaColapsada = signal<boolean>(false); // Paleta izquierda replegable opcional
+
+  // Trámite de simulación para calibración condicional (DUPLICADO, RENOVACION, SUSTITUCION, INCREMENTO, NUEVA)
+  tipoTramiteSimulacion = signal<'NUEVA' | 'RENOVACION' | 'SUSTITUCION' | 'INCREMENTO' | 'DUPLICADO'>('NUEVA');
+  duplicadoOrigenModificatorio = signal<boolean>(false);
+
+  cambiarTipoTramiteSimulacion(tramite: 'NUEVA' | 'RENOVACION' | 'SUSTITUCION' | 'INCREMENTO' | 'DUPLICADO'): void {
+    this.tipoTramiteSimulacion.set(tramite);
+    const c = this.config();
+    if (c) {
+      (c as any).tipo_tramite = tramite;
+    }
+  }
+
+  toggleSidebarIzquierda(): void {
+    this.sidebarIzquierdaColapsada.update(v => !v);
+  }
 
   // Estado de Arrastre con Ratón (Drag & Drop interactivo)
   isDragging = signal<boolean>(false);
@@ -92,6 +110,9 @@ export class TucStudioComponent implements OnInit {
     return orient === 'landscape' ? 210.0 : 297.0;
   });
 
+  anversoAltoMm = computed(() => this.config()?.anverso_alto_mm ?? (this.formatoPapel() === 'DUAL_PVC' ? 54.0 : 148.5));
+  reversoAltoMm = computed(() => this.config()?.reverso_alto_mm ?? (this.formatoPapel() === 'DUAL_PVC' ? 54.0 : 148.5));
+
   // Modo de Distribución de Hojas (1 Hoja vs 2 Hojas separadas Anverso/Reverso)
   modoHojas = computed(() => this.config()?.modo_hojas || 'UNA_HOJA');
   margenIzq = computed(() => this.config()?.margen_izq_mm ?? 10.0);
@@ -101,15 +122,21 @@ export class TucStudioComponent implements OnInit {
   guiasReferencialesH = signal<boolean>(true);
 
   // Configuración de la Línea Horizontal Superior (Límite de Inicio de Contenido)
+  // Configuración de Líneas Horizontales Límites Superiores (Independientes para Anverso y Reverso)
   vincularContenidoALimiteH = signal<boolean>(true);
+  seccionLineaHActiva = signal<'anverso' | 'reverso'>('anverso');
 
-  lineaHConfig = computed<LineaHorizontalConfig>(() => {
+  // Configuración Línea Horizontal de Anverso (Pág. 1)
+  lineaHAnversoConfig = computed<LineaHorizontalConfig>(() => {
     const c = this.config();
+    if (c?.linea_horizontal_anverso) {
+      return c.linea_horizontal_anverso;
+    }
     if (c?.linea_horizontal) {
       return c.linea_horizontal;
     }
     const f = this.formatoPapel();
-    const yDefault = f === 'DUAL_PVC' ? 20.0 : 50.0;
+    const yDefault = f === 'DUAL_PVC' ? 14.0 : 45.0;
     const anchoDefault = this.anchoHojaMm();
     return {
       activa: true,
@@ -120,15 +147,45 @@ export class TucStudioComponent implements OnInit {
       color: '#2563eb',
       estilo: 'dashed',
       imprimible: false,
-      etiqueta: 'Línea Límite Superior (Inicio de Contenido)',
+      etiqueta: 'Línea Límite Superior Anverso',
       limitar_contenido_superior: true
     };
   });
 
-  lineaHSeleccionada = signal<boolean>(false);
-  isDraggingLineaH = signal<boolean>(false);
+  // Configuración Línea Horizontal de Reverso (Pág. 2) - TOTALMENTE INDEPENDIENTE
+  lineaHReversoConfig = computed<LineaHorizontalConfig>(() => {
+    const c = this.config();
+    if (c?.linea_horizontal_reverso) {
+      return c.linea_horizontal_reverso;
+    }
+    const f = this.formatoPapel();
+    const yDefault = f === 'DUAL_PVC' ? 16.0 : 18.0;
+    const anchoDefault = this.anchoHojaMm();
+    return {
+      activa: true,
+      y_mm: yDefault,
+      x_mm: 0.0,
+      ancho_mm: anchoDefault,
+      grosor_mm: 1.0,
+      color: '#0284c7',
+      estilo: 'dashed',
+      imprimible: false,
+      etiqueta: 'Línea Límite Superior Reverso',
+      limitar_contenido_superior: true
+    };
+  });
 
-  // Eje de referencia horizontal (mitad de hoja horizontal o pliegue referencial)
+  // Configuración activa según la sección actualmente seleccionada
+  lineaHConfig = computed<LineaHorizontalConfig>(() => {
+    return this.seccionLineaHActiva() === 'reverso'
+      ? this.lineaHReversoConfig()
+      : this.lineaHAnversoConfig();
+  });
+
+  lineaHSeleccionada = signal<'anverso' | 'reverso' | null>(null);
+  isDraggingLineaH = signal<'anverso' | 'reverso' | null>(null);
+
+  // Eje de referencia horizontal
   referenciaHorizontalMm = computed(() => {
     return this.lineaHConfig().y_mm;
   });
@@ -238,7 +295,8 @@ export class TucStudioComponent implements OnInit {
   varsVehiculo = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'vehiculo' && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
   varsRutas = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'rutas' && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
   varsActoReverso = computed(() => this.variablesFiltradas().filter(v => v.categoria === 'acto_reverso' && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
-  varsPersonalizadas = computed(() => this.variablesFiltradas().filter(v => (v.categoria === 'personalizado' || v.es_dinamica) && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
+  varsSellosOficiales = computed(() => this.variablesFiltradas().filter(v => (v.categoria === 'sellos' || v.tag === '{{DUPLICADO}}' || v.tag === '{{RENOVACION}}') && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
+  varsPersonalizadas = computed(() => this.variablesFiltradas().filter(v => (v.categoria === 'personalizado' || v.es_dinamica) && v.categoria !== 'sellos' && v.tag !== '{{DUPLICADO}}' && v.tag !== '{{RENOVACION}}' && v.tipo !== 'imagen' && v.tipo !== 'qr' && v.tipo !== 'linea'));
 
   ngOnInit(): void {
     this.cargarPlantillas();
@@ -279,6 +337,78 @@ export class TucStudioComponent implements OnInit {
           this.plantillaActualId.set(cfg.id);
         }
         if (cfg.variables && cfg.variables.length > 0) {
+          cfg.variables.forEach(v => {
+            if (v.tag === '{{RES}}' || v.tag === '{{NUM_RESOLUCION}}') {
+              if (!v.suffix) {
+                const sigla = this.determinarSiglasResolucion(String(v.valor_ejemplo || '0392-2023'));
+                v.suffix = `-${sigla}`;
+              }
+              if (v.suffix2 === undefined) {
+                v.suffix2 = ' (15/03/2024)';
+              }
+              if (v.suffix3 === undefined) {
+                v.suffix3 = ' (S)';
+              }
+            }
+            if (v.tag === '{{DUPLICADO}}' || v.tag === '{{RENOVACION}}' || v.id === 'sello_duplicado' || v.id === 'sello_renovacion') {
+              v.categoria = 'sellos';
+              v.es_dinamica = false;
+              if (v.bloqueado === undefined) {
+                v.bloqueado = false;
+              }
+            }
+            // La fecha y tipo de la resolución hija ahora se muestran integrados como 2do y 3er sufijo
+            if (v.tag === '{{FECHA_RES}}' || v.tag === '{{TIPO_RES}}' || v.id === 'fecha_res' || v.id === 'tipo_res') {
+              v.visible = false;
+            }
+          });
+
+          // Asegurar que existan los sellos oficiales si la plantilla no los trajo
+          const tieneDuplicado = cfg.variables.some(v => v.tag === '{{DUPLICADO}}' || v.id === 'sello_duplicado');
+          if (!tieneDuplicado) {
+            cfg.variables.push({
+              id: 'sello_duplicado',
+              tag: '{{DUPLICADO}}',
+              label: 'Sello Vertical DUPLICADO (Rojo)',
+              categoria: 'sellos',
+              seccion: 'anverso',
+              x_mm: 78.0,
+              y_mm: 35.0,
+              font_size_pt: 7.0,
+              font_weight: 'bold',
+              font_family: 'Arial',
+              color: '#eb0a0a',
+              align: 'left',
+              visible: true,
+              bloqueado: false,
+              es_dinamica: false,
+              orientacion_texto: 'vertical_270',
+              rotacion: 270,
+              valor_ejemplo: 'DUPLICADO'
+            });
+          }
+          const tieneRenovacion = cfg.variables.some(v => v.tag === '{{RENOVACION}}' || v.id === 'sello_renovacion');
+          if (!tieneRenovacion) {
+            cfg.variables.push({
+              id: 'sello_renovacion',
+              tag: '{{RENOVACION}}',
+              label: 'Sello RENOVACIÓN (Azul)',
+              categoria: 'sellos',
+              seccion: 'reverso',
+              x_mm: 65.0,
+              y_mm: 50.0,
+              font_size_pt: 7.0,
+              font_weight: 'bold',
+              font_family: 'Arial',
+              color: '#067cea',
+              align: 'left',
+              visible: true,
+              bloqueado: false,
+              es_dinamica: false,
+              valor_ejemplo: 'RENOVACIÓN'
+            });
+          }
+
           const placaVar = cfg.variables.find(v => v.id === 'placa') || cfg.variables[0];
           this.selectedVariables.set([placaVar]);
         }
@@ -305,6 +435,22 @@ export class TucStudioComponent implements OnInit {
         this.datosVehiculo.set(res.datos || {});
         this.placeholdersVehiculo.set(res.placeholders || {});
         this.rutasVehiculo.set(res.datos?.rutas_detalle || []);
+
+        // Detección automática del trámite según el vehículo de la BD
+        const t = (res.datos?.tipo_tramite || '').toUpperCase();
+        if (res.datos?.es_duplicado || t === 'D' || t.includes('DUPLICADO')) {
+          this.tipoTramiteSimulacion.set('DUPLICADO');
+          const origMod = !res.datos?.es_fila_en_blanco && Boolean(res.placeholders?.['{{NUM_RESOLUCION}}']);
+          this.duplicadoOrigenModificatorio.set(origMod);
+        } else if (res.datos?.es_renovacion || t === 'R' || t.includes('RENOVACION')) {
+          this.tipoTramiteSimulacion.set('RENOVACION');
+        } else if (t === 'S' || t.includes('SUSTITUCION')) {
+          this.tipoTramiteSimulacion.set('SUSTITUCION');
+        } else if (t === 'I' || t.includes('INCREMENTO')) {
+          this.tipoTramiteSimulacion.set('INCREMENTO');
+        } else {
+          this.tipoTramiteSimulacion.set('NUEVA');
+        }
       },
       error: (err) => {
         console.warn('Vehículo de prueba no encontrado en flota, usando placeholders base:', err);
@@ -317,7 +463,7 @@ export class TucStudioComponent implements OnInit {
   }
 
   seleccionarVariable(v: VariablePlantillaTuc, event?: MouseEvent): void {
-    this.lineaHSeleccionada.set(false);
+    this.lineaHSeleccionada.set(null);
     if (event && (event.ctrlKey || event.shiftKey)) {
       this.toggleSeleccion(v);
       return;
@@ -395,7 +541,8 @@ export class TucStudioComponent implements OnInit {
         const init = this.initialPositions.get(item.id);
         if (init) {
           item.x_mm = Math.max(0, Math.round((init.x + snapDeltaX) * 10) / 10);
-          const minYPermitido = (this.lineaHConfig().activa && item.tipo !== 'imagen' && item.tipo !== 'linea') ? this.lineaHConfig().y_mm : 0;
+          const cfgH = item.seccion === 'reverso' ? this.lineaHReversoConfig() : this.lineaHAnversoConfig();
+          const minYPermitido = (cfgH.activa && item.tipo !== 'imagen' && item.tipo !== 'linea') ? cfgH.y_mm : 0;
           item.y_mm = Math.max(minYPermitido, Math.round((init.y + snapDeltaY) * 10) / 10);
         }
       }
@@ -514,24 +661,36 @@ export class TucStudioComponent implements OnInit {
   }
 
 
-  // --- MÉTODOS DE CALIBRACIÓN DE LÍNEA HORIZONTAL SUPERIOR (LÍMITE DE INICIO) ---
-  seleccionarLineaHorizontal(event?: MouseEvent): void {
+  // --- MÉTODOS DE CALIBRACIÓN DE LÍNEAS HORIZONTALES SUPERIORES (ANVERSO Y REVERSO INDEPENDIENTES) ---
+  seleccionarLineaHorizontal(seccion: 'anverso' | 'reverso' = 'anverso', event?: MouseEvent): void {
     if (event) event.stopPropagation();
-    this.lineaHSeleccionada.set(true);
+    this.seccionLineaHActiva.set(seccion);
+    this.lineaHSeleccionada.set(seccion);
     this.selectedVariables.set([]);
   }
 
   deseleccionarLineaHorizontal(): void {
-    this.lineaHSeleccionada.set(false);
+    this.lineaHSeleccionada.set(null);
   }
 
-  toggleLineaHorizontal(): void {
+  toggleLineaHorizontal(seccion?: 'anverso' | 'reverso'): void {
+    const sec = seccion || this.seccionLineaHActiva();
     const c = this.config();
     if (!c) return;
-    if (!c.linea_horizontal) {
-      c.linea_horizontal = { ...this.lineaHConfig() };
+    if (sec === 'reverso') {
+      if (!c.linea_horizontal_reverso) {
+        c.linea_horizontal_reverso = { ...this.lineaHReversoConfig() };
+      }
+      c.linea_horizontal_reverso.activa = !c.linea_horizontal_reverso.activa;
+    } else {
+      if (!c.linea_horizontal) {
+        c.linea_horizontal = { ...this.lineaHAnversoConfig() };
+      }
+      c.linea_horizontal.activa = !c.linea_horizontal.activa;
+      if (c.linea_horizontal_anverso) {
+        c.linea_horizontal_anverso.activa = c.linea_horizontal.activa;
+      }
     }
-    c.linea_horizontal.activa = !c.linea_horizontal.activa;
     this.config.set({ ...c });
   }
 
@@ -544,20 +703,22 @@ export class TucStudioComponent implements OnInit {
     return Math.min(...vars.map(v => v.y_mm));
   }
 
-  // Desplaza todo el contenido de variables para que inicie exactamente a partir de la Línea Horizontal Superior (Y)
-  alinearContenidoALimiteSuperior(seccion: 'anverso' | 'reverso' = 'anverso'): void {
+  // Desplaza todo el contenido de variables de la sección para que inicie exactamente a partir de su Línea Horizontal Superior (Y)
+  alinearContenidoALimiteSuperior(seccion?: 'anverso' | 'reverso'): void {
+    const sec = seccion || this.seccionLineaHActiva();
     const c = this.config();
     if (!c) return;
-    const limiteY = this.lineaHConfig().y_mm;
-    const vars = c.variables.filter(v => v.visible && v.tipo !== 'linea' && (c.modo_hojas === 'UNA_HOJA' || v.seccion === seccion));
+    const cfg = sec === 'reverso' ? this.lineaHReversoConfig() : this.lineaHAnversoConfig();
+    const limiteY = cfg.y_mm;
+    const vars = c.variables.filter(v => v.visible && v.tipo !== 'linea' && (c.modo_hojas === 'UNA_HOJA' || v.seccion === sec));
     if (vars.length === 0) {
-      this.snackBar.open('No hay variables visibles para alinear', 'Cerrar', { duration: 2500 });
+      this.snackBar.open(`No hay variables visibles en ${sec} para alinear`, 'Cerrar', { duration: 2500 });
       return;
     }
     const minY = Math.min(...vars.map(v => v.y_mm));
     const delta = Math.round((limiteY - minY) * 10) / 10;
     if (Math.abs(delta) < 0.05) {
-      this.snackBar.open(`El contenido ya inicia exactamente en Y = ${limiteY} mm`, 'OK', { duration: 2500 });
+      this.snackBar.open(`El contenido de ${sec} ya inicia exactamente en Y = ${limiteY} mm`, 'OK', { duration: 2500 });
       return;
     }
     for (const v of vars) {
@@ -566,10 +727,10 @@ export class TucStudioComponent implements OnInit {
       }
     }
     this.config.set({ ...c });
-    this.snackBar.open(`¡Contenido alineado con éxito! El bloque de variables ahora inicia en Y = ${limiteY} mm`, 'OK', { duration: 3000 });
+    this.snackBar.open(`¡Contenido de ${sec.toUpperCase()} alineado con éxito a Y = ${limiteY} mm!`, 'OK', { duration: 3000 });
   }
 
-  // Desplaza en bloque el contenido verticalmente
+  // Desplaza en bloque el contenido verticalmente de una sección específica
   desplazarContenidoBloque(deltaY: number, seccion: 'anverso' | 'reverso' = 'anverso'): void {
     const c = this.config();
     if (!c || Math.abs(deltaY) < 0.01) return;
@@ -581,13 +742,15 @@ export class TucStudioComponent implements OnInit {
     }
   }
 
-  ajustarLineaH(prop: 'y_mm' | 'x_mm' | 'ancho_mm' | 'grosor_mm', delta: number): void {
+  ajustarLineaH(prop: 'y_mm' | 'x_mm' | 'ancho_mm' | 'grosor_mm', delta: number, seccion?: 'anverso' | 'reverso'): void {
+    const sec = seccion || this.seccionLineaHActiva();
     const c = this.config();
     if (!c) return;
-    if (!c.linea_horizontal) {
-      c.linea_horizontal = { ...this.lineaHConfig() };
-    }
-    const valActual = c.linea_horizontal[prop] ?? 0;
+    const targetObj = sec === 'reverso'
+      ? (c.linea_horizontal_reverso ??= { ...this.lineaHReversoConfig() })
+      : (c.linea_horizontal ??= { ...this.lineaHAnversoConfig() });
+
+    const valActual = targetObj[prop] ?? 0;
     let nuevoVal = Math.round((valActual + delta) * 10) / 10;
     if (prop === 'grosor_mm') {
       nuevoVal = Math.max(0.1, Math.min(10.0, nuevoVal));
@@ -597,101 +760,117 @@ export class TucStudioComponent implements OnInit {
       nuevoVal = Math.max(0, Math.min(this.altoHojaMm(), nuevoVal));
       if (this.vincularContenidoALimiteH()) {
         const deltaReal = Math.round((nuevoVal - valActual) * 10) / 10;
-        this.desplazarContenidoBloque(deltaReal);
+        this.desplazarContenidoBloque(deltaReal, sec);
       }
     }
-    c.linea_horizontal[prop] = nuevoVal;
+    targetObj[prop] = nuevoVal;
+    if (sec === 'anverso' && c.linea_horizontal_anverso) {
+      c.linea_horizontal_anverso[prop] = nuevoVal;
+    }
     this.config.set({ ...c });
   }
 
-  ajustarLineaHDirecto(prop: 'y_mm' | 'x_mm' | 'ancho_mm' | 'grosor_mm', valor: any): void {
+  ajustarLineaHDirecto(prop: 'y_mm' | 'x_mm' | 'ancho_mm' | 'grosor_mm', valor: any, seccion?: 'anverso' | 'reverso'): void {
+    const sec = seccion || this.seccionLineaHActiva();
     const c = this.config();
     if (!c) return;
-    if (!c.linea_horizontal) {
-      c.linea_horizontal = { ...this.lineaHConfig() };
-    }
+    const targetObj = sec === 'reverso'
+      ? (c.linea_horizontal_reverso ??= { ...this.lineaHReversoConfig() })
+      : (c.linea_horizontal ??= { ...this.lineaHAnversoConfig() });
+
     const num = parseFloat(valor);
     if (!isNaN(num)) {
       if (prop === 'y_mm' && this.vincularContenidoALimiteH()) {
-        const valActual = c.linea_horizontal.y_mm ?? 0;
+        const valActual = targetObj.y_mm ?? 0;
         const deltaReal = Math.round((num - valActual) * 10) / 10;
-        this.desplazarContenidoBloque(deltaReal);
+        this.desplazarContenidoBloque(deltaReal, sec);
       }
-      c.linea_horizontal[prop] = num;
+      targetObj[prop] = num;
+      if (sec === 'anverso' && c.linea_horizontal_anverso) {
+        c.linea_horizontal_anverso[prop] = num;
+      }
       this.config.set({ ...c });
     }
   }
 
-  setLineaHColor(color: string): void {
+  setLineaHColor(color: string, seccion?: 'anverso' | 'reverso'): void {
+    const sec = seccion || this.seccionLineaHActiva();
     const c = this.config();
     if (!c) return;
-    if (!c.linea_horizontal) {
-      c.linea_horizontal = { ...this.lineaHConfig() };
-    }
-    c.linea_horizontal.color = color;
+    const targetObj = sec === 'reverso'
+      ? (c.linea_horizontal_reverso ??= { ...this.lineaHReversoConfig() })
+      : (c.linea_horizontal ??= { ...this.lineaHAnversoConfig() });
+    targetObj.color = color;
+    if (sec === 'anverso' && c.linea_horizontal_anverso) c.linea_horizontal_anverso.color = color;
     this.config.set({ ...c });
   }
 
-  setLineaHEstilo(estilo: 'solid' | 'dashed' | 'dotted'): void {
+  setLineaHEstilo(estilo: 'solid' | 'dashed' | 'dotted', seccion?: 'anverso' | 'reverso'): void {
+    const sec = seccion || this.seccionLineaHActiva();
     const c = this.config();
     if (!c) return;
-    if (!c.linea_horizontal) {
-      c.linea_horizontal = { ...this.lineaHConfig() };
-    }
-    c.linea_horizontal.estilo = estilo;
+    const targetObj = sec === 'reverso'
+      ? (c.linea_horizontal_reverso ??= { ...this.lineaHReversoConfig() })
+      : (c.linea_horizontal ??= { ...this.lineaHAnversoConfig() });
+    targetObj.estilo = estilo;
+    if (sec === 'anverso' && c.linea_horizontal_anverso) c.linea_horizontal_anverso.estilo = estilo;
     this.config.set({ ...c });
   }
 
-  setLineaHImprimible(val: boolean): void {
+  setLineaHImprimible(val: boolean, seccion?: 'anverso' | 'reverso'): void {
+    const sec = seccion || this.seccionLineaHActiva();
     const c = this.config();
     if (!c) return;
-    if (!c.linea_horizontal) {
-      c.linea_horizontal = { ...this.lineaHConfig() };
-    }
-    c.linea_horizontal.imprimible = val;
+    const targetObj = sec === 'reverso'
+      ? (c.linea_horizontal_reverso ??= { ...this.lineaHReversoConfig() })
+      : (c.linea_horizontal ??= { ...this.lineaHAnversoConfig() });
+    targetObj.imprimible = val;
+    if (sec === 'anverso' && c.linea_horizontal_anverso) c.linea_horizontal_anverso.imprimible = val;
     this.config.set({ ...c });
   }
 
-  centrarLineaH(): void {
+  centrarLineaH(seccion?: 'anverso' | 'reverso'): void {
+    const sec = seccion || this.seccionLineaHActiva();
     const c = this.config();
     if (!c) return;
-    if (!c.linea_horizontal) {
-      c.linea_horizontal = { ...this.lineaHConfig() };
-    }
-    const w = c.linea_horizontal.ancho_mm || this.anchoHojaMm();
-    c.linea_horizontal.x_mm = Math.max(0, Math.round(((this.anchoHojaMm() - w) / 2) * 10) / 10);
+    const targetObj = sec === 'reverso'
+      ? (c.linea_horizontal_reverso ??= { ...this.lineaHReversoConfig() })
+      : (c.linea_horizontal ??= { ...this.lineaHAnversoConfig() });
+    const w = targetObj.ancho_mm || this.anchoHojaMm();
+    targetObj.x_mm = Math.max(0, Math.round(((this.anchoHojaMm() - w) / 2) * 10) / 10);
     this.config.set({ ...c });
   }
 
-  ajustarLineaHAnchoCompleto(): void {
+  ajustarLineaHAnchoCompleto(seccion?: 'anverso' | 'reverso'): void {
+    const sec = seccion || this.seccionLineaHActiva();
     const c = this.config();
     if (!c) return;
-    if (!c.linea_horizontal) {
-      c.linea_horizontal = { ...this.lineaHConfig() };
-    }
-    c.linea_horizontal.x_mm = 0.0;
-    c.linea_horizontal.ancho_mm = this.anchoHojaMm();
+    const targetObj = sec === 'reverso'
+      ? (c.linea_horizontal_reverso ??= { ...this.lineaHReversoConfig() })
+      : (c.linea_horizontal ??= { ...this.lineaHAnversoConfig() });
+    targetObj.x_mm = 0.0;
+    targetObj.ancho_mm = this.anchoHojaMm();
     this.config.set({ ...c });
   }
 
-  iniciarArrastreLineaH(event: MouseEvent): void {
+  iniciarArrastreLineaH(seccion: 'anverso' | 'reverso', event: MouseEvent): void {
     event.stopPropagation();
     event.preventDefault();
-    this.seleccionarLineaHorizontal();
-    this.isDraggingLineaH.set(true);
+    this.seleccionarLineaHorizontal(seccion);
+    this.isDraggingLineaH.set(seccion);
 
     const startClientY = event.clientY;
     const c = this.config();
     if (!c) return;
-    if (!c.linea_horizontal) {
-      c.linea_horizontal = { ...this.lineaHConfig() };
-    }
-    const startYMm = c.linea_horizontal.y_mm;
+    const targetObj = seccion === 'reverso'
+      ? (c.linea_horizontal_reverso ??= { ...this.lineaHReversoConfig() })
+      : (c.linea_horizontal ??= { ...this.lineaHAnversoConfig() });
+    const startYMm = targetObj.y_mm;
 
-    // Guardar mapa de posiciones iniciales de variables para arrastre sincronizado
+    // Guardar mapa de posiciones iniciales de variables para arrastre sincronizado de ESA sección
     const initialVarMap = new Map<string, number>();
     for (const v of c.variables) {
-      if (v.visible && v.tipo !== 'linea' && !v.bloqueado) {
+      if (v.visible && v.tipo !== 'linea' && !v.bloqueado && (c.modo_hojas === 'UNA_HOJA' || v.seccion === seccion)) {
         initialVarMap.set(v.id, v.y_mm);
       }
     }
@@ -705,9 +884,12 @@ export class TucStudioComponent implements OnInit {
       const newY = Math.max(0, Math.min(this.altoHojaMm(), Math.round((startYMm + snapDeltaY) * 10) / 10));
       const deltaReal = Math.round((newY - startYMm) * 10) / 10;
 
-      c.linea_horizontal!.y_mm = newY;
+      targetObj.y_mm = newY;
+      if (seccion === 'anverso' && c.linea_horizontal_anverso) {
+        c.linea_horizontal_anverso.y_mm = newY;
+      }
 
-      // Si la vinculación está activa, desplazar en tiempo real todo el contenido
+      // Si la vinculación está activa, desplazar en tiempo real el contenido de ESA sección
       if (this.vincularContenidoALimiteH()) {
         for (const v of c.variables) {
           const initY = initialVarMap.get(v.id);
@@ -721,7 +903,7 @@ export class TucStudioComponent implements OnInit {
     };
 
     const onMouseUp = () => {
-      this.isDraggingLineaH.set(false);
+      this.isDraggingLineaH.set(null);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       this.notificarCambio();
@@ -758,7 +940,7 @@ export class TucStudioComponent implements OnInit {
     c.variables.push(nuevaLinea);
     this.config.set({ ...c });
     this.selectedVariables.set([nuevaLinea]);
-    this.lineaHSeleccionada.set(false);
+    this.lineaHSeleccionada.set(null);
     this.snackBar.open('Línea horizontal agregada a la plantilla', 'OK', { duration: 2500 });
   }
 
@@ -927,7 +1109,8 @@ export class TucStudioComponent implements OnInit {
     this.isPrinting.set(true);
     const cfg = this.config();
     if (cfg) {
-      this.tucService.imprimirHtmlConConfig(placa, cfg);
+      const cfgToSend = { ...cfg, tipo_tramite: this.tipoTramiteSimulacion() } as PlantillaTucCalibradorConfig;
+      this.tucService.imprimirHtmlConConfig(placa, cfgToSend);
     } else {
       this.tucService.imprimirHtmlDirecto(placa);
     }
@@ -938,61 +1121,93 @@ export class TucStudioComponent implements OnInit {
 
   // Exportar TUC a PDF directamente en el navegador
   async guardarEnPdf(): Promise<void> {
-    const sheet = document.getElementById('tuc-physical-sheet');
-    if (!sheet) {
-      this.snackBar.open('No se encontró el lienzo para exportar', 'Cerrar', { duration: 3000 });
+    // 1. Detectar los lienzos disponibles (soporte robusto para 1 hoja y 2 hojas)
+    let sheets: HTMLElement[] = [];
+    const sheet1 = document.getElementById('tuc-physical-sheet-1');
+    const sheet2 = document.getElementById('tuc-physical-sheet-2');
+    const singleSheet = document.getElementById('tuc-physical-sheet');
+
+    if (this.modoHojas() === 'DOS_HOJAS' && (sheet1 || sheet2)) {
+      if (sheet1) sheets.push(sheet1);
+      if (sheet2) sheets.push(sheet2);
+    } else if (singleSheet) {
+      sheets.push(singleSheet);
+    } else {
+      // Búsqueda inteligente por clases de hojas activas
+      const cardSheets = Array.from(document.querySelectorAll<HTMLElement>('.tuc-card-sheet'));
+      if (cardSheets.length > 0) {
+        sheets = cardSheets;
+      }
+    }
+
+    if (sheets.length === 0) {
+      this.snackBar.open('No se encontró el lienzo para exportar. Verifique que la plantilla esté cargada.', 'Cerrar', { duration: 3500 });
       return;
     }
 
     this.isGeneratingPdf.set(true);
+    const selPrev = [...this.selectedVariables()];
+    const guiasMargenPrev = this.guiasMargenes();
+    const guiasRefPrev = this.guiasReferencialesH();
+    const zoomPrev = this.zoom();
+
     try {
+      // Desactivar temporalmente selección, guías y normalizar zoom al 100% para captura nítida 1:1
+      this.selectedVariables.set([]);
+      this.guiasMargenes.set(false);
+      this.guiasReferencialesH.set(false);
+      this.zoom.set(100);
+
+      // Esperar brevemente para que Angular actualice el DOM con zoom al 100% sin guías
+      await new Promise(r => setTimeout(r, 120));
+
       const formato = this.formatoPapel();
       const orient = this.orientacion();
       const isLandscape = orient === 'landscape';
+      const esDosHojas = this.modoHojas() === 'DOS_HOJAS';
 
-      // Dimensiones exactas en mm
-      const anchoMm = this.config()?.ancho_mm || (formato === 'A4' ? (isLandscape ? 297.0 : 210.0) : 85.6);
-      const altoMm = this.config()?.alto_mm || (formato === 'A4' ? (isLandscape ? 210.0 : 297.0) : 108.0);
+      // Dimensiones exactas de cada hoja
+      const sheetAnchoMm = this.config()?.ancho_mm || (formato === 'A4' ? (isLandscape ? 297.0 : 210.0) : 85.6);
+      const sheetAltoMm = esDosHojas
+        ? (formato === 'DUAL_PVC' ? (this.config()?.anverso_alto_mm || 54.0) : (this.config()?.alto_mm || (isLandscape ? 210.0 : 297.0)))
+        : (this.config()?.alto_mm || (formato === 'A4' ? (isLandscape ? 210.0 : 297.0) : 108.0));
 
-      // Desactivar temporalmente selección y guías para que no salgan en el PDF oficial
-      const sel = [...this.selectedVariables()];
-      this.selectedVariables.set([]);
-      const guiasMargenPrev = this.guiasMargenes();
-      const guiasRefPrev = this.guiasReferencialesH();
-      this.guiasMargenes.set(false);
-      this.guiasReferencialesH.set(false);
-
-      // Esperar brevemente actualización del DOM
-      await new Promise(r => setTimeout(r, 60));
-
-      const canvas = await html2canvas(sheet, {
-        scale: 3, // Calidad de impresión ultra nítida (300+ DPI equivalente)
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false
-      });
-
-      // Restaurar selección y guías
-      this.selectedVariables.set(sel);
-      this.guiasMargenes.set(guiasMargenPrev);
-      this.guiasReferencialesH.set(guiasRefPrev);
-
-      const imgData = canvas.toDataURL('image/png');
+      const pdfOrientation = sheetAnchoMm > sheetAltoMm ? 'landscape' : 'portrait';
       const pdf = new jsPDF({
-        orientation: isLandscape ? 'landscape' : 'portrait',
+        orientation: pdfOrientation,
         unit: 'mm',
-        format: [anchoMm, altoMm]
+        format: [sheetAnchoMm, sheetAltoMm]
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, anchoMm, altoMm);
+      for (let i = 0; i < sheets.length; i++) {
+        const sh = sheets[i];
+        const canvas = await html2canvas(sh, {
+          scale: 3, // Calidad de impresión ultra nítida (300+ DPI equivalente)
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        if (i > 0) {
+          pdf.addPage([sheetAnchoMm, sheetAltoMm], pdfOrientation);
+        }
+        pdf.addImage(imgData, 'PNG', 0, 0, sheetAnchoMm, sheetAltoMm);
+      }
+
       const placa = this.searchPlaca().trim() || 'TUC_DRTC';
       pdf.save(`TUC_${placa}_${formato}.pdf`);
 
-      this.snackBar.open(`¡Documento PDF guardado exitosamente: TUC_${placa}_${formato}.pdf!`, 'OK', { duration: 3500 });
+      this.snackBar.open(`¡Documento PDF descargado exitosamente: TUC_${placa}_${formato}.pdf!`, 'OK', { duration: 3500 });
     } catch (err) {
       console.error('Error al exportar PDF:', err);
       this.snackBar.open('Error al generar el documento PDF', 'Cerrar', { duration: 3500 });
     } finally {
+      // Restaurar selección, guías y zoom original
+      this.selectedVariables.set(selPrev);
+      this.guiasMargenes.set(guiasMargenPrev);
+      this.guiasReferencialesH.set(guiasRefPrev);
+      this.zoom.set(zoomPrev);
       this.isGeneratingPdf.set(false);
     }
   }
@@ -1330,16 +1545,50 @@ export class TucStudioComponent implements OnInit {
       );
     }
 
+    const tramite = this.tipoTramiteSimulacion();
     const ph = this.placeholdersVehiculo();
-    let val = ph[v.tag] !== undefined ? ph[v.tag] : (v.valor_ejemplo || '');
+    let val: any = ph[v.tag] !== undefined ? ph[v.tag] : (v.valor_ejemplo || '');
 
-    // Lógica para acto resolutivo reverso en Renovación
-    if (this.datosVehiculo()?.es_fila_en_blanco && v.categoria === 'acto_reverso') {
-      val = '';
+    // Regla 1: DUPLICADO (en rojo)
+    if (v.tag === '{{DUPLICADO}}' || v.id.includes('duplicado') || (v.valor_ejemplo && String(v.valor_ejemplo).toUpperCase() === 'DUPLICADO')) {
+      val = tramite === 'DUPLICADO' ? 'DUPLICADO' : '';
+    }
+
+    // Regla 2: RENOVACION (en azul)
+    if (v.tag === '{{RENOVACION}}' || v.id.includes('renovacion') || (v.valor_ejemplo && String(v.valor_ejemplo).toUpperCase().includes('RENOVACI'))) {
+      val = tramite === 'RENOVACION' ? 'RENOVACIÓN' : '';
+    }
+
+    // Regla 3: Resolución Hija / Acto Reverso (solo en Sustitución o Incremento, o Duplicado originado en ellas)
+    if (v.categoria === 'acto_reverso' || v.tag === '{{NUM_RESOLUCION}}' || v.tag === '{{FECHA_RES}}' || v.tag === '{{TIPO_RES}}') {
+      const esActoValido = (
+        tramite === 'SUSTITUCION' ||
+        tramite === 'INCREMENTO' ||
+        (tramite === 'DUPLICADO' && this.duplicadoOrigenModificatorio())
+      );
+      if (!esActoValido) {
+        val = '';
+      } else {
+        if (v.tag === '{{TIPO_RES}}') {
+          val = tramite === 'INCREMENTO' ? 'I' : 'S';
+        }
+      }
+    }
+
+    const valStr = (val !== null && val !== undefined) ? String(val).trim() : '';
+
+    // REGLA FUNDAMENTAL: Si el valor está vacío o es '-', NO se renderiza NADA (ni prefijo ni sufijo)
+    if (!valStr || valStr === '-') {
+      return this.sanitizer.bypassSecurityTrustHtml('');
     }
 
     const prefix = v.prefix !== undefined && v.prefix !== '' ? v.prefix : (v.etiqueta || '');
-    const suffix = v.suffix || '';
+    let suffix = v.suffix || '';
+    if ((v.tag === '{{RES}}' || v.tag === '{{NUM_RESOLUCION}}') && valStr) {
+      if (!suffix || suffix.includes('DRTC') || suffix.includes('GRP') || suffix.includes('GR PUNO')) {
+        suffix = `-${this.determinarSiglasResolucion(valStr)}`;
+      }
+    }
     const baseSize = v.font_size_pt || 7.0;
 
     const prefixWeight = v.prefix_font_weight || v.etiqueta_font_weight || 'bold';
@@ -1352,20 +1601,68 @@ export class TucStudioComponent implements OnInit {
     const suffixWeight = v.suffix_font_weight || 'normal';
     const suffixSize = v.suffix_font_size_pt || baseSize;
 
-    const valHtml = this.formatearTextoConComillas(String(val), resaltar);
+    let suffix2 = v.suffix2 || '';
+    let suffix3 = v.suffix3 || '';
+    if ((v.tag === '{{RES}}' || v.tag === '{{NUM_RESOLUCION}}') && valStr) {
+      // 2do Sufijo: Fecha de la Resolución Hija
+      const phFecha = ph['{{FECHA_RES}}'] !== undefined ? ph['{{FECHA_RES}}'] : ph['fecha_res'];
+      if (phFecha !== undefined && phFecha !== null) {
+        const strF = String(phFecha).trim();
+        if (strF && strF !== '-') {
+          suffix2 = strF.startsWith('(') ? ` ${strF}` : ` (${strF})`;
+        } else {
+          suffix2 = '';
+        }
+      }
+
+      // 3er Sufijo: Tipo de Trámite de la Resolución Hija
+      const phTipo = ph['{{TIPO_RES}}'] !== undefined ? ph['{{TIPO_RES}}'] : ph['tipo_res'];
+      if (phTipo !== undefined && phTipo !== null) {
+        const strT = String(phTipo).trim();
+        if (strT && strT !== '-') {
+          suffix3 = strT.startsWith('(') ? ` ${strT}` : ` (${strT})`;
+        } else {
+          suffix3 = '';
+        }
+      } else if (tramite === 'INCREMENTO' || tramite === 'SUSTITUCION') {
+        suffix3 = tramite === 'INCREMENTO' ? ' (I)' : ' (S)';
+      }
+    }
+
+    const suffix2Weight = v.suffix2_font_weight || suffixWeight;
+    const suffix2Size = v.suffix2_font_size_pt || suffixSize;
+
+    const suffix3Weight = v.suffix3_font_weight || 'bold';
+    const suffix3Size = v.suffix3_font_size_pt || suffixSize;
+
+    const valHtml = this.formatearTextoConComillas(valStr, resaltar);
 
     let htmlOut = '';
     if (prefix) {
       htmlOut += `<span class="tuc-prefix" style="font-weight: ${prefixWeight}; font-size: ${prefixSize}pt;">${this.escapeHtml(prefix)}</span>`;
     }
-    if (valHtml) {
-      htmlOut += `<span class="tuc-valor" style="font-weight: ${valorWeight}; font-size: ${valorSize}pt;">${valHtml}</span>`;
-    }
+    htmlOut += `<span class="tuc-valor" style="font-weight: ${valorWeight}; font-size: ${valorSize}pt;">${valHtml}</span>`;
     if (suffix) {
       htmlOut += `<span class="tuc-suffix" style="font-weight: ${suffixWeight}; font-size: ${suffixSize}pt;">${this.escapeHtml(suffix)}</span>`;
     }
+    if (suffix2) {
+      htmlOut += `<span class="tuc-suffix2" style="font-weight: ${suffix2Weight}; font-size: ${suffix2Size}pt;">${this.escapeHtml(suffix2)}</span>`;
+    }
+    if (suffix3) {
+      htmlOut += `<span class="tuc-suffix3" style="font-weight: ${suffix3Weight}; font-size: ${suffix3Size}pt;">${this.escapeHtml(suffix3)}</span>`;
+    }
 
     return this.sanitizer.bypassSecurityTrustHtml(htmlOut);
+  }
+
+  // Verifica si un elemento no tiene contenido renderizable en modo real (para ocultarlo del lienzo)
+  esElementoVacio(v: VariablePlantillaTuc): boolean {
+    if (this.modoVista() === 'tags') return false;
+    if (v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea') return false;
+    if (v.tag === '{{TABLA_RUTAS}}') return false;
+    const render = this.obtenerHtmlRender(v);
+    const htmlStr = (render as any)?.changingThisBreaksApplicationSecurity;
+    return htmlStr === '' || htmlStr === undefined || htmlStr === null;
   }
 
   // Generar código HTML del snippet actual
@@ -1392,7 +1689,7 @@ export class TucStudioComponent implements OnInit {
 
     return `<div class="tuc-var ${sel.id}" style="position: absolute; left: ${sel.x_mm}mm; top: ${sel.y_mm}mm;${widthStyle} font-size: ${sel.font_size_pt}pt; color: ${sel.color}; ${lineStyle}">
   ${etiqueta ? `<span class="tuc-etiqueta" style="font-weight: ${etiquetaWeight};">${this.escapeHtml(etiqueta)}</span>` : ''}
-  <span class="tuc-valor" style="font-weight: ${valorWeight};">${sel.tag}</span>${sel.suffix || ''}
+  <span class="tuc-valor" style="font-weight: ${valorWeight};">${sel.tag}</span>${sel.suffix || ''}${sel.suffix2 || ''}${sel.suffix3 || ''}
 </div>`;
   }
 
@@ -1405,7 +1702,7 @@ export class TucStudioComponent implements OnInit {
   // Obtener valor a renderizar en la vista previa del canvas (retrocompatibilidad)
   obtenerValorRender(v: VariablePlantillaTuc): string {
     if (this.modoVista() === 'tags') {
-      return `${v.etiqueta || v.prefix || ''}${v.tag}${v.suffix || ''}`;
+      return `${v.etiqueta || v.prefix || ''}${v.tag}${v.suffix || ''}${v.suffix2 || ''}${v.suffix3 || ''}`;
     }
 
     const ph = this.placeholdersVehiculo();
@@ -1415,7 +1712,29 @@ export class TucStudioComponent implements OnInit {
       return '';
     }
 
-    return `${v.etiqueta || v.prefix || ''}${val}${v.suffix || ''}`;
+    let suffix = v.suffix || '';
+    if ((v.tag === '{{RES}}' || v.tag === '{{NUM_RESOLUCION}}') && val) {
+      if (!suffix) {
+        suffix = `-${this.determinarSiglasResolucion(String(val))}`;
+      }
+    }
+
+    let suffix2 = v.suffix2 || '';
+    let suffix3 = v.suffix3 || '';
+    if ((v.tag === '{{RES}}' || v.tag === '{{NUM_RESOLUCION}}') && val) {
+      const phFecha = ph['{{FECHA_RES}}'] !== undefined ? ph['{{FECHA_RES}}'] : ph['fecha_res'];
+      if (phFecha !== undefined && phFecha !== null) {
+        const strF = String(phFecha).trim();
+        suffix2 = (strF && strF !== '-') ? (strF.startsWith('(') ? ` ${strF}` : ` (${strF})`) : '';
+      }
+      const phTipo = ph['{{TIPO_RES}}'] !== undefined ? ph['{{TIPO_RES}}'] : ph['tipo_res'];
+      if (phTipo !== undefined && phTipo !== null) {
+        const strT = String(phTipo).trim();
+        suffix3 = (strT && strT !== '-') ? (strT.startsWith('(') ? ` ${strT}` : ` (${strT})`) : '';
+      }
+    }
+
+    return `${v.etiqueta || v.prefix || ''}${val}${suffix}${suffix2}${suffix3}`;
   }
 
   // Separar / Desvincular etiqueta como un elemento nuevo e independiente
@@ -1491,6 +1810,98 @@ export class TucStudioComponent implements OnInit {
     if (!sel || sel.bloqueado) return;
     const actual = sel.suffix_font_size_pt || sel.font_size_pt || 7.0;
     sel.suffix_font_size_pt = Math.max(4.0, Math.round((actual + delta) * 10) / 10);
+    this.notificarCambio();
+  }
+
+  setSuffix2FontWeight(peso: 'bold' | 'normal'): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    sel.suffix2_font_weight = peso;
+    this.notificarCambio();
+  }
+
+  ajustarSuffix2FontSize(delta: number): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const actual = sel.suffix2_font_size_pt || sel.suffix_font_size_pt || sel.font_size_pt || 7.0;
+    sel.suffix2_font_size_pt = Math.max(4.0, Math.round((actual + delta) * 10) / 10);
+    this.notificarCambio();
+  }
+
+  setSuffix3FontWeight(peso: 'bold' | 'normal'): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    sel.suffix3_font_weight = peso;
+    this.notificarCambio();
+  }
+
+  ajustarSuffix3FontSize(delta: number): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const actual = sel.suffix3_font_size_pt || sel.suffix_font_size_pt || sel.font_size_pt || 7.0;
+    sel.suffix3_font_size_pt = Math.max(4.0, Math.round((actual + delta) * 10) / 10);
+    this.notificarCambio();
+  }
+
+  aplicarSufijo2Fecha(): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const ph = this.placeholdersVehiculo();
+    const fecha = ph['{{FECHA_RES}}'] || '15/03/2024';
+    sel.suffix2 = ` (${fecha})`;
+    this.notificarCambio();
+  }
+
+  aplicarSufijo3Tipo(tipo: string): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    sel.suffix3 = tipo ? ` (${tipo})` : '';
+    this.notificarCambio();
+  }
+
+  determinarSiglasResolucion(nroResolucion: string): string {
+    if (!nroResolucion) return 'GRP/GRI/DRTC';
+    const s = String(nroResolucion).trim().toUpperCase();
+    const match = s.match(/(?:^|[^\d])0*(\d{1,6})\s*[-/.\s]+\s*(\d{4})\b/);
+    let num: number | null = null;
+    let year: number | null = null;
+    if (match) {
+      num = parseInt(match[1], 10);
+      year = parseInt(match[2], 10);
+    } else {
+      const match2d = s.match(/(?:^|[^\d])0*(\d{1,6})\s*[-/.\s]+\s*(\d{2})\b/);
+      if (match2d) {
+        num = parseInt(match2d[1], 10);
+        const yr2 = parseInt(match2d[2], 10);
+        year = yr2 < 50 ? 2000 + yr2 : 1900 + yr2;
+      }
+    }
+    if (num === null || year === null) {
+      return 'GRP/GRI/DRTC';
+    }
+    if (year < 2025 || (year === 2025 && num <= 900)) {
+      return 'GR PUNO/GRI/DRTC';
+    } else if ((year === 2025 && num >= 901) || (year === 2026 && num < 124)) {
+      return 'GRP/DRTC';
+    } else {
+      return 'GRP/GRI/DRTC';
+    }
+  }
+
+  aplicarSiglaSufijo(sigla: string): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    sel.suffix = sigla ? (sigla.startsWith('-') ? sigla : `-${sigla}`) : '';
+    this.notificarCambio();
+  }
+
+  aplicarSiglaSufijoAuto(): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const ph = this.placeholdersVehiculo();
+    const val = ph[sel.tag] !== undefined ? ph[sel.tag] : (sel.valor_ejemplo || '');
+    const sigla = this.determinarSiglasResolucion(String(val));
+    sel.suffix = `-${sigla}`;
     this.notificarCambio();
   }
 
@@ -1636,6 +2047,7 @@ export class TucStudioComponent implements OnInit {
       case 'vehiculo': return this.varsVehiculo();
       case 'rutas': return this.varsRutas();
       case 'acto_reverso': return this.varsActoReverso();
+      case 'sellos': return this.varsSellosOficiales();
       case 'personalizadas': return this.varsPersonalizadas();
       default: return [];
     }

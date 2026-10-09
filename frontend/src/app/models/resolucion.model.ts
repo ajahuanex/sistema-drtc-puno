@@ -25,6 +25,7 @@ export interface BajaVehiculoResolucion {
 export interface Resolucion {
   id: string;
   nroResolucion: string; // Número de resolución actual (HIJA si existe, sino PADRE)
+  siglas?: string; // Siglas institucionales (ej: GRP/GRI/DRTC, GRP/DRTC, GR PUNO/GRI/DRTC)
   ruc: string; // RUC de la empresa
   empresaId: string;
   

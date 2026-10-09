@@ -20,8 +20,8 @@
         "label": "Fecha Inicio Vigencia",
         "categoria": "autorizacion",
         "seccion": "anverso",
-        "x_mm": 81,
-        "y_mm": 14.5,
+        "x_mm": 80.5,
+        "y_mm": 17,
         "font_size_pt": 7.5,
         "font_weight": "bold",
         "color": "#000000",
@@ -37,8 +37,8 @@
         "label": "Fecha Fin Vigencia",
         "categoria": "autorizacion",
         "seccion": "anverso",
-        "x_mm": 127.5,
-        "y_mm": 14,
+        "x_mm": 125.5,
+        "y_mm": 17,
         "font_size_pt": 7.5,
         "font_weight": "bold",
         "color": "#000000",
@@ -61,7 +61,10 @@
         "align": "left",
         "visible": true,
         "prefix": "R.D.R. N° ",
-        "valor_ejemplo": "0392-2023"
+        "valor_ejemplo": "0392-2023",
+        "suffix": "-GR PUNO/GRI/DRTC",
+        "suffix2": " (15/03/2024)",
+        "suffix3": " (S)"
       },
       {
         "id": "fecha_res_p",
@@ -69,13 +72,13 @@
         "label": "Fecha Emisión Res. Primigenia",
         "categoria": "autorizacion",
         "seccion": "anverso",
-        "x_mm": 112.5,
-        "y_mm": 20.5,
+        "x_mm": 137.5,
+        "y_mm": 21,
         "font_size_pt": 7.5,
         "font_weight": "bold",
         "color": "#000000",
         "align": "left",
-        "visible": true,
+        "visible": false,
         "prefix": "(",
         "suffix": ")",
         "valor_ejemplo": "20/06/2023"
@@ -127,8 +130,9 @@
         "color": "#000000",
         "align": "left",
         "visible": true,
-        "prefix": "Partida: ",
-        "valor_ejemplo": "11098008"
+        "prefix": "Partida Registral: ",
+        "valor_ejemplo": "11098008",
+        "etiqueta": "Partida Registral: "
       },
       {
         "id": "placa",
@@ -385,7 +389,10 @@
         "align": "left",
         "visible": true,
         "prefix": "R.D.R N° ",
-        "valor_ejemplo": "0452-2024"
+        "valor_ejemplo": "0452-2024",
+        "suffix": "-GR PUNO/GRI/DRTC",
+        "suffix2": " (15/03/2024)",
+        "suffix3": " (S)"
       },
       {
         "id": "fecha_res",
@@ -399,7 +406,7 @@
         "font_weight": "normal",
         "color": "#000000",
         "align": "left",
-        "visible": true,
+        "visible": false,
         "prefix": "(",
         "suffix": ")",
         "valor_ejemplo": "15/03/2024"
@@ -416,7 +423,7 @@
         "font_weight": "bold",
         "color": "#000000",
         "align": "left",
-        "visible": true,
+        "visible": false,
         "prefix": "(",
         "suffix": ")",
         "valor_ejemplo": "S"
@@ -436,7 +443,7 @@
         "font_weight": "normal",
         "color": "#000000",
         "align": "left",
-        "visible": true,
+        "visible": false,
         "qr_contenido": "https://drtc-puno.gob.pe/verificar-tuc/{{PLACA}}"
       },
       {
@@ -463,7 +470,7 @@
         "id": "var_1790682808617",
         "tag": "{{DUPLICADO}}",
         "label": "duplicados",
-        "categoria": "personalizado",
+        "categoria": "sellos",
         "seccion": "anverso",
         "x_mm": 155,
         "y_mm": 40.5,
@@ -474,17 +481,18 @@
         "visible": true,
         "prefix": "",
         "suffix": "",
-        "es_dinamica": true,
+        "es_dinamica": false,
         "valor_ejemplo": "DUPLICADO",
         "orientacion_texto": "vertical_270",
         "rotacion": 270,
-        "max_lineas": 0
+        "max_lineas": 0,
+        "bloqueado": false
       },
       {
         "id": "var_1790683195735",
         "tag": "{{RENOVACION}}",
         "label": "Nuevo Campo Personalizado",
-        "categoria": "personalizado",
+        "categoria": "sellos",
         "seccion": "reverso",
         "x_mm": 129.5,
         "y_mm": 58.5,
@@ -495,8 +503,9 @@
         "visible": true,
         "prefix": "",
         "suffix": "",
-        "es_dinamica": true,
-        "valor_ejemplo": "RENOVACIÓN"
+        "es_dinamica": false,
+        "valor_ejemplo": "RENOVACIÓN",
+        "bloqueado": false
       },
       {
         "id": "logo_1791374347305",
@@ -506,8 +515,8 @@
         "seccion": "anverso",
         "tipo": "imagen",
         "imagen_url": "/assets/images/mtc-logo.png",
-        "x_mm": 20.5,
-        "y_mm": 55,
+        "x_mm": 87,
+        "y_mm": 62,
         "width_mm": 18,
         "height_mm": 15,
         "opacidad": 1,
@@ -515,13 +524,13 @@
         "font_weight": "normal",
         "color": "#000000",
         "align": "left",
-        "visible": true,
+        "visible": false,
         "es_dinamica": true
       }
     ],
     "activa": true,
     "fecha_creacion": "2026-09-29T11:33:17.116058",
-    "fecha_actualizacion": "2026-10-08T22:28:47.577064",
+    "fecha_actualizacion": "2026-10-09T03:56:16.888787",
     "linea_horizontal": {
       "activa": false,
       "y_mm": 50,

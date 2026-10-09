@@ -40,7 +40,7 @@ export interface VariablePlantillaTuc {
   id: string;
   tag: string;
   label: string;
-  categoria: 'autorizacion' | 'vehiculo' | 'rutas' | 'acto_reverso' | 'personalizado' | 'imagen' | 'qr';
+  categoria: 'autorizacion' | 'vehiculo' | 'rutas' | 'acto_reverso' | 'sellos' | 'tramite_especial' | 'personalizado' | 'imagen' | 'qr';
   seccion: 'anverso' | 'reverso';
   tipo?: 'texto' | 'imagen' | 'qr' | 'linea';
   imagen_url?: string;
@@ -54,6 +54,7 @@ export interface VariablePlantillaTuc {
   estilo_linea?: 'solid' | 'dashed' | 'dotted';
   font_size_pt?: number;
   font_weight?: 'normal' | 'bold';
+  font_family?: string;
   color: string;
   align?: 'left' | 'center' | 'right';
   visible: boolean;
@@ -64,6 +65,12 @@ export interface VariablePlantillaTuc {
   suffix?: string;
   suffix_font_weight?: 'normal' | 'bold';
   suffix_font_size_pt?: number;
+  suffix2?: string;
+  suffix2_font_weight?: 'normal' | 'bold';
+  suffix2_font_size_pt?: number;
+  suffix3?: string;
+  suffix3_font_weight?: 'normal' | 'bold';
+  suffix3_font_size_pt?: number;
   line_height?: number; // Espacio entre líneas por defecto muy cortito (ej: 1.05)
   es_dinamica?: boolean;
   valor_ejemplo?: string;
@@ -108,6 +115,8 @@ export interface PlantillaTucCalibradorConfig {
   margen_top_mm?: number;
   margen_bottom_mm?: number;
   linea_horizontal?: LineaHorizontalConfig;
+  linea_horizontal_anverso?: LineaHorizontalConfig;
+  linea_horizontal_reverso?: LineaHorizontalConfig;
   variables: VariablePlantillaTuc[];
   activa?: boolean;
   es_oficial?: boolean;

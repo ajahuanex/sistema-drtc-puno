@@ -9,15 +9,6 @@
         <mat-icon>arrow_back</mat-icon>
       </button>
 
-      <div class="brand-block" matTooltip="TUC Studio DRTC Puno">
-        <div class="brand-icon">
-          <mat-icon>badge</mat-icon>
-        </div>
-        <div class="brand-text">
-          <h1 class="brand-title">TUC Studio</h1>
-        </div>
-      </div>
-
       <!-- Template Selector & Catalog Management Toolbar -->
       <div class="template-selector-box">
         <mat-icon class="tmpl-icon" matTooltip="Plantillas">auto_awesome_motion</mat-icon>
@@ -78,6 +69,28 @@
         <button mat-icon-button class="btn-search-icon" (click)="cargarDatosVehiculoPrueba(searchPlaca())" matTooltip="Cargar vehículo de prueba">
           <mat-icon>search</mat-icon>
         </button>
+      </div>
+
+      <!-- Trámite Simulator Box (DUPLICADO, RENOVACION, SUSTITUCION, INCREMENTO, NUEVA) -->
+      <div class="tramite-selector-box" matTooltip="Trámite del vehículo (controla visibilidad de DUPLICADO, RENOVACIÓN y Resolución)">
+        <mat-icon class="tramite-icon">assignment_ind</mat-icon>
+        <select class="tramite-select"
+                [ngModel]="tipoTramiteSimulacion()"
+                (ngModelChange)="cambiarTipoTramiteSimulacion($event)">
+          <option value="NUEVA">Autoriz. Nueva</option>
+          <option value="RENOVACION">Renovación (Azul)</option>
+          <option value="SUSTITUCION">Sustitución (S)</option>
+          <option value="INCREMENTO">Incremento (I)</option>
+          <option value="DUPLICADO">Duplicado (Rojo)</option>
+        </select>
+        @if (tipoTramiteSimulacion() === 'DUPLICADO') {
+          <label class="dup-mod-label" matTooltip="Marcar si el vehículo original provino de Sustitución o Incremento para mostrar su resolución en el reverso">
+            <input type="checkbox"
+                   [checked]="duplicadoOrigenModificatorio()"
+                   (change)="duplicadoOrigenModificatorio.set(!duplicadoOrigenModificatorio())" />
+            <span>Orig. Modif.</span>
+          </label>
+        }
       </div>
 
       <!-- Paper Format Selector (A4 vs DUAL PVC) -->
@@ -147,41 +160,59 @@
       </div>
     </div>
 
-    <!-- Actions & Print Button -->
+    <!-- Actions & Print Button (Compact icon-only buttons with tooltips) -->
     <div class="header-right">
-      <button mat-icon-button class="btn-action-icon" (click)="restablecerOficial()" matTooltip="Restablecer plantilla a coordenadas oficiales de DRTC Puno">
+      <button type="button"
+              class="hdr-btn-icon btn-reset-icon"
+              (click)="restablecerOficial()"
+              matTooltip="Restablecer plantilla a coordenadas oficiales de DRTC Puno">
         <mat-icon>restart_alt</mat-icon>
       </button>
 
-      <button mat-raised-button color="primary" class="btn-save-compact" (click)="guardarConfiguracion()" [disabled]="isSaving()" matTooltip="Guardar plantilla en BD y JSON">
+      <button type="button"
+              class="hdr-btn-icon btn-save-icon"
+              (click)="guardarConfiguracion()"
+              [disabled]="isSaving()"
+              matTooltip="Guardar plantilla en BD y JSON">
         @if (isSaving()) {
-          <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
+          <mat-spinner diameter="16" class="inline-spinner-white"></mat-spinner>
         } @else {
           <mat-icon>save</mat-icon>
-          <span>Guardar</span>
         }
       </button>
 
       <!-- Primary Action: Instant HTML Print -->
-      <button mat-raised-button class="btn-print-compact" (click)="imprimirHtmlInstantaneo()" [disabled]="isPrinting()" matTooltip="Imprimir TUC en menos de 0.05s (F9)">
-        <mat-icon>print</mat-icon>
-        <span>Imprimir</span>
+      <button type="button"
+              class="hdr-btn-icon btn-print-icon"
+              (click)="imprimirHtmlInstantaneo()"
+              [disabled]="isPrinting()"
+              matTooltip="Impresión instantánea TUC (F9)">
+        @if (isPrinting()) {
+          <mat-spinner diameter="16" class="inline-spinner-white"></mat-spinner>
+        } @else {
+          <mat-icon>print</mat-icon>
+        }
       </button>
 
       <!-- Guardar en PDF directo -->
-      <button mat-raised-button class="btn-pdf-compact" (click)="guardarEnPdf()" [disabled]="isGeneratingPdf()" matTooltip="Descargar TUC en formato PDF de alta fidelidad">
+      <button type="button"
+              class="hdr-btn-icon btn-pdf-icon"
+              (click)="guardarEnPdf()"
+              [disabled]="isGeneratingPdf()"
+              matTooltip="Descargar TUC en formato PDF de alta fidelidad">
         @if (isGeneratingPdf()) {
-          <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
+          <mat-spinner diameter="16" class="inline-spinner-white"></mat-spinner>
         } @else {
           <mat-icon>picture_as_pdf</mat-icon>
-          <span>PDF</span>
         }
       </button>
 
       <!-- Impresión en Lote Multi-Hojas -->
-      <button mat-stroked-button class="btn-batch-compact" (click)="abrirModalLotePdf()" matTooltip="Imprimir o exportar muchas TUCs en lote multi-hojas / PDF">
+      <button type="button"
+              class="hdr-btn-icon btn-batch-icon"
+              (click)="abrirModalLotePdf()"
+              matTooltip="Imprimir o exportar TUCs en lote">
         <mat-icon>dynamic_feed</mat-icon>
-        <span>Lote</span>
       </button>
     </div>
   </header>
@@ -194,15 +225,38 @@
     <!-- ================================================================= -->
     <!-- 2. PANEL LATERAL IZQUIERDO (VARIABLES, LOGOS & CÓDIGOS QR)         -->
     <!-- ================================================================= -->
-    <aside class="sidebar-left">
-      <div class="sidebar-header">
-        <div class="sidebar-title-row">
-          <div class="title-with-icon">
-            <mat-icon class="icon-accent">data_object</mat-icon>
-            <h2 class="sidebar-title">Elementos de Plantilla</h2>
+    <aside class="sidebar-left" [class.is-collapsed]="sidebarIzquierdaColapsada()">
+      @if (sidebarIzquierdaColapsada()) {
+        <!-- Barra replegada compacta vertical -->
+        <div class="collapsed-palette-bar" (click)="toggleSidebarIzquierda()" matTooltip="Desplegar paleta de elementos">
+          <button type="button"
+                  class="btn-expand-palette"
+                  (click)="toggleSidebarIzquierda(); $event.stopPropagation()"
+                  matTooltip="Desplegar paleta">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+          <div class="collapsed-title-vertical">
+            <mat-icon class="icon-v">data_object</mat-icon>
+            <span>ELEMENTOS ({{ variablesFiltradas().length }})</span>
           </div>
-          <span class="chip-count">{{ variablesFiltradas().length }}</span>
         </div>
+      } @else {
+        <div class="sidebar-header">
+          <div class="sidebar-title-row">
+            <div class="title-with-icon">
+              <mat-icon class="icon-accent">data_object</mat-icon>
+              <h2 class="sidebar-title">Elementos de Plantilla</h2>
+            </div>
+            <div class="title-right-actions">
+              <span class="chip-count">{{ variablesFiltradas().length }}</span>
+              <button type="button"
+                      class="btn-collapse-palette"
+                      (click)="toggleSidebarIzquierda()"
+                      matTooltip="Replegar paleta de elementos">
+                <mat-icon>chevron_left</mat-icon>
+              </button>
+            </div>
+          </div>
 
         <!-- Botones de Acción para Agregar Elementos -->
         <div class="add-elements-grid">
@@ -486,6 +540,50 @@
           </div>
         }
 
+        <!-- Categoría: Sellos de Trámite (Oficial) -->
+        @if (varsSellosOficiales().length > 0) {
+          <div class="var-category-block">
+            <div class="category-header">
+              <label class="category-select-label" (click)="$event.stopPropagation()">
+                <input type="checkbox"
+                       class="cat-checkbox"
+                       [checked]="estaCategoriaTotalmenteSeleccionada('sellos')"
+                       [indeterminate]="estaCategoriaParcialmenteSeleccionada('sellos')"
+                       (change)="toggleSeleccionCategoria('sellos')" />
+                <span class="category-name">Sellos de Trámite (Oficial)</span>
+              </label>
+              <span class="category-badge">{{ varsSellosOficiales().length }}</span>
+            </div>
+            <div class="category-items">
+              @for (v of varsSellosOficiales(); track v.id) {
+                <div class="var-item"
+                     [class.selected]="estaSeleccionada(v)"
+                     [class.hidden-var]="!v.visible"
+                     (click)="seleccionarVariable(v, $event)">
+                  <input type="checkbox"
+                         class="var-select-checkbox"
+                         [checked]="estaSeleccionada(v)"
+                         (click)="$event.stopPropagation()"
+                         (change)="toggleSeleccionDirecta(v, $event)"
+                         matTooltip="Seleccionar elemento" />
+                  <div class="var-info">
+                    <span class="var-tag">{{ v.tag }}</span>
+                    <span class="var-coords">X:{{ v.x_mm }} Y:{{ v.y_mm }}</span>
+                  </div>
+                  <div class="var-actions">
+                    <button type="button" class="icon-btn" (click)="toggleVisibilidad(v, $event)" [matTooltip]="v.visible ? 'Ocultar elemento' : 'Mostrar elemento'">
+                      <mat-icon>{{ v.visible ? 'visibility' : 'visibility_off' }}</mat-icon>
+                    </button>
+                    <button type="button" class="icon-btn" (click)="toggleBloqueo(v, $event)" [matTooltip]="v.bloqueado ? 'Desbloquear posición' : 'Bloquear posición'">
+                      <mat-icon>{{ v.bloqueado ? 'lock' : 'lock_open' }}</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <!-- Categoría: Variables Dinámicas / Personalizadas -->
         @if (varsPersonalizadas().length > 0) {
           <div class="var-category-block">
@@ -540,6 +638,7 @@
         </div>
         <span class="tolerance-tag">{{ totalSeleccionados() }} seleccionados</span>
       </div>
+      }
     </aside>
 
     <!-- ================================================================= -->
@@ -549,6 +648,15 @@
       <!-- Controls Topbar -->
       <div class="workbench-toolbar">
         <div class="toolbar-left">
+          <!-- Toggle Paleta Izquierda -->
+          <button type="button"
+                  class="tool-btn btn-toggle-palette"
+                  (click)="toggleSidebarIzquierda()"
+                  [matTooltip]="sidebarIzquierdaColapsada() ? 'Desplegar paleta de elementos' : 'Replegar paleta de elementos'">
+            <mat-icon>{{ sidebarIzquierdaColapsada() ? 'menu_open' : 'menu' }}</mat-icon>
+          </button>
+          <div class="separator-v"></div>
+
           <!-- Zoom Controls -->
           <div class="zoom-controls">
             <button type="button" class="tool-btn" (click)="zoom.set(Math.max(25, zoom() - 15))" matTooltip="Alejar zoom">
@@ -619,9 +727,27 @@
 
           <div class="separator-v"></div>
 
-          <!-- Límite Superior (Inicio de Contenido) Compacto -->
-          <div class="limite-superior-quick-toolbar" matTooltip="Línea Horizontal Límite Superior: define a qué altura inicia el contenido">
+          <!-- Límite Superior (Inicio de Contenido) Independiente Anverso / Reverso -->
+          <div class="limite-superior-quick-toolbar" matTooltip="Líneas Horizontales Límites Superiores (Anverso y Reverso independientes)">
             <mat-icon class="lsq-icon-top">border_top</mat-icon>
+            
+            <div class="lsq-sec-toggle">
+              <button type="button"
+                      class="lsq-sec-btn"
+                      [class.active]="seccionLineaHActiva() === 'anverso'"
+                      (click)="seccionLineaHActiva.set('anverso'); seleccionarLineaHorizontal('anverso')"
+                      matTooltip="Límite Superior Anverso (H1: {{ lineaHAnversoConfig().y_mm }}mm)">
+                Anv
+              </button>
+              <button type="button"
+                      class="lsq-sec-btn"
+                      [class.active]="seccionLineaHActiva() === 'reverso'"
+                      (click)="seccionLineaHActiva.set('reverso'); seleccionarLineaHorizontal('reverso')"
+                      matTooltip="Límite Superior Reverso (H2: {{ lineaHReversoConfig().y_mm }}mm)">
+                Rev
+              </button>
+            </div>
+
             <div class="mq-stepper">
               <button type="button" class="mq-btn" (click)="ajustarLineaH('y_mm', -1)" matTooltip="-1 mm">-</button>
               <span class="mq-val lsq-val">{{ lineaHConfig().y_mm }}mm</span>
@@ -631,7 +757,7 @@
             <button type="button"
                     class="btn-align-content-to-limit"
                     (click)="alinearContenidoALimiteSuperior()"
-                    matTooltip="Alinear y mover todo el contenido para que empiece en Y = {{ lineaHConfig().y_mm }}mm">
+                    matTooltip="Alinear y mover contenido de {{ seccionLineaHActiva() }} para que empiece en Y = {{ lineaHConfig().y_mm }}mm">
               <mat-icon>vertical_align_top</mat-icon>
             </button>
 
@@ -682,6 +808,13 @@
                     (click)="rejilla.set(!rejilla())"
                     matTooltip="Rejilla Milimétrica">
               <mat-icon>grid_4x4</mat-icon>
+            </button>
+            <button type="button"
+                    class="toggle-icon-btn"
+                    [class.active]="mostrarEtiquetasFlotantes()"
+                    (click)="mostrarEtiquetasFlotantes.set(!mostrarEtiquetasFlotantes())"
+                    [matTooltip]="mostrarEtiquetasFlotantes() ? 'Ocultar etiqueta flotante azul' : 'Mostrar etiqueta flotante azul'">
+              <mat-icon>label</mat-icon>
             </button>
           </div>
         </div>
@@ -809,25 +942,52 @@
                   </div>
                 }
 
-                <!-- LÍNEA HORIZONTAL SUPERIOR / LÍMITE DE INICIO DE CONTENIDO -->
-                @if (lineaHConfig().activa) {
+                <!-- LÍNEA HORIZONTAL SUPERIOR ANVERSO -->
+                @if (lineaHAnversoConfig().activa) {
                   <div class="linea-horizontal-canvas"
-                       [class.is-selected]="lineaHSeleccionada()"
-                       [class.is-dragging]="isDraggingLineaH()"
-                       [style.top.mm]="lineaHConfig().y_mm"
-                       [style.left.mm]="lineaHConfig().x_mm || 0"
-                       [style.width.mm]="lineaHConfig().ancho_mm || anchoHojaMm()"
-                       (mousedown)="iniciarArrastreLineaH($event)"
-                       (click)="seleccionarLineaHorizontal($event)"
-                       matTooltip="Línea Límite Superior: arrastra con el ratón verticalmente para mover el inicio del contenido">
+                       [class.is-selected]="lineaHSeleccionada() === 'anverso'"
+                       [class.is-dragging]="isDraggingLineaH() === 'anverso'"
+                       [style.top.mm]="lineaHAnversoConfig().y_mm"
+                       [style.left.mm]="lineaHAnversoConfig().x_mm || 0"
+                       [style.width.mm]="lineaHAnversoConfig().ancho_mm || anchoHojaMm()"
+                       (mousedown)="iniciarArrastreLineaH('anverso', $event)"
+                       (click)="seleccionarLineaHorizontal('anverso', $event)"
+                       matTooltip="Línea Límite Superior Anverso: arrastra con el ratón verticalmente para mover el inicio del contenido">
                     <div class="linea-h-visual"
-                         [style.borderTopWidth.mm]="lineaHConfig().grosor_mm || 1"
-                         [style.borderTopStyle]="lineaHConfig().estilo || 'dashed'"
-                         [style.borderTopColor]="lineaHConfig().color || '#2563eb'"></div>
+                         [style.borderTopWidth.mm]="lineaHAnversoConfig().grosor_mm || 1"
+                         [style.borderTopStyle]="lineaHAnversoConfig().estilo || 'dashed'"
+                         [style.borderTopColor]="lineaHAnversoConfig().color || '#2563eb'"></div>
                     <div class="linea-h-badge">
-                      <div class="lh-pill" [style.background]="lineaHConfig().color || '#2563eb'">
+                      <div class="lh-pill" [style.background]="lineaHAnversoConfig().color || '#2563eb'">
                         <mat-icon style="font-size:12px;width:12px;height:12px;">border_top</mat-icon>
-                        <span>LÍMITE SUPERIOR: Y = {{ lineaHConfig().y_mm }}mm</span>
+                        <span>LÍMITE ANVERSO: Y = {{ lineaHAnversoConfig().y_mm }}mm</span>
+                        @if (vincularContenidoALimiteH()) {
+                          <span class="lh-linked-tag" matTooltip="Mover la línea desplaza el contenido">VINCULADO</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                <!-- LÍNEA HORIZONTAL SUPERIOR REVERSO (PARA FORMATO DUAL PVC EN UNA HOJA) -->
+                @if (formatoPapel() === 'DUAL_PVC' && lineaHReversoConfig().activa) {
+                  <div class="linea-horizontal-canvas linea-h-reverso"
+                       [class.is-selected]="lineaHSeleccionada() === 'reverso'"
+                       [class.is-dragging]="isDraggingLineaH() === 'reverso'"
+                       [style.top.mm]="anversoAltoMm() + lineaHReversoConfig().y_mm"
+                       [style.left.mm]="lineaHReversoConfig().x_mm || 0"
+                       [style.width.mm]="lineaHReversoConfig().ancho_mm || anchoHojaMm()"
+                       (mousedown)="iniciarArrastreLineaH('reverso', $event)"
+                       (click)="seleccionarLineaHorizontal('reverso', $event)"
+                       matTooltip="Línea Límite Superior Reverso (Zona Inferior): arrastra verticalmente">
+                    <div class="linea-h-visual"
+                         [style.borderTopWidth.mm]="lineaHReversoConfig().grosor_mm || 1"
+                         [style.borderTopStyle]="lineaHReversoConfig().estilo || 'dashed'"
+                         [style.borderTopColor]="lineaHReversoConfig().color || '#0284c7'"></div>
+                    <div class="linea-h-badge">
+                      <div class="lh-pill" [style.background]="lineaHReversoConfig().color || '#0284c7'">
+                        <mat-icon style="font-size:12px;width:12px;height:12px;">border_top</mat-icon>
+                        <span>LÍMITE REVERSO: Y = {{ lineaHReversoConfig().y_mm }}mm</span>
                         @if (vincularContenidoALimiteH()) {
                           <span class="lh-linked-tag" matTooltip="Mover la línea desplaza el contenido">VINCULADO</span>
                         }
@@ -871,6 +1031,7 @@
                          [class.is-dragging]="isDragging() && estaSeleccionada(v)"
                          [class.has-two-lines]="v.max_lineas === 2"
                          [class.has-multiline]="v.max_lineas === 0"
+                         [class.is-hidden-empty]="esElementoVacio(v)"
                          [style.left.mm]="v.x_mm"
                          [style.top.mm]="v.y_mm"
                          [style.width.mm]="v.width_mm"
@@ -928,7 +1089,9 @@
                           <span class="handle handle-tr"></span>
                           <span class="handle handle-bl"></span>
                           <span class="handle handle-br"></span>
-                          <span class="tag-floating-badge">{{ v.tag }} [{{ v.x_mm }}mm, {{ v.y_mm }}mm]</span>
+                          @if (mostrarEtiquetasFlotantes()) {
+                            <span class="tag-floating-badge">{{ v.tag }} [{{ v.x_mm }}mm, {{ v.y_mm }}mm]</span>
+                          }
                         </div>
                       }
                     </div>
@@ -954,7 +1117,8 @@
                 <div class="tuc-card-sheet"
                      [class.format-dual-pvc]="formatoPapel() === 'DUAL_PVC'"
                      [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
-                     [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'">
+                     [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'"
+                     id="tuc-physical-sheet-1">
 
                   <!-- Líneas Guías de Margen Horizontales y Verticales -->
                   @if (guiasMargenes()) {
@@ -972,25 +1136,25 @@
                     </div>
                   }
 
-                  <!-- LÍNEA HORIZONTAL SUPERIOR / LÍMITE DE INICIO DE CONTENIDO -->
-                  @if (lineaHConfig().activa) {
+                  <!-- LÍNEA HORIZONTAL SUPERIOR ANVERSO (H1) -->
+                  @if (lineaHAnversoConfig().activa) {
                     <div class="linea-horizontal-canvas"
-                         [class.is-selected]="lineaHSeleccionada()"
-                         [class.is-dragging]="isDraggingLineaH()"
-                         [style.top.mm]="lineaHConfig().y_mm"
-                         [style.left.mm]="lineaHConfig().x_mm || 0"
-                         [style.width.mm]="lineaHConfig().ancho_mm || anchoHojaMm()"
-                         (mousedown)="iniciarArrastreLineaH($event)"
-                         (click)="seleccionarLineaHorizontal($event)"
-                         matTooltip="Línea Límite Superior: arrastra con el ratón verticalmente para mover el inicio del contenido">
+                         [class.is-selected]="lineaHSeleccionada() === 'anverso'"
+                         [class.is-dragging]="isDraggingLineaH() === 'anverso'"
+                         [style.top.mm]="lineaHAnversoConfig().y_mm"
+                         [style.left.mm]="lineaHAnversoConfig().x_mm || 0"
+                         [style.width.mm]="lineaHAnversoConfig().ancho_mm || anchoHojaMm()"
+                         (mousedown)="iniciarArrastreLineaH('anverso', $event)"
+                         (click)="seleccionarLineaHorizontal('anverso', $event)"
+                         matTooltip="Línea Límite Superior Anverso: arrastra con el ratón verticalmente para mover el inicio del contenido de esta hoja">
                       <div class="linea-h-visual"
-                           [style.borderTopWidth.mm]="lineaHConfig().grosor_mm || 1"
-                           [style.borderTopStyle]="lineaHConfig().estilo || 'dashed'"
-                           [style.borderTopColor]="lineaHConfig().color || '#2563eb'"></div>
+                           [style.borderTopWidth.mm]="lineaHAnversoConfig().grosor_mm || 1"
+                           [style.borderTopStyle]="lineaHAnversoConfig().estilo || 'dashed'"
+                           [style.borderTopColor]="lineaHAnversoConfig().color || '#2563eb'"></div>
                       <div class="linea-h-badge">
-                        <div class="lh-pill" [style.background]="lineaHConfig().color || '#2563eb'">
+                        <div class="lh-pill" [style.background]="lineaHAnversoConfig().color || '#2563eb'">
                           <mat-icon style="font-size:12px;width:12px;height:12px;">border_top</mat-icon>
-                          <span>LÍMITE SUPERIOR: Y = {{ lineaHConfig().y_mm }}mm</span>
+                          <span>LÍMITE ANVERSO: Y = {{ lineaHAnversoConfig().y_mm }}mm</span>
                           @if (vincularContenidoALimiteH()) {
                             <span class="lh-linked-tag" matTooltip="Mover la línea desplaza el contenido">VINCULADO</span>
                           }
@@ -1007,6 +1171,7 @@
                          [class.is-dragging]="isDragging() && estaSeleccionada(v)"
                          [class.has-two-lines]="v.max_lineas === 2"
                          [class.has-multiline]="v.max_lineas === 0"
+                         [class.is-hidden-empty]="esElementoVacio(v)"
                          [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
                          [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
                          [style.left.mm]="v.x_mm"
@@ -1046,7 +1211,9 @@
                           <span class="handle handle-tr"></span>
                           <span class="handle handle-bl"></span>
                           <span class="handle handle-br"></span>
-                          <span class="tag-floating-badge">{{ v.tag }} [{{ v.x_mm }}mm, {{ v.y_mm }}mm]</span>
+                          @if (mostrarEtiquetasFlotantes()) {
+                            <span class="tag-floating-badge">{{ v.tag }} [{{ v.x_mm }}mm, {{ v.y_mm }}mm]</span>
+                          }
                         </div>
                       }
                     </div>
@@ -1063,7 +1230,8 @@
                 <div class="tuc-card-sheet"
                      [class.format-dual-pvc]="formatoPapel() === 'DUAL_PVC'"
                      [class.format-a4-portrait]="formatoPapel() === 'A4' && orientacion() === 'portrait'"
-                     [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'">
+                     [class.format-a4-landscape]="formatoPapel() === 'A4' && orientacion() === 'landscape'"
+                     id="tuc-physical-sheet-2">
 
                   <!-- Líneas Guías de Margen Horizontales y Verticales -->
                   @if (guiasMargenes()) {
@@ -1083,6 +1251,33 @@
 
 
 
+                  <!-- LÍNEA HORIZONTAL SUPERIOR REVERSO (H2) - TOTALMENTE INDEPENDIENTE -->
+                  @if (lineaHReversoConfig().activa) {
+                    <div class="linea-horizontal-canvas linea-h-reverso"
+                         [class.is-selected]="lineaHSeleccionada() === 'reverso'"
+                         [class.is-dragging]="isDraggingLineaH() === 'reverso'"
+                         [style.top.mm]="lineaHReversoConfig().y_mm"
+                         [style.left.mm]="lineaHReversoConfig().x_mm || 0"
+                         [style.width.mm]="lineaHReversoConfig().ancho_mm || anchoHojaMm()"
+                         (mousedown)="iniciarArrastreLineaH('reverso', $event)"
+                         (click)="seleccionarLineaHorizontal('reverso', $event)"
+                         matTooltip="Línea Límite Superior Reverso: arrastra con el ratón verticalmente para mover el inicio del contenido de esta hoja">
+                      <div class="linea-h-visual"
+                           [style.borderTopWidth.mm]="lineaHReversoConfig().grosor_mm || 1"
+                           [style.borderTopStyle]="lineaHReversoConfig().estilo || 'dashed'"
+                           [style.borderTopColor]="lineaHReversoConfig().color || '#0284c7'"></div>
+                      <div class="linea-h-badge">
+                        <div class="lh-pill" [style.background]="lineaHReversoConfig().color || '#0284c7'">
+                          <mat-icon style="font-size:12px;width:12px;height:12px;">border_top</mat-icon>
+                          <span>LÍMITE REVERSO: Y = {{ lineaHReversoConfig().y_mm }}mm</span>
+                          @if (vincularContenidoALimiteH()) {
+                            <span class="lh-linked-tag" matTooltip="Mover la línea desplaza el contenido">VINCULADO</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+
                   <!-- Elementos de Reverso -->
                   @for (v of varsReverso(); track v.id) {
                     <div class="positioned-var"
@@ -1091,6 +1286,7 @@
                          [class.is-dragging]="isDragging() && estaSeleccionada(v)"
                          [class.has-two-lines]="v.max_lineas === 2"
                          [class.has-multiline]="v.max_lineas === 0"
+                         [class.is-hidden-empty]="esElementoVacio(v)"
                          [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
                          [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
                          [style.left.mm]="v.x_mm"
@@ -1143,7 +1339,9 @@
                           <span class="handle handle-tr"></span>
                           <span class="handle handle-bl"></span>
                           <span class="handle handle-br"></span>
-                          <span class="tag-floating-badge">{{ v.tag }} [{{ v.x_mm }}mm, {{ v.y_mm }}mm]</span>
+                          @if (mostrarEtiquetasFlotantes()) {
+                            <span class="tag-floating-badge">{{ v.tag }} [{{ v.x_mm }}mm, {{ v.y_mm }}mm]</span>
+                          }
                         </div>
                       }
                     </div>
@@ -1186,53 +1384,54 @@
 
           <!-- BANNER MULTI-SELECCIÓN -->
           @if (esMultipleSeleccion()) {
-            <div class="multi-select-card">
+            <div class="multi-select-card compact">
               <div class="multi-select-header">
                 <mat-icon>layers</mat-icon>
-                <span>{{ totalSeleccionados() }} Elementos Seleccionados</span>
+                <span>{{ totalSeleccionados() }} seleccionados</span>
               </div>
-              <p class="multi-select-hint">Puedes moverlos todos juntos arrastrando con el ratón en el lienzo.</p>
-
-              <div class="multi-align-buttons">
-                <button type="button" class="btn-align-action" (click)="alinearAMargenIzquierdo()" matTooltip="Alinear selección al Margen Izquierdo ({{ margenIzq() }}mm)">
+              <div class="icon-actions-row">
+                <button type="button" class="btn-icon-action flex-1" (click)="alinearAMargenIzquierdo()" matTooltip="Alinear a Margen Izquierdo ({{ margenIzq() }}mm)">
                   <mat-icon>align_horizontal_left</mat-icon>
-                  <span>Margen Izq</span>
                 </button>
-                <button type="button" class="btn-align-action" (click)="centrarEntreMargenes()" matTooltip="Centrar selección horizontalmente">
+                <button type="button" class="btn-icon-action flex-1" (click)="centrarEntreMargenes()" matTooltip="Centrar entre Márgenes">
                   <mat-icon>align_horizontal_center</mat-icon>
-                  <span>Centrar</span>
                 </button>
-                <button type="button" class="btn-align-action" (click)="alinearAMargenDerecho()" matTooltip="Alinear selección al Margen Derecho ({{ margenDer() }}mm)">
+                <button type="button" class="btn-icon-action flex-1" (click)="alinearAMargenDerecho()" matTooltip="Alinear a Margen Derecho ({{ margenDer() }}mm)">
                   <mat-icon>align_horizontal_right</mat-icon>
-                  <span>Margen Der</span>
                 </button>
               </div>
             </div>
           }
 
-          <!-- CONFIGURACIÓN DE MÁRGENES LATERALES DE LA HOJA -->
+          <!-- MÁRGENES DE HOJA -->
           <div class="prop-group">
             <div class="group-title-with-toggle">
-              <label class="group-title">Márgenes de Hoja (mm)</label>
-              <label class="toggle-lbl-small">
-                <input type="checkbox" [ngModel]="guiasMargenes()" (ngModelChange)="guiasMargenes.set($event)" />
-                <span>Ver Guías</span>
-              </label>
+              <span class="group-title">Márgenes (mm)</span>
+              <div class="toggles-inline-row">
+                <label class="toggle-lbl-small" matTooltip="Mostrar/ocultar etiqueta azul flotante de selección">
+                  <input type="checkbox" [ngModel]="mostrarEtiquetasFlotantes()" (ngModelChange)="mostrarEtiquetasFlotantes.set($event)" />
+                  <span>Etiqueta</span>
+                </label>
+                <label class="toggle-lbl-small" matTooltip="Mostrar/ocultar guías en el lienzo">
+                  <input type="checkbox" [ngModel]="guiasMargenes()" (ngModelChange)="guiasMargenes.set($event)" />
+                  <span>Guías</span>
+                </label>
+              </div>
             </div>
 
-            <div class="coord-grid">
-              <div class="coord-field">
-                <span class="coord-label">Margen Izquierdo:</span>
-                <div class="num-control">
+            <div class="compact-grid-2">
+              <div class="compact-field">
+                <span class="field-tag" matTooltip="Margen Izquierdo">Izq</span>
+                <div class="num-control compact">
                   <button type="button" class="step-btn" (click)="ajustarMargen('margen_izq_mm', -1)">-</button>
                   <input type="number" step="1" [ngModel]="config()?.margen_izq_mm" (ngModelChange)="config()!.margen_izq_mm = $event; notificarCambio()" class="coord-input" />
                   <button type="button" class="step-btn" (click)="ajustarMargen('margen_izq_mm', 1)">+</button>
                 </div>
               </div>
 
-              <div class="coord-field">
-                <span class="coord-label">Margen Derecho:</span>
-                <div class="num-control">
+              <div class="compact-field">
+                <span class="field-tag" matTooltip="Margen Derecho">Der</span>
+                <div class="num-control compact">
                   <button type="button" class="step-btn" (click)="ajustarMargen('margen_der_mm', -1)">-</button>
                   <input type="number" step="1" [ngModel]="config()?.margen_der_mm" (ngModelChange)="config()!.margen_der_mm = $event; notificarCambio()" class="coord-input" />
                   <button type="button" class="step-btn" (click)="ajustarMargen('margen_der_mm', 1)">+</button>
@@ -1240,52 +1439,63 @@
               </div>
             </div>
 
-            <div class="margin-actions-row mt-2">
-              <button type="button" class="btn-margin-align" (click)="alinearAMargenIzquierdo()" matTooltip="Alinear el elemento activo al margen izquierdo">
+            <div class="icon-actions-row mt-1">
+              <button type="button" class="btn-icon-action flex-1" (click)="alinearAMargenIzquierdo()" matTooltip="Alinear activo a Margen Izquierdo">
                 <mat-icon>align_horizontal_left</mat-icon>
-                <span>Alinear Izq</span>
               </button>
-              <button type="button" class="btn-margin-align" (click)="centrarEntreMargenes()" matTooltip="Centrar entre los márgenes izquierdo y derecho">
+              <button type="button" class="btn-icon-action flex-1" (click)="centrarEntreMargenes()" matTooltip="Centrar entre Márgenes">
                 <mat-icon>align_horizontal_center</mat-icon>
-                <span>Centrar</span>
               </button>
-              <button type="button" class="btn-margin-align" (click)="alinearAMargenDerecho()" matTooltip="Alinear el elemento activo al margen derecho">
+              <button type="button" class="btn-icon-action flex-1" (click)="alinearAMargenDerecho()" matTooltip="Alinear activo a Margen Derecho">
                 <mat-icon>align_horizontal_right</mat-icon>
-                <span>Alinear Der</span>
               </button>
             </div>
           </div>
 
-          <!-- CONFIGURACIÓN DE LÍNEA HORIZONTAL LÍMITE SUPERIOR (INICIO DE CONTENIDO) -->
-          <div class="prop-group limite-superior-panel" [class.is-active-panel]="lineaHSeleccionada()">
+          <!-- LÍNEA LÍMITE SUPERIOR (INDEPENDIENTE ANVERSO / REVERSO) -->
+          <div class="prop-group limite-superior-panel" [class.is-active-panel]="lineaHSeleccionada() !== null">
             <div class="group-title-with-toggle">
               <div class="title-with-icon-small">
                 <mat-icon class="icon-accent-blue">border_top</mat-icon>
-                <label class="group-title">Línea Límite Superior (Inicio)</label>
+                <span class="group-title">Límite Superior ({{ seccionLineaHActiva() === 'anverso' ? 'Anverso' : 'Reverso' }})</span>
               </div>
               <label class="toggle-lbl-small">
                 <input type="checkbox" [ngModel]="lineaHConfig().activa" (ngModelChange)="toggleLineaHorizontal()" />
-                <span>{{ lineaHConfig().activa ? 'Activa' : 'Inactiva' }}</span>
+                <span>{{ lineaHConfig().activa ? 'Activa' : 'Off' }}</span>
               </label>
             </div>
 
-            <p class="panel-hint-text">Define la coordenada vertical inicial (Y). El resto del contenido empezará a partir de esta línea.</p>
+            <!-- Selector de Hoja / Sección Independiente -->
+            <div class="linea-h-tabs-row mt-1 mb-1">
+              <button type="button"
+                      class="linea-tab-btn"
+                      [class.active]="seccionLineaHActiva() === 'anverso'"
+                      (click)="seccionLineaHActiva.set('anverso'); seleccionarLineaHorizontal('anverso')">
+                <mat-icon>file_copy</mat-icon>
+                <span>Anverso ({{ lineaHAnversoConfig().y_mm }}mm)</span>
+              </button>
+              <button type="button"
+                      class="linea-tab-btn"
+                      [class.active]="seccionLineaHActiva() === 'reverso'"
+                      (click)="seccionLineaHActiva.set('reverso'); seleccionarLineaHorizontal('reverso')">
+                <mat-icon>find_in_page</mat-icon>
+                <span>Reverso ({{ lineaHReversoConfig().y_mm }}mm)</span>
+              </button>
+            </div>
 
-            <div class="coord-grid">
-              <div class="coord-field">
-                <span class="coord-label">Posición Y (mm):</span>
-                <div class="num-control">
-                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', -1)">-1</button>
-                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', -0.5)">-0.5</button>
+            <div class="compact-grid-2">
+              <div class="compact-field">
+                <span class="field-tag" matTooltip="Posición Y (mm)">Y</span>
+                <div class="num-control compact">
+                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', -0.5)">-</button>
                   <input type="number" step="0.5" [ngModel]="lineaHConfig().y_mm" (ngModelChange)="ajustarLineaHDirecto('y_mm', $event)" class="coord-input font-bold" />
-                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', 0.5)">+0.5</button>
-                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', 1)">+1</button>
+                  <button type="button" class="step-btn" (click)="ajustarLineaH('y_mm', 0.5)">+</button>
                 </div>
               </div>
 
-              <div class="coord-field">
-                <span class="coord-label">Grosor (mm):</span>
-                <div class="num-control">
+              <div class="compact-field">
+                <span class="field-tag" matTooltip="Grosor (mm)">Grosor</span>
+                <div class="num-control compact">
                   <button type="button" class="step-btn" (click)="ajustarLineaH('grosor_mm', -0.2)">-</button>
                   <input type="number" step="0.2" [ngModel]="lineaHConfig().grosor_mm" (ngModelChange)="ajustarLineaHDirecto('grosor_mm', $event)" class="coord-input" />
                   <button type="button" class="step-btn" (click)="ajustarLineaH('grosor_mm', 0.2)">+</button>
@@ -1293,68 +1503,65 @@
               </div>
             </div>
 
-            <div class="actions-stack mt-2">
+            <div class="actions-stack mt-1">
               <button type="button"
-                      class="btn-action-primary-fill"
+                      class="btn-action-primary-fill compact"
                       (click)="alinearContenidoALimiteSuperior()"
-                      matTooltip="Mover todas las variables para que el inicio coincida con Y = {{ lineaHConfig().y_mm }}mm">
+                      matTooltip="Alinear inicio de variables a Y = {{ lineaHConfig().y_mm }}mm">
                 <mat-icon>vertical_align_top</mat-icon>
-                <span>Alinear Contenido a Y: {{ lineaHConfig().y_mm }}mm</span>
+                <span>Alinear a Y: {{ lineaHConfig().y_mm }}mm</span>
               </button>
 
-              <div class="toggles-subrow mt-2">
-                <label class="toggle-lbl-compact">
+              <div class="toggles-inline-row mt-1">
+                <label class="toggle-lbl-compact" matTooltip="Mover contenido al arrastrar línea límite">
                   <input type="checkbox" [ngModel]="vincularContenidoALimiteH()" (ngModelChange)="vincularContenidoALimiteH.set($event)" />
-                  <span>Vincular y arrastrar contenido automáticamente</span>
+                  <span>Auto-vincular</span>
                 </label>
-                <label class="toggle-lbl-compact">
+                <label class="toggle-lbl-compact" matTooltip="Imprimir línea física en el documento">
                   <input type="checkbox" [ngModel]="lineaHConfig().imprimible" (ngModelChange)="setLineaHImprimible($event)" />
-                  <span>Imprimir línea física en el documento</span>
+                  <span>Imprimir</span>
                 </label>
               </div>
 
               <!-- Estilo de trazo -->
-              <div class="field-row mt-2">
-                <span class="field-lbl">Estilo:</span>
-                <div class="btn-group-toggle">
-                  <button type="button" class="btn-toggle" [class.active]="lineaHConfig().estilo === 'dashed'" (click)="setLineaHEstilo('dashed')">-- Trazos</button>
-                  <button type="button" class="btn-toggle" [class.active]="lineaHConfig().estilo === 'solid'" (click)="setLineaHEstilo('solid')">── Sólida</button>
-                  <button type="button" class="btn-toggle" [class.active]="lineaHConfig().estilo === 'dotted'" (click)="setLineaHEstilo('dotted')">•• Puntos</button>
-                </div>
+              <div class="btn-group-toggle compact mt-1">
+                <button type="button" class="btn-toggle flex-1" [class.active]="lineaHConfig().estilo === 'dashed'" (click)="setLineaHEstilo('dashed')" matTooltip="Trazos">-- Trazos</button>
+                <button type="button" class="btn-toggle flex-1" [class.active]="lineaHConfig().estilo === 'solid'" (click)="setLineaHEstilo('solid')" matTooltip="Sólida">── Sólida</button>
+                <button type="button" class="btn-toggle flex-1" [class.active]="lineaHConfig().estilo === 'dotted'" (click)="setLineaHEstilo('dotted')" matTooltip="Puntos">•• Puntos</button>
               </div>
             </div>
           </div>
 
           <!-- DETALLE DEL ELEMENTO SELECCIONADO -->
           @if (selectedVariable(); as sel) {
-            <!-- Header Element Info -->
-            <div class="selected-header-card">
-              <div class="sel-tag-name">
-                @if (sel.tipo === 'imagen') {
-                  <mat-icon class="icon-inline">image</mat-icon>
-                } @else if (sel.tipo === 'qr') {
-                  <mat-icon class="icon-inline">qr_code_2</mat-icon>
-                } @else if (sel.tipo === 'linea') {
-                  <mat-icon class="icon-inline">horizontal_rule</mat-icon>
-                }
-                {{ sel.tag }}
-              </div>
-              <div class="sel-meta-row">
-                <span class="sel-category-chip">{{ sel.tipo === 'imagen' ? 'IMAGEN' : (sel.tipo === 'qr' ? 'QR CODE' : (sel.tipo === 'linea' ? 'LÍNEA H' : sel.categoria)) }}</span>
-                <span class="sel-seccion-chip">{{ sel.seccion | uppercase }}</span>
+            <!-- Header Element Info Compact -->
+            <div class="selected-header-card compact">
+              <div class="sel-card-top">
+                <span class="sel-tag-name">
+                  @if (sel.tipo === 'imagen') {
+                    <mat-icon class="icon-inline">image</mat-icon>
+                  } @else if (sel.tipo === 'qr') {
+                    <mat-icon class="icon-inline">qr_code_2</mat-icon>
+                  } @else if (sel.tipo === 'linea') {
+                    <mat-icon class="icon-inline">horizontal_rule</mat-icon>
+                  }
+                  {{ sel.tag }}
+                </span>
+                <div class="sel-chips-inline">
+                  <span class="sel-category-chip">{{ sel.tipo === 'imagen' ? 'IMG' : (sel.tipo === 'qr' ? 'QR' : (sel.tipo === 'linea' ? 'LÍNEA' : sel.categoria)) }}</span>
+                  <span class="sel-seccion-chip">{{ sel.seccion === 'anverso' ? 'H1' : 'H2' }}</span>
+                </div>
               </div>
               <div class="sel-label-text">{{ sel.label }}</div>
             </div>
 
             <!-- Precision Coordinate Inputs (mm) -->
             <div class="prop-group">
-              <label class="group-title">Coordenadas Milimétricas (mm)</label>
-
-              <div class="coord-grid">
+              <div class="compact-grid-2">
                 <!-- X Position -->
-                <div class="coord-field">
-                  <span class="coord-label">X (Horizontal):</span>
-                  <div class="num-control">
+                <div class="compact-field">
+                  <span class="field-tag" matTooltip="Posición Horizontal (X)">X</span>
+                  <div class="num-control compact">
                     <button type="button" class="step-btn" (click)="ajustarCoordenada('x_mm', -0.5)">-</button>
                     <input type="number" step="0.5" [(ngModel)]="sel.x_mm" (ngModelChange)="notificarCambio()" class="coord-input" />
                     <button type="button" class="step-btn" (click)="ajustarCoordenada('x_mm', 0.5)">+</button>
@@ -1362,9 +1569,9 @@
                 </div>
 
                 <!-- Y Position -->
-                <div class="coord-field">
-                  <span class="coord-label">Y (Vertical):</span>
-                  <div class="num-control">
+                <div class="compact-field">
+                  <span class="field-tag" matTooltip="Posición Vertical (Y)">Y</span>
+                  <div class="num-control compact">
                     <button type="button" class="step-btn" (click)="ajustarCoordenada('y_mm', -0.5)">-</button>
                     <input type="number" step="0.5" [(ngModel)]="sel.y_mm" (ngModelChange)="notificarCambio()" class="coord-input" />
                     <button type="button" class="step-btn" (click)="ajustarCoordenada('y_mm', 0.5)">+</button>
@@ -1373,10 +1580,10 @@
               </div>
 
               <!-- Dimensions (Width & Height) -->
-              <div class="coord-grid mt-2">
-                <div class="coord-field">
-                  <span class="coord-label">{{ sel.tipo === 'linea' ? 'Largo (mm):' : 'Ancho (mm):' }}</span>
-                  <div class="num-control">
+              <div class="compact-grid-2 mt-1">
+                <div class="compact-field">
+                  <span class="field-tag" matTooltip="Ancho / Largo">{{ sel.tipo === 'linea' ? 'Largo' : 'W' }}</span>
+                  <div class="num-control compact">
                     <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', -1)">-</button>
                     <input type="number" step="1" [(ngModel)]="sel.width_mm" (ngModelChange)="notificarCambio()" placeholder="Auto" class="coord-input" />
                     <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', 1)">+</button>
@@ -1384,9 +1591,9 @@
                 </div>
 
                 @if (sel.tipo === 'imagen' || sel.tipo === 'qr') {
-                  <div class="coord-field">
-                    <span class="coord-label">Alto (mm):</span>
-                    <div class="num-control">
+                  <div class="compact-field">
+                    <span class="field-tag" matTooltip="Alto (H)">H</span>
+                    <div class="num-control compact">
                       <button type="button" class="step-btn" (click)="ajustarTamanio('height_mm', -1)">-</button>
                       <input type="number" step="1" [(ngModel)]="sel.height_mm" (ngModelChange)="notificarCambio()" placeholder="Auto" class="coord-input" />
                       <button type="button" class="step-btn" (click)="ajustarTamanio('height_mm', 1)">+</button>
@@ -1395,9 +1602,9 @@
                 }
 
                 @if (sel.tipo === 'linea') {
-                  <div class="coord-field">
-                    <span class="coord-label">Grosor (mm):</span>
-                    <div class="num-control">
+                  <div class="compact-field">
+                    <span class="field-tag" matTooltip="Grosor de Línea">Grosor</span>
+                    <div class="num-control compact">
                       <button type="button" class="step-btn" (click)="sel.grosor_mm = Math.max(0.1, Math.round(((sel.grosor_mm || 1) - 0.2) * 10) / 10); notificarCambio()">-</button>
                       <input type="number" step="0.1" [(ngModel)]="sel.grosor_mm" (ngModelChange)="notificarCambio()" class="coord-input" />
                       <button type="button" class="step-btn" (click)="sel.grosor_mm = Math.min(10, Math.round(((sel.grosor_mm || 1) + 0.2) * 10) / 10); notificarCambio()">+</button>
@@ -1410,11 +1617,11 @@
             <!-- CONFIGURACIÓN ESPECÍFICA PARA TIPO: LÍNEA HORIZONTAL / IMAGEN DECORATIVA -->
             @if (sel.tipo === 'linea') {
               <div class="prop-group">
-                <label class="group-title">Propiedades de Línea / Separador</label>
+                <span class="group-title">Línea / Separador</span>
 
                 <!-- Color Picker & Text -->
                 <div class="field-row">
-                  <span class="field-lbl">Color de Línea:</span>
+                  <span class="field-lbl">Color:</span>
                   <div class="color-picker-group">
                     <input type="color" [(ngModel)]="sel.color" (ngModelChange)="notificarCambio()" class="color-picker-input" />
                     <input type="text" [(ngModel)]="sel.color" (ngModelChange)="notificarCambio()" class="color-text-input" />
@@ -1423,63 +1630,59 @@
 
                 <!-- Palette Swatches -->
                 <div class="palette-swatches">
-                  <span class="palette-lbl">Predefinidos:</span>
+                  <span class="palette-lbl">Color:</span>
                   <button type="button" class="swatch" style="background:#000000;" (click)="sel.color = '#000000'; notificarCambio()" matTooltip="Negro"></button>
-                  <button type="button" class="swatch" style="background:#1e3a8a;" (click)="sel.color = '#1e3a8a'; notificarCambio()" matTooltip="Azul Institucional MTC"></button>
+                  <button type="button" class="swatch" style="background:#1e3a8a;" (click)="sel.color = '#1e3a8a'; notificarCambio()" matTooltip="Azul DRTC"></button>
                   <button type="button" class="swatch" style="background:#d97706;" (click)="sel.color = '#d97706'; notificarCambio()" matTooltip="Ámbar"></button>
                   <button type="button" class="swatch" style="background:#64748b;" (click)="sel.color = '#64748b'; notificarCambio()" matTooltip="Gris"></button>
                   <button type="button" class="swatch" style="background:#dc2626;" (click)="sel.color = '#dc2626'; notificarCambio()" matTooltip="Rojo"></button>
                 </div>
 
                 <!-- Stroke Style -->
-                <div class="field-row mt-2">
-                  <span class="field-lbl">Estilo de Trazo:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button" class="btn-toggle" [class.active]="(sel.estilo_linea || 'solid') === 'solid'" (click)="sel.estilo_linea = 'solid'; notificarCambio()">
-                      ── Sólida
-                    </button>
-                    <button type="button" class="btn-toggle" [class.active]="sel.estilo_linea === 'dashed'" (click)="sel.estilo_linea = 'dashed'; notificarCambio()">
-                      -- Trazos
-                    </button>
-                    <button type="button" class="btn-toggle" [class.active]="sel.estilo_linea === 'dotted'" (click)="sel.estilo_linea = 'dotted'; notificarCambio()">
-                      ••• Puntos
-                    </button>
-                  </div>
+                <div class="btn-group-toggle compact mt-1">
+                  <button type="button" class="btn-toggle flex-1" [class.active]="(sel.estilo_linea || 'solid') === 'solid'" (click)="sel.estilo_linea = 'solid'; notificarCambio()">
+                    ── Sólida
+                  </button>
+                  <button type="button" class="btn-toggle flex-1" [class.active]="sel.estilo_linea === 'dashed'" (click)="sel.estilo_linea = 'dashed'; notificarCambio()">
+                    -- Trazos
+                  </button>
+                  <button type="button" class="btn-toggle flex-1" [class.active]="sel.estilo_linea === 'dotted'" (click)="sel.estilo_linea = 'dotted'; notificarCambio()">
+                    •• Puntos
+                  </button>
                 </div>
 
                 <!-- Quick Width Actions -->
-                <div class="line-quick-presets mt-2">
-                  <button type="button" class="btn-lh-preset" (click)="alinearLineaConRutas(sel)" matTooltip="Alinear y ajustar al ancho de la tabla de Rutas (68mm)">
+                <div class="line-quick-presets mt-1">
+                  <button type="button" class="btn-lh-preset" (click)="alinearLineaConRutas(sel)" matTooltip="Ajustar a tabla de Rutas (68mm)">
                     <mat-icon>alt_route</mat-icon>
-                    <span>Bajo Rutas (68mm)</span>
+                    <span>68mm (Rutas)</span>
                   </button>
-                  <button type="button" class="btn-lh-preset" (click)="sel.width_mm = anchoHojaMm() - 20; notificarCambio()" matTooltip="Largo según márgenes">
+                  <button type="button" class="btn-lh-preset" (click)="sel.width_mm = anchoHojaMm() - 20; notificarCambio()" matTooltip="Ajustar a márgenes">
                     <mat-icon>straighten</mat-icon>
-                    <span>Largo Márgenes</span>
+                    <span>Márgenes</span>
                   </button>
-                  <button type="button" class="btn-lh-preset" (click)="sel.width_mm = anchoHojaMm(); sel.x_mm = 0; notificarCambio()" matTooltip="Extender al ancho completo">
+                  <button type="button" class="btn-lh-preset" (click)="sel.width_mm = anchoHojaMm(); sel.x_mm = 0; notificarCambio()" matTooltip="Ancho total de la hoja">
                     <mat-icon>width_full</mat-icon>
-                    <span>Ancho Total</span>
+                    <span>Total</span>
                   </button>
                 </div>
 
-                <!-- Opción de Imagen Decorativa (Subir imagen o usar como gráfico) -->
-                <div class="field-row mt-2 pt-2 border-t">
-                  <span class="field-lbl">Gráfico / Imagen:</span>
+                <!-- Imagen decorativa -->
+                <div class="field-row mt-1 pt-1 border-t">
+                  <span class="field-lbl">Imagen:</span>
                   <div class="line-img-controls">
                     @if (sel.imagen_url) {
                       <div class="line-img-active">
                         <img [src]="sel.imagen_url" alt="Línea decorativa" class="line-thumb-preview" />
-                        <button type="button" class="btn-clear-img" (click)="quitarImagenDeVariable(sel)" matTooltip="Eliminar imagen y volver a línea vectorial">
+                        <button type="button" class="btn-clear-img" (click)="quitarImagenDeVariable(sel)" matTooltip="Volver a trazo vectorial">
                           <mat-icon>close</mat-icon>
-                          <span>Volver a Trazo</span>
                         </button>
                       </div>
                     } @else {
                       <input type="file" #lineImgFile style="display:none" accept="image/*" (change)="cargarImagenParaVariable(sel, $event)" />
-                      <button type="button" class="btn-upload-line" (click)="lineImgFile.click()" matTooltip="Cargar imagen decorativa (PNG, SVG) para que se muestre como línea/separador">
+                      <button type="button" class="btn-upload-line" (click)="lineImgFile.click()" matTooltip="Cargar imagen (PNG/SVG)">
                         <mat-icon>add_photo_alternate</mat-icon>
-                        <span>Cargar Imagen Decorativa</span>
+                        <span>Cargar Imagen</span>
                       </button>
                     }
                   </div>
@@ -1490,16 +1693,15 @@
             <!-- CONFIGURACIÓN ESPECÍFICA PARA TIPO: IMAGEN / LOGO -->
             @if (sel.tipo === 'imagen') {
               <div class="prop-group">
-                <label class="group-title">Propiedades de Imagen / Logo</label>
+                <span class="group-title">Imagen / Logo</span>
 
                 <div class="field-row">
-                  <span class="field-lbl">Ruta / URL:</span>
-                  <input type="text" [(ngModel)]="sel.imagen_url" (ngModelChange)="notificarCambio()" class="text-input font-mono" />
+                  <span class="field-lbl">Ruta/URL:</span>
+                  <input type="text" [(ngModel)]="sel.imagen_url" (ngModelChange)="notificarCambio()" class="text-input font-mono flex-1" />
                 </div>
 
                 <!-- Presets Institucionales DRTC -->
-                <div class="presets-picker-box mt-2">
-                  <span class="field-lbl">Logos Institucionales:</span>
+                <div class="presets-picker-box mt-1">
                   <div class="presets-chips">
                     @for (p of presetsImagenes; track p.url) {
                       <button type="button"
@@ -1512,22 +1714,16 @@
                   </div>
                 </div>
 
-                <!-- Opacidad / Transparencia -->
-                <div class="field-row mt-2">
-                  <span class="field-lbl">Opacidad: {{ ((sel.opacidad ?? 1.0) * 100) | number:'1.0-0' }}%</span>
-                  <div class="num-control">
-                    <button type="button" class="step-btn" (click)="ajustarOpacidad(-0.1)">-</button>
+                <!-- Opacidad / Transparencia & Hoja -->
+                <div class="compact-grid-2 mt-1">
+                  <div class="compact-field">
+                    <span class="field-tag" matTooltip="Opacidad">Opac: {{ ((sel.opacidad ?? 1.0) * 100) | number:'1.0-0' }}%</span>
                     <input type="range" min="0.1" max="1" step="0.05" [(ngModel)]="sel.opacidad" (ngModelChange)="notificarCambio()" class="range-slider" />
-                    <button type="button" class="step-btn" (click)="ajustarOpacidad(0.1)">+</button>
                   </div>
-                </div>
 
-                <!-- Section Toggle -->
-                <div class="field-row">
-                  <span class="field-lbl">Sección / Hoja:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'anverso'" (click)="sel.seccion = 'anverso'; notificarCambio()">Hoja 1 (Anverso)</button>
-                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'reverso'" (click)="sel.seccion = 'reverso'; notificarCambio()">Hoja 2 (Reverso)</button>
+                  <div class="btn-group-toggle compact">
+                    <button type="button" class="btn-toggle flex-1" [class.active]="sel.seccion === 'anverso'" (click)="sel.seccion = 'anverso'; notificarCambio()" matTooltip="Hoja 1">H1</button>
+                    <button type="button" class="btn-toggle flex-1" [class.active]="sel.seccion === 'reverso'" (click)="sel.seccion = 'reverso'; notificarCambio()" matTooltip="Hoja 2">H2</button>
                   </div>
                 </div>
               </div>
@@ -1536,34 +1732,29 @@
             <!-- CONFIGURACIÓN ESPECÍFICA PARA TIPO: CÓDIGO QR -->
             @if (sel.tipo === 'qr') {
               <div class="prop-group">
-                <label class="group-title">Configuración Código QR Dinámico</label>
+                <span class="group-title">Código QR Dinámico</span>
 
                 <div class="field-row">
-                  <span class="field-lbl">Contenido / Enlace:</span>
                   <textarea [(ngModel)]="sel.qr_contenido"
                             (ngModelChange)="notificarCambio()"
-                            rows="3"
+                            rows="2"
                             placeholder="https://drtc-puno.gob.pe/verificar-tuc/{{ '{{PLACA}}' }}"
-                            class="text-area-mono"></textarea>
+                            class="text-area-mono w-full"></textarea>
                 </div>
 
                 <!-- Tags dinámicos rápidos -->
-                <div class="quick-tags-box">
-                  <span class="quick-tags-lbl">Insertar Tag Dinámico:</span>
+                <div class="quick-tags-box mt-1">
                   <div class="tags-pill-row">
-                    <button type="button" class="pill-btn" (click)="sel.qr_contenido = (sel.qr_contenido || '') + '{{PLACA}}'; notificarCambio()">+ {{ '{{PLACA}}' }}</button>
-                    <button type="button" class="pill-btn" (click)="sel.qr_contenido = (sel.qr_contenido || '') + '{{RUC}}'; notificarCambio()">+ {{ '{{RUC}}' }}</button>
-                    <button type="button" class="pill-btn" (click)="sel.qr_contenido = (sel.qr_contenido || '') + '{{EMPRESA}}'; notificarCambio()">+ {{ '{{EMPRESA}}' }}</button>
+                    <button type="button" class="pill-btn" (click)="sel.qr_contenido = (sel.qr_contenido || '') + '{{PLACA}}'; notificarCambio()">+ PLACA</button>
+                    <button type="button" class="pill-btn" (click)="sel.qr_contenido = (sel.qr_contenido || '') + '{{RUC}}'; notificarCambio()">+ RUC</button>
+                    <button type="button" class="pill-btn" (click)="sel.qr_contenido = (sel.qr_contenido || '') + '{{EMPRESA}}'; notificarCambio()">+ EMPRESA</button>
                   </div>
                 </div>
 
                 <!-- Section Toggle -->
-                <div class="field-row mt-2">
-                  <span class="field-lbl">Sección / Hoja:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'anverso'" (click)="sel.seccion = 'anverso'; notificarCambio()">Hoja 1 (Anverso)</button>
-                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'reverso'" (click)="sel.seccion = 'reverso'; notificarCambio()">Hoja 2 (Reverso)</button>
-                  </div>
+                <div class="btn-group-toggle compact mt-1">
+                  <button type="button" class="btn-toggle flex-1" [class.active]="sel.seccion === 'anverso'" (click)="sel.seccion = 'anverso'; notificarCambio()">Hoja 1 (Anverso)</button>
+                  <button type="button" class="btn-toggle flex-1" [class.active]="sel.seccion === 'reverso'" (click)="sel.seccion = 'reverso'; notificarCambio()" matTooltip="Hoja 2 (Reverso)">Hoja 2 (Reverso)</button>
                 </div>
               </div>
             }
@@ -1571,298 +1762,274 @@
             <!-- CONFIGURACIÓN PARA VARIABLES DE TEXTO -->
             @if (sel.tipo !== 'imagen' && sel.tipo !== 'qr') {
 
-              <!-- 1. PREFIJO (CON SU PROPIO PESO Y TAMAÑO DE LETRA) -->
+              <!-- TIPOGRAFÍA Y FORMATO CONSOLIDADO (FIGMA / STUDIO STYLE) -->
               <div class="prop-group">
                 <div class="group-title-with-toggle">
-                  <label class="group-title">Prefijo de la Variable</label>
+                  <span class="group-title">Texto y Formato</span>
                   @if (sel.prefix || sel.etiqueta) {
-                    <button type="button" class="btn-unlink-label" (click)="desvincularEtiqueta(sel)" matTooltip="Convertir el prefijo en un elemento independiente">
-                      <mat-icon style="font-size:14px;width:14px;height:14px;">call_split</mat-icon>
-                      <span>Desvincular</span>
+                    <button type="button" class="btn-unlink-label" (click)="desvincularEtiqueta(sel)" matTooltip="Separar prefijo como elemento independiente">
+                      <mat-icon>call_split</mat-icon>
+                      <span>Separar</span>
                     </button>
                   }
                 </div>
 
-                <div class="field-row">
-                  <span class="field-lbl">Texto Prefijo:</span>
+                <!-- 1. PREFIJO -->
+                <div class="typo-row">
+                  <span class="typo-label" matTooltip="Texto Prefijo">Pref:</span>
                   <input type="text"
                          [ngModel]="sel.prefix !== undefined ? sel.prefix : (sel.etiqueta || '')"
                          (ngModelChange)="sel.prefix = $event; sel.etiqueta = $event; notificarCambio()"
-                         placeholder="Ej: Placa : , RUC : "
-                         class="text-input" />
-                </div>
-
-                <div class="field-row">
-                  <span class="field-lbl">Peso Prefijo:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="(sel.prefix_font_weight || sel.etiqueta_font_weight || 'bold') === 'bold'"
-                            (click)="setPrefixFontWeight('bold')">
-                      <strong>Negrita</strong>
-                    </button>
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="(sel.prefix_font_weight || sel.etiqueta_font_weight) === 'normal'"
-                            (click)="setPrefixFontWeight('normal')">
-                      Normal
-                    </button>
-                  </div>
-                </div>
-
-                <div class="field-row">
-                  <span class="field-lbl">Tamaño Prefijo (pt):</span>
-                  <div class="num-control">
+                         placeholder="Ej: R.D.R. N° "
+                         class="text-input flex-1" />
+                  <button type="button"
+                          class="btn-icon-toggle"
+                          [class.active]="(sel.prefix_font_weight || sel.etiqueta_font_weight || 'bold') === 'bold'"
+                          (click)="setPrefixFontWeight((sel.prefix_font_weight || sel.etiqueta_font_weight || 'bold') === 'bold' ? 'normal' : 'bold')"
+                          matTooltip="Negrita en Prefijo">
+                    <mat-icon>format_bold</mat-icon>
+                  </button>
+                  <div class="num-control compact">
                     <button type="button" class="step-btn" (click)="ajustarPrefixFontSize(-0.5)">-</button>
-                    <input type="number" step="0.5" [ngModel]="sel.prefix_font_size_pt || sel.font_size_pt" (ngModelChange)="sel.prefix_font_size_pt = $event; notificarCambio()" class="coord-input" />
+                    <input type="number" step="0.5" [ngModel]="sel.prefix_font_size_pt || sel.font_size_pt" (ngModelChange)="sel.prefix_font_size_pt = $event; notificarCambio()" class="coord-input" matTooltip="Tamaño Prefijo (pt)" />
                     <button type="button" class="step-btn" (click)="ajustarPrefixFontSize(0.5)">+</button>
                   </div>
                 </div>
-              </div>
 
-              <!-- 2. VALOR DE LA VARIABLE (CON SU PROPIO PESO Y TAMAÑO) -->
-              <div class="prop-group">
-                <label class="group-title">Valor de la Variable</label>
-
-                <div class="field-row">
-                  <span class="field-lbl">Tamaño Valor (pt):</span>
-                  <div class="num-control">
+                <!-- 2. VALOR (TAMAÑO, PESO, COLOR, ALINEACIÓN) -->
+                <div class="typo-row">
+                  <span class="typo-label" matTooltip="Estilo del Valor">Valor:</span>
+                  <div class="num-control compact">
                     <button type="button" class="step-btn" (click)="ajustarCoordenada('font_size_pt', -0.5)">-</button>
-                    <input type="number" step="0.5" [(ngModel)]="sel.font_size_pt" (ngModelChange)="notificarCambio()" class="coord-input" />
+                    <input type="number" step="0.5" [(ngModel)]="sel.font_size_pt" (ngModelChange)="notificarCambio()" class="coord-input" matTooltip="Tamaño Valor (pt)" />
                     <button type="button" class="step-btn" (click)="ajustarCoordenada('font_size_pt', 0.5)">+</button>
                   </div>
-                </div>
-
-                <div class="field-row">
-                  <span class="field-lbl">Peso Valor:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button" class="btn-toggle" [class.active]="(sel.font_weight || 'normal') === 'normal'" (click)="setValorFontWeight('normal')">Normal</button>
-                    <button type="button" class="btn-toggle" [class.active]="sel.font_weight === 'bold'" (click)="setValorFontWeight('bold')"><strong>Negrita</strong></button>
+                  <button type="button"
+                          class="btn-icon-toggle"
+                          [class.active]="sel.font_weight === 'bold'"
+                          (click)="setValorFontWeight(sel.font_weight === 'bold' ? 'normal' : 'bold')"
+                          matTooltip="Negrita en Valor">
+                    <mat-icon>format_bold</mat-icon>
+                  </button>
+                  <div class="color-picker-compact" matTooltip="Color del Texto">
+                    <input type="color" [(ngModel)]="sel.color" (ngModelChange)="notificarCambio()" class="color-circle-compact" />
                   </div>
-                </div>
-
-                <div class="field-row">
-                  <span class="field-lbl">Color:</span>
-                  <div class="color-picker-box">
-                    <input type="color" [(ngModel)]="sel.color" (ngModelChange)="notificarCambio()" class="color-circle" />
-                    <input type="text" [(ngModel)]="sel.color" (ngModelChange)="notificarCambio()" class="color-text" />
-                  </div>
-                </div>
-
-                <div class="field-row">
-                  <span class="field-lbl">Alineación:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button" class="btn-toggle" [class.active]="sel.align === 'left'" (click)="sel.align = 'left'; notificarCambio()" title="Izquierda">
-                      <mat-icon style="font-size:16px;width:16px;height:16px;">format_align_left</mat-icon>
+                  <div class="btn-group-toggle compact">
+                    <button type="button" class="btn-toggle-icon" [class.active]="(sel.align || 'left') === 'left'" (click)="sel.align = 'left'; notificarCambio()" matTooltip="Alinear a la Izquierda">
+                      <mat-icon>format_align_left</mat-icon>
                     </button>
-                    <button type="button" class="btn-toggle" [class.active]="sel.align === 'center'" (click)="sel.align = 'center'; notificarCambio()" title="Centro">
-                      <mat-icon style="font-size:16px;width:16px;height:16px;">format_align_center</mat-icon>
+                    <button type="button" class="btn-toggle-icon" [class.active]="sel.align === 'center'" (click)="sel.align = 'center'; notificarCambio()" matTooltip="Centrar">
+                      <mat-icon>format_align_center</mat-icon>
                     </button>
-                    <button type="button" class="btn-toggle" [class.active]="sel.align === 'right'" (click)="sel.align = 'right'; notificarCambio()" title="Derecha">
-                      <mat-icon style="font-size:16px;width:16px;height:16px;">format_align_right</mat-icon>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 3. SUFIJO (CON SU PROPIO PESO Y TAMAÑO DE LETRA) -->
-              <div class="prop-group">
-                <label class="group-title">Sufijo de la Variable</label>
-
-                <div class="field-row">
-                  <span class="field-lbl">Texto Sufijo:</span>
-                  <input type="text" [(ngModel)]="sel.suffix" (ngModelChange)="notificarCambio()" placeholder="Ej:  kg,  t,  m" class="text-input" />
-                </div>
-
-                <div class="field-row">
-                  <span class="field-lbl">Peso Sufijo:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="(sel.suffix_font_weight || 'normal') === 'normal'"
-                            (click)="setSuffixFontWeight('normal')">
-                      Normal
-                    </button>
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="sel.suffix_font_weight === 'bold'"
-                            (click)="setSuffixFontWeight('bold')">
-                      <strong>Negrita</strong>
+                    <button type="button" class="btn-toggle-icon" [class.active]="sel.align === 'right'" (click)="sel.align = 'right'; notificarCambio()" matTooltip="Alinear a la Derecha">
+                      <mat-icon>format_align_right</mat-icon>
                     </button>
                   </div>
                 </div>
 
-                <div class="field-row">
-                  <span class="field-lbl">Tamaño Sufijo (pt):</span>
-                  <div class="num-control">
+                <!-- 3. SUFIJO -->
+                <div class="typo-row">
+                  <span class="typo-label" matTooltip="Texto Sufijo">Sufijo:</span>
+                  <input type="text" [(ngModel)]="sel.suffix" (ngModelChange)="notificarCambio()" placeholder="Ej:  kg,  t,  m" class="text-input flex-1" />
+                  <button type="button"
+                          class="btn-icon-toggle"
+                          [class.active]="sel.suffix_font_weight === 'bold'"
+                          (click)="setSuffixFontWeight(sel.suffix_font_weight === 'bold' ? 'normal' : 'bold')"
+                          matTooltip="Negrita en Sufijo">
+                    <mat-icon>format_bold</mat-icon>
+                  </button>
+                  <div class="num-control compact">
                     <button type="button" class="step-btn" (click)="ajustarSuffixFontSize(-0.5)">-</button>
-                    <input type="number" step="0.5" [ngModel]="sel.suffix_font_size_pt || sel.font_size_pt" (ngModelChange)="sel.suffix_font_size_pt = $event; notificarCambio()" class="coord-input" />
+                    <input type="number" step="0.5" [ngModel]="sel.suffix_font_size_pt || sel.font_size_pt" (ngModelChange)="sel.suffix_font_size_pt = $event; notificarCambio()" class="coord-input" matTooltip="Tamaño Sufijo (pt)" />
                     <button type="button" class="step-btn" (click)="ajustarSuffixFontSize(0.5)">+</button>
                   </div>
                 </div>
+
+                <!-- Chips rápidos de siglas institucionales si es resolución -->
+                @if (sel.tag === '{{RES}}' || sel.tag === '{{NUM_RESOLUCION}}') {
+                  <div class="siglas-chips-row compact">
+                    <div class="siglas-chips">
+                      <button type="button" class="chip-sigla chip-auto" (click)="aplicarSiglaSufijoAuto()" matTooltip="Auto según año/número">
+                        ⚡ Auto
+                      </button>
+                      <button type="button" class="chip-sigla" [class.active]="sel.suffix === '-GR PUNO/GRI/DRTC'" (click)="aplicarSiglaSufijo('-GR PUNO/GRI/DRTC')" matTooltip="Hasta la 900-2025">
+                        -GR PUNO/GRI/DRTC
+                      </button>
+                      <button type="button" class="chip-sigla" [class.active]="sel.suffix === '-GRP/DRTC'" (click)="aplicarSiglaSufijo('-GRP/DRTC')" matTooltip="Desde 0901-2025 hasta 0124-2026">
+                        -GRP/DRTC
+                      </button>
+                      <button type="button" class="chip-sigla" [class.active]="sel.suffix === '-GRP/GRI/DRTC'" (click)="aplicarSiglaSufijo('-GRP/GRI/DRTC')" matTooltip="Desde 0124-2026 en adelante">
+                        -GRP/GRI/DRTC
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 3.1 SEGUNDO SUFIJO: FECHA DE RESOLUCIÓN HIJA -->
+                  <div class="typo-row mt-1">
+                    <span class="typo-label" matTooltip="Segundo Sufijo (Fecha de Resolución)">Sufijo 2 (Fecha):</span>
+                    <input type="text" [(ngModel)]="sel.suffix2" (ngModelChange)="notificarCambio()" placeholder="Ej:  (15/03/2024)" class="text-input flex-1" />
+                    <button type="button"
+                            class="btn-icon-toggle"
+                            [class.active]="sel.suffix2_font_weight === 'bold'"
+                            (click)="setSuffix2FontWeight(sel.suffix2_font_weight === 'bold' ? 'normal' : 'bold')"
+                            matTooltip="Negrita en Sufijo 2">
+                      <mat-icon>format_bold</mat-icon>
+                    </button>
+                    <div class="num-control compact">
+                      <button type="button" class="step-btn" (click)="ajustarSuffix2FontSize(-0.5)">-</button>
+                      <input type="number" step="0.5" [ngModel]="sel.suffix2_font_size_pt || sel.suffix_font_size_pt || sel.font_size_pt" (ngModelChange)="sel.suffix2_font_size_pt = $event; notificarCambio()" class="coord-input" matTooltip="Tamaño Sufijo 2 (pt)" />
+                      <button type="button" class="step-btn" (click)="ajustarSuffix2FontSize(0.5)">+</button>
+                    </div>
+                  </div>
+                  <div class="siglas-chips-row compact">
+                    <div class="siglas-chips">
+                      <button type="button" class="chip-sigla" (click)="aplicarSufijo2Fecha()" matTooltip="Insertar fecha de prueba">
+                        📅 (Fecha)
+                      </button>
+                      <button type="button" class="chip-sigla" (click)="sel.suffix2 = ''; notificarCambio()" matTooltip="Sin Sufijo 2">
+                        Quitar
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 3.2 TERCER SUFIJO: TIPO DE TRÁMITE DE RESOLUCIÓN HIJA -->
+                  <div class="typo-row mt-1">
+                    <span class="typo-label" matTooltip="Tercer Sufijo (Tipo de Trámite)">Sufijo 3 (Tipo):</span>
+                    <input type="text" [(ngModel)]="sel.suffix3" (ngModelChange)="notificarCambio()" placeholder="Ej:  (S) o (I)" class="text-input flex-1" />
+                    <button type="button"
+                            class="btn-icon-toggle"
+                            [class.active]="sel.suffix3_font_weight === 'bold'"
+                            (click)="setSuffix3FontWeight(sel.suffix3_font_weight === 'bold' ? 'normal' : 'bold')"
+                            matTooltip="Negrita en Sufijo 3">
+                      <mat-icon>format_bold</mat-icon>
+                    </button>
+                    <div class="num-control compact">
+                      <button type="button" class="step-btn" (click)="ajustarSuffix3FontSize(-0.5)">-</button>
+                      <input type="number" step="0.5" [ngModel]="sel.suffix3_font_size_pt || sel.suffix_font_size_pt || sel.font_size_pt" (ngModelChange)="sel.suffix3_font_size_pt = $event; notificarCambio()" class="coord-input" matTooltip="Tamaño Sufijo 3 (pt)" />
+                      <button type="button" class="step-btn" (click)="ajustarSuffix3FontSize(0.5)">+</button>
+                    </div>
+                  </div>
+                  <div class="siglas-chips-row compact">
+                    <div class="siglas-chips">
+                      <button type="button" class="chip-sigla" [class.active]="sel.suffix3 === ' (S)'" (click)="aplicarSufijo3Tipo('S')" matTooltip="Sustitución">
+                        (S) Sustitución
+                      </button>
+                      <button type="button" class="chip-sigla" [class.active]="sel.suffix3 === ' (I)'" (click)="aplicarSufijo3Tipo('I')" matTooltip="Incremento">
+                        (I) Incremento
+                      </button>
+                      <button type="button" class="chip-sigla" (click)="sel.suffix3 = ''; notificarCambio()" matTooltip="Sin Sufijo 3">
+                        Quitar
+                      </button>
+                    </div>
+                  </div>
+                }
               </div>
 
-              <!-- 4. ANCHO MÁXIMO & SALTO DE LÍNEA (CON INTERLINEADO MUY CORTITO) -->
+              <!-- 4. ANCHO MÁXIMO & SALTO DE LÍNEA -->
               <div class="prop-group">
-                <label class="group-title">Ancho Máximo & Salto de Línea</label>
+                <span class="group-title">Ajuste de Renglón</span>
 
-                <!-- Ancho Máximo en mm -->
-                <div class="field-row">
-                  <span class="field-lbl">Ancho Máx (mm):</span>
-                  <div class="num-control">
-                    <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', -1)">-</button>
-                    <input type="number" step="1" [(ngModel)]="sel.width_mm" (ngModelChange)="notificarCambio()" placeholder="Auto" class="coord-input" />
-                    <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', 1)">+</button>
+                <!-- Ancho Máximo en mm y Espacio de Salto -->
+                <div class="compact-grid-2">
+                  <div class="compact-field">
+                    <span class="field-tag" matTooltip="Ancho Máximo (mm)">Máx W</span>
+                    <div class="num-control compact">
+                      <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', -1)">-</button>
+                      <input type="number" step="1" [(ngModel)]="sel.width_mm" (ngModelChange)="notificarCambio()" placeholder="Auto" class="coord-input" />
+                      <button type="button" class="step-btn" (click)="ajustarTamanio('width_mm', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="compact-field">
+                    <span class="field-tag" matTooltip="Espacio de Salto (Interlineado)">Salto</span>
+                    <div class="btn-group-toggle compact">
+                      <button type="button"
+                              class="btn-toggle flex-1"
+                              [class.active]="(sel.line_height || 1.05) <= 1.0"
+                              (click)="sel.line_height = 0.98; notificarCambio()"
+                              matTooltip="Ultra pegado (1.0)">
+                        1.0
+                      </button>
+                      <button type="button"
+                              class="btn-toggle flex-1"
+                              [class.active]="(sel.line_height || 1.05) > 1.0 && (sel.line_height || 1.05) <= 1.1"
+                              (click)="sel.line_height = 1.05; notificarCambio()"
+                              matTooltip="Compacto estándar (1.05)">
+                        1.05
+                      </button>
+                      <button type="button"
+                              class="btn-toggle flex-1"
+                              [class.active]="(sel.line_height || 1.05) > 1.1"
+                              (click)="sel.line_height = 1.2; notificarCambio()"
+                              matTooltip="Normal (1.2)">
+                        1.2
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Espacio de Salto (Interlineado Cortito) -->
-                <div class="field-row">
-                  <span class="field-lbl">Espacio Salto:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="(sel.line_height || 1.05) <= 1.0"
-                            (click)="sel.line_height = 0.98; notificarCambio()"
-                            matTooltip="Espacio de renglón ultra pegado">
-                      Muy Corto (1.0)
-                    </button>
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="(sel.line_height || 1.05) > 1.0 && (sel.line_height || 1.05) <= 1.1"
-                            (click)="sel.line_height = 1.05; notificarCambio()"
-                            matTooltip="Espacio compacto estándar TUC">
-                      Corto (1.05)
-                    </button>
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="(sel.line_height || 1.05) > 1.1"
-                            (click)="sel.line_height = 1.2; notificarCambio()">
-                      Normal (1.2)
-                    </button>
+                <!-- Límite Filas & Orientación -->
+                <div class="compact-grid-2 mt-1">
+                  <div class="compact-field">
+                    <span class="field-tag" matTooltip="Límite de Filas">Filas</span>
+                    <div class="btn-group-toggle compact">
+                      <button type="button" class="btn-toggle flex-1" [class.active]="sel.max_lineas === 1" (click)="setMaxLineas(1)" matTooltip="1 sola fila">1</button>
+                      <button type="button" class="btn-toggle flex-1" [class.active]="sel.max_lineas === 2" (click)="setMaxLineas(2)" matTooltip="Hasta 2 filas">2</button>
+                      <button type="button" class="btn-toggle flex-1" [class.active]="!sel.max_lineas || sel.max_lineas === 0" (click)="setMaxLineas(0)" matTooltip="Libre">∞</button>
+                    </div>
                   </div>
-                </div>
 
-                <!-- Límite de Filas -->
-                <div class="field-row">
-                  <span class="field-lbl">Límite Filas:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="sel.max_lineas === 1"
-                            (click)="setMaxLineas(1)"
-                            matTooltip="1 sola fila sin salto">
-                      1 Fila
-                    </button>
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="sel.max_lineas === 2"
-                            (click)="setMaxLineas(2)"
-                            matTooltip="Hasta 2 filas con corte según ancho">
-                      2 Filas
-                    </button>
-                    <button type="button"
-                            class="btn-toggle"
-                            [class.active]="!sel.max_lineas || sel.max_lineas === 0"
-                            (click)="setMaxLineas(0)"
-                            matTooltip="Salto según ancho libremente">
-                      Libre
-                    </button>
+                  <div class="compact-field">
+                    <span class="field-tag" matTooltip="Orientación del Texto">Giro</span>
+                    <div class="btn-group-toggle compact">
+                      <button type="button" class="btn-toggle-icon" [class.active]="!sel.orientacion_texto || sel.orientacion_texto === 'horizontal'" (click)="setOrientacionTexto('horizontal')" matTooltip="Horizontal">
+                        <mat-icon>text_fields</mat-icon>
+                      </button>
+                      <button type="button" class="btn-toggle-icon" [class.active]="sel.orientacion_texto === 'vertical' || sel.rotacion === 90" (click)="setOrientacionTexto('vertical')" matTooltip="Vertical 90° (abajo)">
+                        <mat-icon>south</mat-icon>
+                      </button>
+                      <button type="button" class="btn-toggle-icon" [class.active]="sel.orientacion_texto === 'vertical_270' || sel.rotacion === 270" (click)="setOrientacionTexto('vertical_270')" matTooltip="Vertical 270° (arriba)">
+                        <mat-icon>north</mat-icon>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Flujo Vertical: Evitar solapamiento con texto inferior -->
-                <div class="vertical-flow-card mt-2">
-                  <div class="flow-header">
+                <div class="vertical-flow-card compact mt-1">
+                  <div class="flow-header compact">
                     <mat-icon class="icon-flow">vertical_align_bottom</mat-icon>
-                    <div class="flow-title-wrap">
-                      <span class="flow-title">Ajuste de Texto Inferior</span>
-                      <span class="flow-subtitle">Evita que se sobreencime con lo que está abajo</span>
-                    </div>
+                    <span class="flow-title">Ajuste Flujo Inferior</span>
+                    <label class="toggle-lbl-compact ml-auto" matTooltip="Auto-bajar elementos inferiores si este elemento se expande a dos líneas">
+                      <input type="checkbox" [ngModel]="autoDesplazarTextoInferior()" (ngModelChange)="autoDesplazarTextoInferior.set($event)" />
+                      <span>Auto</span>
+                    </label>
                   </div>
 
-                  <label class="toggle-lbl flow-toggle-lbl">
-                    <input type="checkbox"
-                           [ngModel]="autoDesplazarTextoInferior()"
-                           (ngModelChange)="autoDesplazarTextoInferior.set($event)" />
-                    <span class="font-semibold">Auto-bajar texto al pasar a multilínea</span>
-                  </label>
-
-                  <div class="flow-buttons-grid">
-                    <button type="button"
-                            class="btn-flow btn-flow-down"
-                            (click)="bajarTextoInferior(3.5)"
-                            matTooltip="Bajar todo el texto situado debajo en 1 renglón (+3.5mm)">
+                  <div class="flow-buttons-row">
+                    <button type="button" class="btn-flow compact" (click)="bajarTextoInferior(3.5)" matTooltip="Bajar elementos inferiores 1 renglón (+3.5mm)">
                       <mat-icon>south</mat-icon>
-                      <span>Bajar texto (+3.5mm)</span>
+                      <span>+3.5mm</span>
                     </button>
-                    <button type="button"
-                            class="btn-flow btn-flow-up"
-                            (click)="bajarTextoInferior(-3.5)"
-                            matTooltip="Subir todo el texto situado debajo en 1 renglón (-3.5mm)">
+                    <button type="button" class="btn-flow compact btn-flow-up" (click)="bajarTextoInferior(-3.5)" matTooltip="Subir elementos inferiores 1 renglón (-3.5mm)">
                       <mat-icon>north</mat-icon>
-                      <span>Subir texto (-3.5mm)</span>
+                      <span>-3.5mm</span>
                     </button>
-                  </div>
-
-                  <div class="flow-fine-tune">
-                    <span class="fine-lbl">Ajuste fino:</span>
-                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(-1.0)">-1mm</button>
-                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(-0.5)">-0.5mm</button>
-                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(0.5)">+0.5mm</button>
-                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(1.0)">+1mm</button>
+                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(-1.0)" matTooltip="Subir 1mm">-1</button>
+                    <button type="button" class="fine-btn" (click)="bajarTextoInferior(1.0)" matTooltip="Bajar 1mm">+1</button>
                   </div>
                 </div>
 
-                <!-- Resaltado entre comillas -->
-                <div class="quoted-toggle-card mt-2">
-                  <label class="toggle-lbl">
-                    <input type="checkbox"
-                           [ngModel]="sel.resaltar_comillas !== false"
-                           (ngModelChange)="toggleResaltarComillas()" />
-                    <span class="font-semibold">Resaltar texto entre comillas</span>
+                <!-- Resaltado entre comillas & Sección/Hoja en una fila compacta -->
+                <div class="compact-grid-2 mt-1">
+                  <label class="toggle-lbl-compact" matTooltip='El texto entre "..." aparecerá en Negrita'>
+                    <input type="checkbox" [ngModel]="sel.resaltar_comillas !== false" (ngModelChange)="toggleResaltarComillas()" />
+                    <span>Resaltar "comillas"</span>
                   </label>
-                  <p class="quoted-desc">
-                    El texto entre <code>"..."</code> aparecerá en <strong>Negrita</strong> y <strong>+1 tamaño</strong> (ideal para razón social de empresas).
-                  </p>
-                </div>
-              </div>
 
-              <!-- 5. ORIENTACIÓN VERTICAL DE LA LETRA -->
-              <div class="prop-group">
-                <label class="group-title">Orientación de la Letra</label>
-                <div class="orientation-buttons-grid">
-                  <button type="button"
-                          class="btn-orient"
-                          [class.active]="!sel.orientacion_texto || sel.orientacion_texto === 'horizontal'"
-                          (click)="setOrientacionTexto('horizontal')">
-                    <mat-icon>text_fields</mat-icon>
-                    <span>Horizontal</span>
-                  </button>
-                  <button type="button"
-                          class="btn-orient"
-                          [class.active]="sel.orientacion_texto === 'vertical' || sel.rotacion === 90"
-                          (click)="setOrientacionTexto('vertical')"
-                          matTooltip="Orientación vertical hacia abajo (90°)">
-                    <mat-icon>south</mat-icon>
-                    <span>Vertical (90°)</span>
-                  </button>
-                  <button type="button"
-                          class="btn-orient"
-                          [class.active]="sel.orientacion_texto === 'vertical_270' || sel.rotacion === 270"
-                          (click)="setOrientacionTexto('vertical_270')"
-                          matTooltip="Orientación vertical hacia arriba (270°)">
-                    <mat-icon>north</mat-icon>
-                    <span>Vertical (270°)</span>
-                  </button>
-                </div>
-
-                <!-- Section Toggle -->
-                <div class="field-row mt-2">
-                  <span class="field-lbl">Sección / Hoja:</span>
-                  <div class="btn-group-toggle">
-                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'anverso'" (click)="sel.seccion = 'anverso'; notificarCambio()">Hoja 1 (Anverso)</button>
-                    <button type="button" class="btn-toggle" [class.active]="sel.seccion === 'reverso'" (click)="sel.seccion = 'reverso'; notificarCambio()">Hoja 2 (Reverso)</button>
+                  <div class="btn-group-toggle compact">
+                    <button type="button" class="btn-toggle flex-1" [class.active]="sel.seccion === 'anverso'" (click)="sel.seccion = 'anverso'; notificarCambio()" matTooltip="Hoja 1 (Anverso)">H1</button>
+                    <button type="button" class="btn-toggle flex-1" [class.active]="sel.seccion === 'reverso'" (click)="sel.seccion = 'reverso'; notificarCambio()" matTooltip="Hoja 2 (Reverso)">H2</button>
                   </div>
                 </div>
               </div>

@@ -273,14 +273,19 @@ def _generar_sheet_tuc_html(tuc_info: dict) -> str:
     else:
         rutas_rows_html = '<tr><td colspan="3" style="font-style:italic; color:#64748b;">SIN RUTAS ASIGNADAS</td></tr>'
 
+    from app.utils.resolucion_utils import determinar_siglas_resolucion
+
     reverso_acto_html = ""
     if not d.get("es_fila_en_blanco") and d.get("num_resolucion_acto"):
+        siglas_acto = d.get("siglas_resolucion_acto") or determinar_siglas_resolucion(d.get("num_resolucion_acto"))
         reverso_acto_html = f"""
             <div class="reverso-acto">
-                R.D.R N° <strong>{clean_val(d.get('num_resolucion_acto'))}</strong>-GRP/GRI/DRTC ({clean_val(d.get('fecha_resolucion_acto'))}) ({clean_val(d.get('tipo_resolucion_acto'))})
+                R.D.R N° <strong>{clean_val(d.get('num_resolucion_acto'))}</strong>-{siglas_acto} ({clean_val(d.get('fecha_resolucion_acto'))}) ({clean_val(d.get('tipo_resolucion_acto'))})
             </div>"""
     else:
         reverso_acto_html = '<div class="reverso-acto" style="min-height: 14px;"></div>'
+
+    siglas_prim = d.get("siglas_resolucion_primigenia") or determinar_siglas_resolucion(d.get("nro_resolucion_primigenia"))
 
     return f"""
     <!-- HOJA A4 PARA PLACA {placa} -->
@@ -307,7 +312,7 @@ def _generar_sheet_tuc_html(tuc_info: dict) -> str:
                         AUTORIZACIÓN &nbsp;&nbsp; DEL: <strong>{clean_val(d.get('fecha_del'))}</strong> &nbsp;&nbsp; AL: <strong>{clean_val(d.get('fecha_al'))}</strong>
                     </div>
                     <div class="row-rdr">
-                        R.D.R. N° <strong>{clean_val(d.get('nro_resolucion_primigenia'))}</strong>-GRP/GRI/DRTC
+                        R.D.R. N° <strong>{clean_val(d.get('nro_resolucion_primigenia'))}</strong>-{siglas_prim}
                     </div>
                     <div class="row-empresa">
                         {clean_val(d.get('empresa'))}

@@ -26,6 +26,7 @@ class ResolucionHija(BaseModel):
 
     id: Optional[str] = None
     nro_resolucion: str = Field(..., description="Número normalizado de resolución hija (ej: R-0123-2026(S))")
+    siglas: Optional[str] = Field(None, description="Siglas institucionales (ej. GRP/GRI/DRTC, GR PUNO/GRI/DRTC, GRP/DRTC)")
     nro_resolucion_primigenia: str = Field(..., description="Número de resolución primigenia a la que modifica (ej: 0100-2021)")
     resolucion_primigenia_id: Optional[str] = Field(None, description="ID de resolución primigenia si está vinculada")
     ruc_empresa: str = Field(..., description="RUC de la empresa titular (11 dígitos)")
@@ -66,6 +67,7 @@ class ResolucionHija(BaseModel):
 
 class ResolucionHijaCreate(BaseModel):
     nro_resolucion: str = Field(..., description="Número normalizado de la resolución hija (ej. R-0450-2023(I))")
+    siglas: Optional[str] = Field(None, description="Siglas institucionales (ej: GRP/GRI/DRTC, GRP/DRTC, GR PUNO/GRI/DRTC)")
     nro_resolucion_primigenia: str = Field(..., description="Número de la resolución primigenia a modificar")
     ruc_empresa: str = Field(..., description="RUC del titular (11 dígitos)")
     razon_social: Optional[str] = None
@@ -87,6 +89,7 @@ class ResolucionHijaCreate(BaseModel):
 
 class ResolucionHijaUpdate(BaseModel):
     nro_resolucion: Optional[str] = None
+    siglas: Optional[str] = None
     nro_resolucion_primigenia: Optional[str] = None
     ruc_empresa: Optional[str] = None
     razon_social: Optional[str] = None

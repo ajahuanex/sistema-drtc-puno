@@ -14,6 +14,7 @@ export type TipoActoModificatorio =
 export interface ResolucionHija {
   id: string;
   nro_resolucion: string;
+  siglas?: string;
   nro_resolucion_primigenia: string;
   resolucion_primigenia_id?: string;
   ruc_empresa: string;
@@ -40,6 +41,7 @@ export interface ResolucionHija {
 
 export interface ResolucionHijaCreate {
   nro_resolucion: string;
+  siglas?: string;
   nro_resolucion_primigenia: string;
   ruc_empresa: string;
   tipo_acto: TipoActoModificatorio;
@@ -55,6 +57,7 @@ export interface ResolucionHijaCreate {
 
 export interface ResolucionHijaUpdate {
   nro_resolucion?: string;
+  siglas?: string;
   nro_resolucion_primigenia?: string;
   ruc_empresa?: string;
   tipo_acto?: TipoActoModificatorio;

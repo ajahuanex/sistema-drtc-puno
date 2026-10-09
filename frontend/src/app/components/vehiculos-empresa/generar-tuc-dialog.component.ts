@@ -1729,6 +1729,10 @@ export class GenerarTucDialogComponent implements OnInit {
     peso_bruto: '',
     tabla_rutas_text: '',
     num_resolucion_acto: '',
+    siglas_resolucion_acto: '',
+    resolucion_acto_completa: '',
+    siglas_resolucion_primigenia: '',
+    resolucion_primigenia_completa: '',
     fecha_resolucion_acto: '',
     tipo_resolucion_acto: ''
   });
@@ -1813,6 +1817,10 @@ export class GenerarTucDialogComponent implements OnInit {
     if (d['peso_bruto'] !== undefined) base['{{PESO_BRUTO}}'] = String(d['peso_bruto'] || '');
 
     if (d['num_resolucion_acto'] !== undefined) base['{{NUM_RESOLUCION_ACTO}}'] = String(d['num_resolucion_acto'] || '');
+    if (d['siglas_resolucion_acto'] !== undefined) base['{{SIGLAS_RES_ACTO}}'] = String(d['siglas_resolucion_acto'] || '');
+    if (d['resolucion_acto_completa'] !== undefined) base['{{NUM_RESOLUCION_ACTO_CON_SIGLAS}}'] = String(d['resolucion_acto_completa'] || '');
+    if (d['siglas_resolucion_primigenia'] !== undefined) base['{{SIGLAS_RES_P}}'] = String(d['siglas_resolucion_primigenia'] || '');
+    if (d['resolucion_primigenia_completa'] !== undefined) base['{{RES_CON_SIGLAS}}'] = String(d['resolucion_primigenia_completa'] || '');
     if (d['fecha_resolucion_acto'] !== undefined) base['{{FECHA_RESOLUCION_ACTO}}'] = String(d['fecha_resolucion_acto'] || '');
     if (d['tipo_resolucion_acto'] !== undefined) base['{{TIPO_RESOLUCION_ACTO}}'] = String(d['tipo_resolucion_acto'] || '');
 
@@ -2000,6 +2008,10 @@ export class GenerarTucDialogComponent implements OnInit {
           peso_bruto: d.peso_bruto || '',
           tabla_rutas_text: d.tabla_rutas_text || '',
           num_resolucion_acto: d.num_resolucion_acto || '',
+          siglas_resolucion_acto: d.siglas_resolucion_acto || '',
+          resolucion_acto_completa: d.resolucion_acto_completa || '',
+          siglas_resolucion_primigenia: d.siglas_resolucion_primigenia || '',
+          resolucion_primigenia_completa: d.resolucion_primigenia_completa || '',
           fecha_resolucion_acto: d.fecha_resolucion_acto || '',
           tipo_resolucion_acto: d.tipo_resolucion_acto || ''
         };

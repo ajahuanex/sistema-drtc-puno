@@ -269,11 +269,13 @@ class NotificacionDocumentService:
         vehiculos = data.get("vehiculos", [])
 
         # Subtítulo de resolución
+        from app.utils.resolucion_utils import determinar_siglas_resolucion
         clean_res = str(num_res).strip()
-        if "-GRP" in clean_res.upper():
+        if any(sig in clean_res.upper() for sig in ["-GRP", "-GR "]):
             res_subtitle = f"RESOLUCIÓN DIRECTORAL REGIONAL N° {clean_res}({fecha_res})"
         else:
-            res_subtitle = f"RESOLUCIÓN DIRECTORAL REGIONAL N° {clean_res}-GRP/GRI/DRTC({fecha_res})"
+            siglas_res = determinar_siglas_resolucion(clean_res)
+            res_subtitle = f"RESOLUCIÓN DIRECTORAL REGIONAL N° {clean_res}-{siglas_res}({fecha_res})"
 
         escudo_b64 = _get_escudo_b64()
         drtc_b64 = _get_drtc_logo_b64()

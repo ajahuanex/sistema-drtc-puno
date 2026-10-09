@@ -307,6 +307,80 @@ def extraer_tipo_de_resolucion(val: Optional[str]) -> Optional[str]:
     return None
 
 
+def parsear_numero_y_anio_resolucion(nro_resolucion: Optional[str]) -> Tuple[Optional[int], Optional[int]]:
+    """
+    Extrae el correlativo numérico y el año de una resolución.
+    Soporta 'R-0123-2026', '0123-2026', '0123-2026-GRP/DRTC', 'R-0123-2026(S)', etc.
+    """
+    if not nro_resolucion:
+        return None, None
+    import re
+    s = str(nro_resolucion).strip().upper()
+    # Buscar patrón de dígitos y año de 4 dígitos
+    match = re.search(r'(?:^|[^\d])0*(\d{1,6})\s*[-/.\s]+\s*(\d{4})\b', s)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    # Buscar patrón con año de 2 dígitos (ej: 0123-26)
+    match_2d = re.search(r'(?:^|[^\d])0*(\d{1,6})\s*[-/.\s]+\s*(\d{2})\b', s)
+    if match_2d:
+        num = int(match_2d.group(1))
+        yr2 = int(match_2d.group(2))
+        yr = 2000 + yr2 if yr2 < 50 else 1900 + yr2
+        return num, yr
+    return None, None
+
+
+def determinar_siglas_resolucion(nro_resolucion: Optional[str]) -> str:
+    """
+    Determina las siglas institucionales oficiales según el número y año de la resolución:
+    - Antes de la 900-2025 (año < 2025 o año == 2025 con correlativo <= 900): 'GR PUNO/GRI/DRTC'
+    - Desde la 0901-2025 hasta la 0124-2026 (año == 2025 con correlativo >= 901, o año == 2026 con correlativo < 124): 'GRP/DRTC'
+    - Desde 0124-2026 para adelante (año == 2026 con correlativo >= 124, o año > 2026): 'GRP/GRI/DRTC'
+    """
+    num, year = parsear_numero_y_anio_resolucion(nro_resolucion)
+    if num is None or year is None:
+        return "GRP/GRI/DRTC"
+        
+    if year < 2025 or (year == 2025 and num <= 900):
+        return "GR PUNO/GRI/DRTC"
+    elif (year == 2025 and num >= 901) or (year == 2026 and num < 124):
+        return "GRP/DRTC"
+    else:
+        return "GRP/GRI/DRTC"
+
+
+def limpiar_correlativo_resolucion(nro_resolucion: Optional[str]) -> str:
+    """
+    Extrae únicamente el correlativo limpio en formato '0123-2026'
+    sin prefijos ('R-') ni sufijos ('(S)', '-GRP/GRI/DRTC', etc.).
+    """
+    if not nro_resolucion:
+        return ""
+    num, year = parsear_numero_y_anio_resolucion(nro_resolucion)
+    if num is not None and year is not None:
+        return f"{num:04d}-{year}"
+    import re
+    s = str(nro_resolucion).strip()
+    s = re.sub(r'^[Rr][-.\s]*', '', s)
+    s = re.sub(r'\s*\([A-Za-z0-9]+\)$', '', s)
+    s = re.sub(r'-(?:GRP|GR|DRTC|GRI).*$', '', s, flags=re.IGNORECASE)
+    return s.strip()
+
+
+def formatear_resolucion_con_siglas(nro_resolucion: Optional[str], siglas: Optional[str] = None) -> str:
+    """
+    Retorna la resolución en formato oficial '0123-2026-SIGLAS'
+    Ejemplo: '0123-2026-GRP/DRTC' o '0125-2026-GRP/GRI/DRTC'
+    """
+    if not nro_resolucion:
+        return ""
+    correlativo = limpiar_correlativo_resolucion(nro_resolucion)
+    sig = (siglas or "").strip() or determinar_siglas_resolucion(nro_resolucion)
+    if not correlativo:
+        return ""
+    return f"{correlativo}-{sig}"
+
+
 # Constantes útiles
 ANIOS_VIGENCIA_ESTANDAR = 4
 ANIOS_VIGENCIA_ESPECIAL = 10
