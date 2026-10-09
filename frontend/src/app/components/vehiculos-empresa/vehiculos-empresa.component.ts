@@ -218,6 +218,11 @@ export interface ColumnasState {
                         <span class="stat-pill hab-pill hide-on-mobile" style="font-size:11px;padding:3px 10px;border-radius:12px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;font-weight:700;">
                           <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle;">check_circle</mat-icon> {{ estadisticas()!.habilitados }} Hab.
                         </span>
+                        @if (estadisticas()!.renovaciones) {
+                          <span class="stat-pill hide-on-mobile" style="font-size:11px;padding:3px 10px;border-radius:12px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;font-weight:700;" matTooltip="Vehículos tramitados por renovación">
+                            <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle;">autorenew</mat-icon> {{ estadisticas()!.renovaciones }} Renov.
+                          </span>
+                        }
                       }
                       <span class="ruc-badge" style="font-size:12px;padding:4px 10px;background:#1e1b4b;color:#fff;">
                         RUC: {{ empresaSearchControl.value }}
@@ -455,6 +460,7 @@ export interface ColumnasState {
                 <div class="modern-select-wrapper">
                   <select [formControl]="tipoHijaControl" class="modern-select">
                     <option value="">Trámite: Todos</option>
+                    <option value="R">Renovación</option>
                     <option value="I">Incremento</option>
                     <option value="S">Sustitución</option>
                     <option value="M">Modificación</option>
@@ -1647,7 +1653,37 @@ export class VehiculosEmpresaComponent implements OnInit {
       (i.rutas || []).some(r => r.toLowerCase().includes(q))
     );
     if (est) list = list.filter(i => (i.estado || '').toUpperCase() === est);
-    if (tipo) list = list.filter(i => (i.tipo_resolucion_hija || '').toUpperCase() === tipo);
+    if (tipo) {
+      if (tipo === 'R') {
+        list = list.filter(i =>
+          (i.tipo_resolucion_hija || '').toUpperCase() === 'R' ||
+          (i.tramite || '').toUpperCase() === 'RENOVACION' ||
+          (i.tramite || '').toUpperCase().includes('RENOV')
+        );
+      } else if (tipo === 'I') {
+        list = list.filter(i =>
+          (i.tipo_resolucion_hija || '').toUpperCase() === 'I' ||
+          (i.tramite || '').toUpperCase() === 'INCREMENTO'
+        );
+      } else if (tipo === 'S') {
+        list = list.filter(i =>
+          (i.tipo_resolucion_hija || '').toUpperCase() === 'S' ||
+          (i.tramite || '').toUpperCase() === 'SUSTITUCION'
+        );
+      } else if (tipo === 'C') {
+        list = list.filter(i =>
+          (i.tipo_resolucion_hija || '').toUpperCase() === 'C' ||
+          (i.tramite || '').toUpperCase() === 'CANCELACION'
+        );
+      } else if (tipo === 'M') {
+        list = list.filter(i =>
+          (i.tipo_resolucion_hija || '').toUpperCase() === 'M' ||
+          (i.tramite || '').toUpperCase().includes('MODIFIC')
+        );
+      } else {
+        list = list.filter(i => (i.tipo_resolucion_hija || '').toUpperCase() === tipo || (i.tramite || '').toUpperCase() === tipo);
+      }
+    }
 
     const field = this.sortField();
     const dir = this.sortDirection();

@@ -323,15 +323,35 @@ class FlotaEmpresaService:
         return self._doc_to_response(enriquecidos[0])
 
     async def get_estadisticas_by_ruc(self, ruc: str) -> Dict[str, Any]:
-        """Estadísticas de flota por empresa."""
+        """Estadísticas de flota por empresa incluyendo estados y contador de trámites/renovaciones."""
         filtro = {"ruc": ruc, "esta_activo": {"$ne": False}, "es_cronologico": {"$ne": True}}
-        pipeline = [
+        pipeline_estado = [
             {"$match": filtro},
             {"$group": {"_id": "$estado", "count": {"$sum": 1}}}
         ]
         by_estado = {}
-        async for doc in self.collection.aggregate(pipeline):
+        async for doc in self.collection.aggregate(pipeline_estado):
             by_estado[doc["_id"] or "SIN_ESTADO"] = doc["count"]
+
+        # Conteo por trámite (RENOVACION, SUSTITUCION, INCREMENTO, etc.)
+        pipeline_tramite = [
+            {"$match": filtro},
+            {"$group": {"_id": "$tramite", "count": {"$sum": 1}}}
+        ]
+        by_tramite = {}
+        async for doc in self.collection.aggregate(pipeline_tramite):
+            if doc.get("_id"):
+                by_tramite[str(doc["_id"]).upper()] = doc["count"]
+
+        # Conteo complementario por tipo_resolucion_hija (R, S, I, etc.)
+        pipeline_tipo = [
+            {"$match": filtro},
+            {"$group": {"_id": "$tipo_resolucion_hija", "count": {"$sum": 1}}}
+        ]
+        by_tipo = {}
+        async for doc in self.collection.aggregate(pipeline_tipo):
+            if doc.get("_id"):
+                by_tipo[str(doc["_id"]).upper()] = doc["count"]
 
         total = await self.collection.count_documents({"ruc": ruc, "esta_activo": {"$ne": False}})
         total_habilitados = (
@@ -346,13 +366,27 @@ class FlotaEmpresaService:
             by_estado.get("INACTIVO", 0)
         )
 
+        total_renovaciones = by_tramite.get("RENOVACION", 0) or by_tipo.get("R", 0)
+        total_sustituciones = by_tramite.get("SUSTITUCION", 0) or by_tipo.get("S", 0)
+        total_incrementos = by_tramite.get("INCREMENTO", 0) or by_tipo.get("I", 0)
+
         return {
             "ruc": ruc,
             "total_registros": total,
             "total_activos": total_habilitados,
+            "total_vehiculos_activos": total_habilitados,
+            "habilitados": total_habilitados,
             "total_habilitados": total_habilitados,
+            "inhabilitados": total_inhabilitados,
             "total_inhabilitados": total_inhabilitados,
-            "por_estado": by_estado
+            "observados": by_estado.get("OBSERVADO", 0),
+            "cancelados": by_estado.get("CANCELADO", 0),
+            "suspendidos": by_estado.get("SUSPENDIDO", 0),
+            "renovaciones": total_renovaciones,
+            "sustituciones": total_sustituciones,
+            "incrementos": total_incrementos,
+            "por_estado": by_estado,
+            "por_tramite": by_tramite
         }
 
     async def get_resumen_empresas(self) -> List[Dict[str, Any]]:

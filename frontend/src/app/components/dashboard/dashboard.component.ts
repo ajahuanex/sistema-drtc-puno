@@ -257,11 +257,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const tipo = this.filtroTipoTramitePredominante();
     if (tipo === 'SUSTITUCIONES') list = list.filter(e => e.sustituciones > e.incrementos);
     else if (tipo === 'INCREMENTOS') list = list.filter(e => e.incrementos >= e.sustituciones);
+    else if (tipo === 'RENOVACIONES') list = list.filter(e => (e.renovaciones || 0) > 0);
 
     const orden = this.ordenTopTramites();
     list.sort((a, b) => {
       switch (orden) {
         case 'total-desc': return b.totalTramites - a.totalTramites;
+        case 'renovaciones-desc': return (b.renovaciones || 0) - (a.renovaciones || 0);
         case 'sustituciones-desc': return b.sustituciones - a.sustituciones;
         case 'incrementos-desc': return b.incrementos - a.incrementos;
         case 'nombre-asc': return a.razonSocial.localeCompare(b.razonSocial);
@@ -276,9 +278,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const list = this.topTramitesFiltradasModal();
     const totalEmpresas = list.length;
     const totalTramites = list.reduce((sum, e) => sum + (e.totalTramites || 0), 0);
+    const totalRenovaciones = list.reduce((sum, e) => sum + (e.renovaciones || 0), 0);
     const totalSustituciones = list.reduce((sum, e) => sum + (e.sustituciones || 0), 0);
     const totalIncrementos = list.reduce((sum, e) => sum + (e.incrementos || 0), 0);
-    return { totalEmpresas, totalTramites, totalSustituciones, totalIncrementos };
+    return { totalEmpresas, totalTramites, totalRenovaciones, totalSustituciones, totalIncrementos };
   });
 
   vencimientosFiltradosModal = computed(() => {
@@ -804,12 +807,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         'Ranking': idx + 1,
         'Razón Social': t.razonSocial,
         'RUC': t.ruc,
+        'Renovaciones': t.renovaciones || 0,
         'Sustituciones Vehiculares': t.sustituciones,
         'Incrementos de Flota': t.incrementos,
         'Total Trámites Registrados': t.totalTramites
       }));
       const sufijo = seleccionados.size > 0 ? `${lista.length}_Seleccionadas` : `${lista.length}_Filtrados`;
-      this.exportarExcel(exportData, `DRTC_PUNO_Tramites_Sustitucion_Incremento_${sufijo}`, 'Trámites por Empresa');
+      this.exportarExcel(exportData, `DRTC_PUNO_Tramites_Flota_${sufijo}`, 'Trámites por Empresa');
       this.descargandoTramites.set(false);
       return;
     }
@@ -820,11 +824,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           'Ranking': idx + 1,
           'Razón Social': t.razonSocial,
           'RUC': t.ruc,
+          'Renovaciones': t.renovaciones || 0,
           'Sustituciones Vehiculares': t.sustituciones,
           'Incrementos de Flota': t.incrementos,
           'Total Trámites Registrados': t.totalTramites
         }));
-        this.exportarExcel(exportData, 'DRTC_PUNO_Tramites_Sustitucion_Incremento_General', 'Trámites por Empresa');
+        this.exportarExcel(exportData, 'DRTC_PUNO_Tramites_Flota_General', 'Trámites por Empresa');
         this.descargandoTramites.set(false);
       },
       error: (err) => {

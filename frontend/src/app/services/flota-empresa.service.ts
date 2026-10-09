@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface EntradaObservacion {
@@ -73,6 +73,17 @@ export interface VehiculoEmpresa {
   fecha_registro?: string;
   fecha_actualizacion?: string;
   esta_activo: boolean;
+
+  // Compatibilidad dual con serializaciones camelCase
+  nroResolucionPrimigenia?: string;
+  nroResolucionHija?: string;
+  tipoResolucionHija?: string;
+  numeroTuc?: string;
+  linkTuc?: string;
+  linkNotificacion?: string;
+  esCronologico?: boolean;
+  estadoPrimigenia?: string;
+  fechaVigenciaHasta?: string;
 }
 
 export interface FlotaEmpresaResponse {
@@ -108,6 +119,9 @@ export interface EstadisticasFlota {
   observados: number;
   cancelados: number;
   suspendidos: number;
+  renovaciones?: number;
+  sustituciones?: number;
+  incrementos?: number;
 }
 
 export interface VehiculoEmpresaCreate {
@@ -236,6 +250,84 @@ export interface TramiteMasivoRequest {
   vehiculos: ItemTramiteVehiculo[];
 }
 
+export function normalizeVehiculo(v: any): VehiculoEmpresa {
+  if (!v) return v;
+  return {
+    id: v.id || v._id,
+    ruc: v.ruc,
+    razon_social: v.razon_social ?? v.razonSocial,
+    nro_resolucion_primigenia: v.nro_resolucion_primigenia ?? v.nroResolucionPrimigenia ?? '',
+    fecha_emision_resolucion: v.fecha_emision_resolucion ?? v.fechaEmisionResolucion,
+    num_expediente: v.num_expediente ?? v.numExpediente,
+    expediente: v.expediente ?? v.num_expediente ?? v.numExpediente,
+    fecha_expediente: v.fecha_expediente ?? v.fechaExpediente,
+    nro_resolucion_hija: v.nro_resolucion_hija ?? v.nroResolucionHija,
+    tipo_resolucion_hija: v.tipo_resolucion_hija ?? v.tipoResolucionHija,
+
+    placa: v.placa ?? '-',
+    marca: v.marca,
+    modelo: v.modelo,
+    anio_fabricacion: v.anio_fabricacion ?? v.anioFabricacion,
+    anio_modelo: v.anio_modelo ?? v.anioModelo,
+    color: v.color,
+    categoria: v.categoria,
+    carroceria: v.carroceria,
+    clase: v.clase,
+    combustible: v.combustible,
+    numero_motor: v.numero_motor ?? v.numeroMotor,
+    numero_serie: v.numero_serie ?? v.numeroSerie,
+    vin: v.vin,
+    pasajeros: v.pasajeros,
+    asientos: v.asientos,
+    cilindros: v.cilindros,
+    ejes: v.ejes,
+    ruedas: v.ruedas,
+    peso_bruto: v.peso_bruto ?? v.pesoBruto,
+    peso_neto: v.peso_neto ?? v.pesoNeto,
+    carga_util: v.carga_util ?? v.cargaUtil,
+    largo: v.largo,
+    ancho: v.ancho,
+    alto: v.alto,
+    observaciones: v.observaciones,
+
+    es_cronologico: v.es_cronologico ?? v.esCronologico ?? false,
+    rutas: Array.isArray(v.rutas) ? v.rutas : [],
+    numero_tuc: v.numero_tuc ?? v.numeroTuc,
+    estado: v.estado,
+    observaciones_historial: v.observaciones_historial ?? v.observacionesHistorial ?? [],
+    fecha_cronologica: v.fecha_cronologica ?? v.fechaCronologica,
+    fecha_resolucion_hija: v.fecha_resolucion_hija ?? v.fechaResolucionHija,
+    id_origen: v.id_origen ?? v.idOrigen,
+    notificado: v.notificado,
+    estado_primigenia: v.estado_primigenia ?? v.estadoPrimigenia,
+    baja: v.baja,
+    baja_externa: v.baja_externa ?? v.bajaExterna,
+    fecha_vigencia_hasta: v.fecha_vigencia_hasta ?? v.fechaVigenciaHasta,
+    link_tuc: v.link_tuc ?? v.linkTuc,
+    id_tuc: v.id_tuc ?? v.idTuc,
+    link_notificacion: v.link_notificacion ?? v.linkNotificacion,
+    tramite: v.tramite,
+    detalles: v.detalles,
+    porcentaje: v.porcentaje,
+    orden_cronologico: v.orden_cronologico ?? v.ordenCronologico,
+    fila_origen_matriz: v.fila_origen_matriz ?? v.filaOrigenMatriz,
+    fecha_registro: v.fecha_registro ?? v.fechaRegistro,
+    fecha_actualizacion: v.fecha_actualizacion ?? v.fechaActualizacion,
+    esta_activo: v.esta_activo ?? v.estaActivo ?? true,
+
+    // Aliases camelCase
+    nroResolucionPrimigenia: v.nro_resolucion_primigenia ?? v.nroResolucionPrimigenia,
+    nroResolucionHija: v.nro_resolucion_hija ?? v.nroResolucionHija,
+    tipoResolucionHija: v.tipo_resolucion_hija ?? v.tipoResolucionHija,
+    numeroTuc: v.numero_tuc ?? v.numeroTuc,
+    linkTuc: v.link_tuc ?? v.linkTuc,
+    linkNotificacion: v.link_notificacion ?? v.linkNotificacion,
+    esCronologico: v.es_cronologico ?? v.esCronologico ?? false,
+    estadoPrimigenia: v.estado_primigenia ?? v.estadoPrimigenia,
+    fechaVigenciaHasta: v.fecha_vigencia_hasta ?? v.fechaVigenciaHasta
+  } as VehiculoEmpresa;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -286,7 +378,12 @@ export class FlotaEmpresaService {
     if (params.q) p = p.set('q', params.q);
     if (params.solo_activos) p = p.set('solo_activos', 'true');
 
-    return this.http.get<FlotaEmpresaResponse>(this.baseUrl, { params: p });
+    return this.http.get<FlotaEmpresaResponse>(this.baseUrl, { params: p }).pipe(
+      map(resp => ({
+        ...resp,
+        data: (resp.data || []).map(normalizeVehiculo)
+      }))
+    );
   }
 
   getResumenEmpresas(): Observable<{ total: number; data: ResumenEmpresa[] }> {
@@ -295,11 +392,31 @@ export class FlotaEmpresaService {
 
   getFlotaByEmpresa(ruc: string, soloActivos = false): Observable<FlotaByEmpresaResponse> {
     let p = new HttpParams().set('solo_activos', soloActivos.toString());
-    return this.http.get<FlotaByEmpresaResponse>(`${this.baseUrl}/empresa/${ruc}`, { params: p });
+    return this.http.get<FlotaByEmpresaResponse>(`${this.baseUrl}/empresa/${ruc}`, { params: p }).pipe(
+      map(resp => ({
+        ...resp,
+        data: (resp.data || []).map(normalizeVehiculo)
+      }))
+    );
   }
 
   getEstadisticas(ruc: string): Observable<EstadisticasFlota> {
-    return this.http.get<EstadisticasFlota>(`${this.baseUrl}/estadisticas/${ruc}`);
+    return this.http.get<any>(`${this.baseUrl}/estadisticas/${ruc}`).pipe(
+      map(stats => ({
+        ruc: stats.ruc,
+        total_registros: stats.total_registros ?? stats.totalRegistros ?? 0,
+        total_vehiculos_activos: stats.total_vehiculos_activos ?? stats.total_activos ?? stats.total_habilitados ?? 0,
+        por_estado: stats.por_estado ?? stats.porEstado ?? {},
+        habilitados: stats.habilitados ?? stats.total_habilitados ?? stats.total_activos ?? 0,
+        inhabilitados: stats.inhabilitados ?? stats.total_inhabilitados ?? 0,
+        observados: stats.observados ?? 0,
+        cancelados: stats.cancelados ?? 0,
+        suspendidos: stats.suspendidos ?? 0,
+        renovaciones: stats.renovaciones ?? 0,
+        sustituciones: stats.sustituciones ?? 0,
+        incrementos: stats.incrementos ?? 0
+      }))
+    );
   }
 
   getRutasEmpresa(ruc: string): Observable<{ ruc: string; total: number; data: any[] }> {
@@ -307,19 +424,30 @@ export class FlotaEmpresaService {
   }
 
   getCronologiaPrimigenia(nroPrimigenia: string): Observable<{ nro_resolucion_primigenia: string; total: number; data: VehiculoEmpresa[] }> {
-    return this.http.get<any>(`${this.baseUrl}/cronologia/${encodeURIComponent(nroPrimigenia)}`);
+    return this.http.get<any>(`${this.baseUrl}/cronologia/${encodeURIComponent(nroPrimigenia)}`).pipe(
+      map(resp => ({
+        ...resp,
+        data: (resp.data || []).map(normalizeVehiculo)
+      }))
+    );
   }
 
   getById(id: string): Observable<VehiculoEmpresa> {
-    return this.http.get<VehiculoEmpresa>(`${this.baseUrl}/${id}`);
+    return this.http.get<any>(`${this.baseUrl}/${id}`).pipe(
+      map(normalizeVehiculo)
+    );
   }
 
   create(data: VehiculoEmpresaCreate): Observable<VehiculoEmpresa> {
-    return this.http.post<VehiculoEmpresa>(this.baseUrl, data);
+    return this.http.post<any>(this.baseUrl, data).pipe(
+      map(normalizeVehiculo)
+    );
   }
 
   update(id: string, data: Partial<VehiculoEmpresa>): Observable<VehiculoEmpresa> {
-    return this.http.put<VehiculoEmpresa>(`${this.baseUrl}/${id}`, data);
+    return this.http.put<any>(`${this.baseUrl}/${id}`, data).pipe(
+      map(normalizeVehiculo)
+    );
   }
 
   agregarObservacion(id: string, texto: string, fuente = 'manual'): Observable<VehiculoEmpresa> {

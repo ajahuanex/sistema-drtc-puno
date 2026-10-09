@@ -56,6 +56,7 @@ export interface EmpresaTramiteItem {
   ranking?: number;
   ruc: string;
   razonSocial: string;
+  renovaciones?: number;
   sustituciones: number;
   incrementos: number;
   totalTramites: number;
@@ -134,6 +135,7 @@ export interface DashboardEstadisticas {
   resolucionesPrimigeniasAutorizadas: number;
   resolucionesPorVencer30?: ResolucionesVencerResumen;
   resolucionesPorVencer60?: ResolucionesVencerResumen;
+  totalRenovaciones?: number;
   totalSustituciones: number;
   totalIncrementos: number;
   totalTramitesFlota?: number;

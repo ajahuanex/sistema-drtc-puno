@@ -355,7 +355,7 @@ import {
                 <div class="detail-card-box" style="background: #f5f3ff; border: 1px solid #ddd6fe; padding: 1rem; border-radius: 8px;">
                   <h4 style="margin: 0 0 0.5rem 0; color: #6d28d9; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 4px;">
                     <mat-icon style="font-size: 1.1rem; height: 1.1rem; width: 1.1rem; color: #7c3aed;">route</mat-icon>
-                    Rutas Afectadas ({{ det.rutas_modificadas_ids?.length || 0 }})
+                    Rutas Afectadas ({{ det.rutas_modificadas_ids.length || 0 }})
                   </h4>
                   @if (det.rutas_modificadas_ids && det.rutas_modificadas_ids.length > 0) {
                     <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">

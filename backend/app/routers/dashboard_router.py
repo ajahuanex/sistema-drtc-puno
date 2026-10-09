@@ -229,21 +229,21 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
         # 5. Total de renovaciones, sustituciones e incrementos y desglose por empresa
         total_renovaciones = await db["resoluciones_hijas"].count_documents({
             "tipo_acto": "RENOVACION",
-            "esta_activo": True
+            "esta_activo": {"$ne": False}
         })
 
         total_sustituciones = await db["resoluciones_hijas"].count_documents({
             "tipo_acto": "SUSTITUCION_VEHICULAR",
-            "esta_activo": True
+            "esta_activo": {"$ne": False}
         })
 
         total_incrementos = await db["resoluciones_hijas"].count_documents({
             "tipo_acto": "INCREMENTO_FLOTA",
-            "esta_activo": True
+            "esta_activo": {"$ne": False}
         })
 
         tramites_cursor = db["resoluciones_hijas"].aggregate([
-            {"$match": {"esta_activo": True, "tipo_acto": {"$in": ["RENOVACION", "SUSTITUCION_VEHICULAR", "INCREMENTO_FLOTA"]}}},
+            {"$match": {"esta_activo": {"$ne": False}, "tipo_acto": {"$in": ["RENOVACION", "SUSTITUCION_VEHICULAR", "INCREMENTO_FLOTA"]}}},
             {"$group": {
                 "_id": "$ruc_empresa",
                 "razon_social_doc": {"$first": "$razon_social"},
@@ -265,6 +265,7 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
             top_empresas_tramites.append({
                 "ruc": ruc_t,
                 "razonSocial": rs_t,
+                "renovaciones": doc.get("renovaciones", 0),
                 "sustituciones": doc["sustituciones"],
                 "incrementos": doc["incrementos"],
                 "totalTramites": doc["totalTramites"]
@@ -740,10 +741,11 @@ async def get_reporte_detalle_tramites(db = Depends(get_database)):
                 empresas_map[ruc] = rs_val
 
         pipeline = [
-            {"$match": {"esta_activo": True, "tipo_acto": {"$in": ["SUSTITUCION_VEHICULAR", "INCREMENTO_FLOTA"]}}},
+            {"$match": {"esta_activo": {"$ne": False}, "tipo_acto": {"$in": ["RENOVACION", "SUSTITUCION_VEHICULAR", "INCREMENTO_FLOTA"]}}},
             {"$group": {
                 "_id": "$ruc_empresa",
                 "razon_social_doc": {"$first": "$razon_social"},
+                "renovaciones": {"$sum": {"$cond": [{"$eq": ["$tipo_acto", "RENOVACION"]}, 1, 0]}},
                 "sustituciones": {"$sum": {"$cond": [{"$eq": ["$tipo_acto", "SUSTITUCION_VEHICULAR"]}, 1, 0]}},
                 "incrementos": {"$sum": {"$cond": [{"$eq": ["$tipo_acto", "INCREMENTO_FLOTA"]}, 1, 0]}},
                 "totalTramites": {"$sum": 1}
@@ -763,6 +765,7 @@ async def get_reporte_detalle_tramites(db = Depends(get_database)):
                 "ranking": idx,
                 "ruc": ruc,
                 "razonSocial": rs,
+                "renovaciones": doc.get("renovaciones", 0),
                 "sustituciones": doc["sustituciones"],
                 "incrementos": doc["incrementos"],
                 "totalTramites": doc["totalTramites"]

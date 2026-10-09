@@ -146,13 +146,15 @@
           </button>
         </div>
         <div class="kpi-content">
-          <p class="kpi-label">Sustituciones / Incrementos</p>
+          <p class="kpi-label">Trámites (Renov. / Sust. / Incr.)</p>
           <h2 class="kpi-value">
+            <span style="font-size: 0.85em; color: #10b981;">{{ (stats.totalRenovaciones || 0) | number }}</span>
+            <span class="text-separator">/</span>
             {{ stats.totalSustituciones | number }} 
             <span class="text-separator">/</span> 
             <span class="text-accent">{{ stats.totalIncrementos | number }}</span>
           </h2>
-          <span class="kpi-subtext">{{ (stats.totalTramitesFlota || (stats.totalSustituciones + stats.totalIncrementos)) | number }} trámites totales registrados</span>
+          <span class="kpi-subtext">{{ (stats.totalTramitesFlota || ((stats.totalRenovaciones || 0) + stats.totalSustituciones + stats.totalIncrementos)) | number }} trámites totales registrados</span>
         </div>
         <div class="kpi-decoration"></div>
       </div>
@@ -936,10 +938,11 @@
                 <th style="width: 50px; text-align: center;">#</th>
                 <th>Razón Social Empresa</th>
                 <th style="width: 130px;">RUC</th>
-                <th style="width: 130px; text-align: center;">Sustituciones</th>
-                <th style="width: 130px; text-align: center;">Incrementos</th>
-                <th style="width: 130px; text-align: center;">Total Trámites</th>
-                <th style="width: 180px;">Participación</th>
+                <th style="width: 120px; text-align: center;">Renovaciones</th>
+                <th style="width: 120px; text-align: center;">Sustituciones</th>
+                <th style="width: 120px; text-align: center;">Incrementos</th>
+                <th style="width: 120px; text-align: center;">Total Trámites</th>
+                <th style="width: 160px;">Participación</th>
               </tr>
             </thead>
             <tbody>
@@ -954,6 +957,9 @@
                     <strong>{{ empresa.razonSocial }}</strong>
                   </td>
                   <td class="text-muted font-mono">{{ empresa.ruc }}</td>
+                  <td class="text-center">
+                    <span class="badge-renovacion" style="background:#ecfdf5;color:#059669;font-weight:700;padding:2px 8px;border-radius:10px;font-size:11px;">{{ empresa.renovaciones || 0 }} ren.</span>
+                  </td>
                   <td class="text-center">
                     <span class="badge-sustitucion">{{ empresa.sustituciones }} sust.</span>
                   </td>
@@ -973,7 +979,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="empty-state">No hay datos de trámites disponibles.</td>
+                  <td colspan="8" class="empty-state">No hay datos de trámites disponibles.</td>
                 </tr>
               }
             </tbody>
@@ -1677,11 +1683,15 @@
                 <span class="m-kpi-lbl">Total Trámites Registrados</span>
               </div>
               <div class="modal-kpi-item">
+                <span class="m-kpi-val text-emerald" style="color: #10b981;">{{ kpiTopTramitesModal().totalRenovaciones }}</span>
+                <span class="m-kpi-lbl">Renovaciones</span>
+              </div>
+              <div class="modal-kpi-item">
                 <span class="m-kpi-val text-blue">{{ kpiTopTramitesModal().totalSustituciones }}</span>
                 <span class="m-kpi-lbl">Sustituciones Vehiculares</span>
               </div>
               <div class="modal-kpi-item">
-                <span class="m-kpi-val text-emerald">{{ kpiTopTramitesModal().totalIncrementos }}</span>
+                <span class="m-kpi-val text-purple" style="color: #8b5cf6;">{{ kpiTopTramitesModal().totalIncrementos }}</span>
                 <span class="m-kpi-lbl">Incrementos de Flota</span>
               </div>
             </div>
@@ -1692,6 +1702,7 @@
                 <label class="filter-label"><i class="material-icons-outlined">filter_list</i> Tipo:</label>
                 <select class="modal-select" [value]="filtroTipoTramitePredominante()" (change)="filtroTipoTramitePredominante.set($any($event.target).value)">
                   <option value="TODOS">Todos los trámites</option>
+                  <option value="RENOVACIONES">Con Renovaciones</option>
                   <option value="SUSTITUCIONES">Mayoría Sustituciones</option>
                   <option value="INCREMENTOS">Mayoría Incrementos</option>
                 </select>
@@ -1701,6 +1712,7 @@
                 <label class="filter-label"><i class="material-icons-outlined">sort</i> Ordenar:</label>
                 <select class="modal-select" [value]="ordenTopTramites()" (change)="ordenTopTramites.set($any($event.target).value)">
                   <option value="total-desc">Total Trámites</option>
+                  <option value="renovaciones-desc">Más Renovaciones</option>
                   <option value="sustituciones-desc">Más Sustituciones</option>
                   <option value="incrementos-desc">Más Incrementos</option>
                   <option value="nombre-asc">Razón Social (A-Z)</option>
@@ -1723,10 +1735,11 @@
                     <th style="width: 50px; text-align: center;">#</th>
                     <th>Razón Social de la Empresa</th>
                     <th style="width: 140px;">RUC</th>
-                    <th style="width: 140px; text-align: center;">Sustituciones</th>
-                    <th style="width: 140px; text-align: center;">Incrementos</th>
-                    <th style="width: 150px; text-align: center;">Total Trámites</th>
-                    <th style="width: 200px;">Participación</th>
+                    <th style="width: 120px; text-align: center;">Renovaciones</th>
+                    <th style="width: 120px; text-align: center;">Sustituciones</th>
+                    <th style="width: 120px; text-align: center;">Incrementos</th>
+                    <th style="width: 130px; text-align: center;">Total Trámites</th>
+                    <th style="width: 180px;">Participación</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1750,6 +1763,9 @@
                       </td>
                       <td class="text-muted font-mono">{{ empresa.ruc }}</td>
                       <td class="text-center">
+                        <span class="badge-renovacion font-bold" style="background:#ecfdf5;color:#059669;padding:4px 8px;border-radius:12px;font-size:12px;">{{ empresa.renovaciones || 0 }} ren.</span>
+                      </td>
+                      <td class="text-center">
                         <span class="badge-sustitucion font-bold">{{ empresa.sustituciones }} sust.</span>
                       </td>
                       <td class="text-center">
@@ -1769,7 +1785,7 @@
                     </tr>
                   } @empty {
                     <tr>
-                      <td colspan="8" class="empty-state">No se encontraron empresas con el término de búsqueda ingresado.</td>
+                      <td colspan="9" class="empty-state">No se encontraron empresas con el término de búsqueda ingresado.</td>
                     </tr>
                   }
                 </tbody>

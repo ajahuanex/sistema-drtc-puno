@@ -4,9 +4,8 @@ Colección MongoDB: flota_empresa
 """
 from typing import Optional, List, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
-from .base import CamelModel
 
 
 class EstadoVehiculoEmpresa(str, Enum):
@@ -25,16 +24,15 @@ class TipoResolucionHija(str, Enum):
     CANCELACION = "C"
 
 
-class EntradaObservacion(CamelModel):
+class EntradaObservacion(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, from_attributes=True)
     texto: str
     fecha: Optional[datetime] = None
     fuente: Optional[str] = None  # "importacion", "manual", etc.
 
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
 
-
-class VehiculoEmpresaCreate(CamelModel):
+class VehiculoEmpresaCreate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, from_attributes=True)
     ruc: str = Field(..., min_length=11, max_length=11, description="RUC de la empresa (11 dígitos)")
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: str = Field(..., description="Número de resolución primigenia (ej: R-0128-2024)")
@@ -99,7 +97,8 @@ class VehiculoEmpresaCreate(CamelModel):
     fila_origen_matriz: Optional[int] = Field(default=None, description="Número de fila de origen en la hoja DB_MATRIZ")
 
 
-class VehiculoEmpresaUpdate(CamelModel):
+class VehiculoEmpresaUpdate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, from_attributes=True)
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: Optional[str] = None
     fecha_emision_resolucion: Optional[Any] = None
@@ -153,12 +152,14 @@ class VehiculoEmpresaUpdate(CamelModel):
     detalles: Optional[str] = None
 
 
-class AgregarObservacionRequest(CamelModel):
+class AgregarObservacionRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, from_attributes=True)
     texto: str = Field(..., min_length=1, description="Texto de la nueva observación")
     fuente: Optional[str] = Field(default="manual", description="Fuente de la observación")
 
 
-class VehiculoEmpresaResponse(CamelModel):
+class VehiculoEmpresaResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, from_attributes=True)
     id: str
     ruc: str
     razon_social: Optional[str] = None
@@ -220,10 +221,6 @@ class VehiculoEmpresaResponse(CamelModel):
     fecha_actualizacion: Optional[Any] = None
     esta_activo: bool = True
 
-    class Config:
-        from_attributes = True
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
-
     @classmethod
     def from_mongo(cls, doc: dict) -> "VehiculoEmpresaResponse":
         """Convertir documento MongoDB a modelo de respuesta."""
@@ -239,7 +236,8 @@ class VehiculoEmpresaResponse(CamelModel):
         return cls(**doc)
 
 
-class ItemTramiteVehiculo(CamelModel):
+class ItemTramiteVehiculo(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, from_attributes=True)
     placa: str = Field(..., description="Placa del vehículo entrante/tramitado")
     placa_saliente: Optional[str] = Field(default=None, description="Placa del vehículo que se da de baja (Sustitución)")
     rutas: List[str] = Field(default_factory=list, description="Lista de códigos de rutas")
@@ -259,7 +257,8 @@ class ItemTramiteVehiculo(CamelModel):
     orden: Optional[int] = Field(default=None, description="Número de orden correlativo en la resolución/flota")
 
 
-class RutaRenovacionDetalle(CamelModel):
+class RutaRenovacionDetalle(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, from_attributes=True)
     codigo: str = Field(..., description="Código de la ruta")
     origen: str = Field(..., description="Localidad de origen")
     destino: str = Field(..., description="Localidad de destino")
@@ -267,7 +266,8 @@ class RutaRenovacionDetalle(CamelModel):
     frecuencia: str = Field(default="", description="Frecuencia del servicio")
 
 
-class TramiteMasivoRequest(CamelModel):
+class TramiteMasivoRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, from_attributes=True)
     ruc: str = Field(..., min_length=11, max_length=11, description="RUC de la empresa")
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: str = Field(..., description="Resolución primigenia actual o de referencia")
