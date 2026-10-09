@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
+from .base import CamelModel
 
 class AmbitoTramite(str, Enum):
     EMPRESA = "EMPRESA"
@@ -15,7 +16,7 @@ class TipoTramiteAdministrativo(str, Enum):
     FE_DE_ERRATAS = "FE_DE_ERRATAS"
     REACTIVACION_JUDICIAL = "REACTIVACION_JUDICIAL"
 
-class TramiteAdministrativoCreate(BaseModel):
+class TramiteAdministrativoCreate(CamelModel):
     ruc_empresa: str = Field(..., description="RUC de la empresa titular (11 dígitos)")
     razon_social: Optional[str] = Field(None, description="Razón social de la empresa")
     ambito: AmbitoTramite = Field(..., description="Ámbito de afectación: EMPRESA o CONCESION")

@@ -107,6 +107,8 @@ export class CentroTramites implements OnInit {
   buscandoPlacaEntrante = signal<boolean>(false);
   habilitacionOtraEmpresa = signal<{ ruc: string; razon_social: string; nro_resolucion_primigenia?: string } | null>(null);
   darDeBajaOtraEmpresa = signal<boolean>(true);
+  habilitacionMismaEmpresa = signal<{ ruc: string; razon_social: string; nro_resolucion_primigenia?: string; nro_resolucion_hija?: string; numero_tuc?: string } | null>(null);
+  darDeBajaMismaEmpresa = signal<boolean>(true);
 
   // Control de Stepper y Navegación Inferior Fija
   @ViewChild('stepper') stepper?: MatStepper;
@@ -1329,6 +1331,8 @@ export class CentroTramites implements OnInit {
     this.datosTecnicosEntrante.set(null);
     this.habilitacionOtraEmpresa.set(null);
     this.darDeBajaOtraEmpresa.set(true);
+    this.habilitacionMismaEmpresa.set(null);
+    this.darDeBajaMismaEmpresa.set(true);
     this.advertenciaExpediente.set(null);
     this.advertenciaResolucion.set(null);
     this.advertenciaRenovacionResolucion.set(null);
@@ -1599,6 +1603,41 @@ export class CentroTramites implements OnInit {
         const match = this.vehiculosEnResolucion().find(v => v.placa === txt || v.placa.replace('-', '') === txt.replace('-', ''));
         if (match) {
           this.seleccionarSaliente(match);
+        } else if (txt.length >= 6) {
+          const rucEmp = this.empresaBuscada()?.ruc;
+          if (rucEmp) {
+            this.flotaService.verificarPlacaTramite(txt, rucEmp).subscribe({
+              next: (res) => {
+                if (res.apto_saliente) {
+                  this.seleccionarSaliente({
+                    placa: res.placa,
+                    estado: 'HABILITADO',
+                    esta_activo: true,
+                    marca: res.datos_tecnicos?.marca,
+                    modelo: res.datos_tecnicos?.modelo,
+                    anio_fabricacion: res.datos_tecnicos?.anio_fabricacion,
+                    categoria: res.datos_tecnicos?.categoria || 'M2',
+                    asientos: res.datos_tecnicos?.asientos,
+                    peso_neto: res.datos_tecnicos?.peso_neto
+                  });
+                } else {
+                  this.snackBar.open(
+                    `⛔ ${res.motivo_no_saliente || 'La placa no pertenece a la flota habilitada de esta empresa.'}`,
+                    'Cerrar',
+                    { duration: 5000 }
+                  );
+                  this.placaSalienteTemp.set('');
+                  this.filtroSalienteText.set('');
+                  this.datosTecnicosSaliente.set(null);
+                }
+              },
+              error: () => {
+                this.snackBar.open(`⛔ La placa ${txt} no fue encontrada en la flota habilitada de esta empresa.`, 'Cerrar', { duration: 4500 });
+                this.placaSalienteTemp.set('');
+                this.filtroSalienteText.set('');
+              }
+            });
+          }
         }
       }
     }, 250);
@@ -2097,52 +2136,66 @@ export class CentroTramites implements OnInit {
     this.buscandoPlacaEntrante.set(true);
     const empresaActualRuc = this.empresaBuscada()?.ruc;
 
-    // 1. Consultar si la unidad ya está habilitada en otra empresa en toda la BD
-    this.flotaService.getFlotaPaginada({ placa, solo_activos: true, limit: 10 }).subscribe({
-      next: (resFlota) => {
-        const registros = resFlota.data || [];
-        const mismaEmpresa = registros.find(r => r.ruc === empresaActualRuc && (r.estado === 'HABILITADO' || r.esta_activo !== false));
-        if (mismaEmpresa) {
-          const resMis = mismaEmpresa.nro_resolucion_hija || mismaEmpresa.nro_resolucion_primigenia || 'Resolución Vigente';
-          const tucMis = mismaEmpresa.numero_tuc || 'S/TUC';
-          this.snackBar.open(
-            `⚠️ ATENCIÓN: La unidad entrante ${placa} ya está HABILITADA en esta empresa (Res. ${resMis}, TUC: ${tucMis}). Al configurar la sustitución se dará de baja su habilitación previa para regularizar (Doble Habilitación Prohibida).`,
-            'ENTENDIDO',
-            { duration: 7000 }
-          );
-        }
-        const otraEmpresa = registros.find(r => r.ruc !== empresaActualRuc && (r.estado === 'HABILITADO' || r.esta_activo !== false));
-        if (otraEmpresa) {
+    // 1. Consultar estado de habilitación de la placa en toda la BD regional (Control de Doble Habilitación)
+    this.flotaService.verificarPlacaTramite(placa, empresaActualRuc).subscribe({
+      next: (resVerif) => {
+        if (resVerif.habilitado_otra_empresa && resVerif.otra_empresa_info) {
+          const oInfo = resVerif.otra_empresa_info;
           this.habilitacionOtraEmpresa.set({
-            ruc: otraEmpresa.ruc,
-            razon_social: otraEmpresa.razon_social || 'Otra Empresa Registrada',
-            nro_resolucion_primigenia: otraEmpresa.nro_resolucion_primigenia
+            ruc: oInfo.ruc,
+            razon_social: oInfo.razon_social || 'Otra Empresa Registrada',
+            nro_resolucion_primigenia: oInfo.nro_resolucion_primigenia || oInfo.nro_resolucion_hija
           });
           this.darDeBajaOtraEmpresa.set(true);
+          this.snackBar.open(
+            `⚠️ ALERTA: La placa entrante ${placa} ya está HABILITADA en "${oInfo.razon_social}" (RUC ${oInfo.ruc}). Se requiere autorización de baja previa (Art. 68.1) o baja externa ante el MTC para evitar DOBLE HABILITACIÓN.`,
+            'ENTENDIDO',
+            { duration: 7500 }
+          );
         } else {
           this.habilitacionOtraEmpresa.set(null);
         }
 
-        const matchData = registros.find(r => r.marca || r.modelo);
-        if (matchData && (!this.datosTecnicosEntrante() || !this.datosTecnicosEntrante()?.marca)) {
+        if (resVerif.habilitado_misma_empresa && resVerif.misma_empresa_info) {
+          const mInfo = resVerif.misma_empresa_info;
+          this.habilitacionMismaEmpresa.set({
+            ruc: mInfo.ruc,
+            razon_social: mInfo.razon_social || 'Esta Empresa',
+            nro_resolucion_primigenia: mInfo.nro_resolucion_primigenia,
+            nro_resolucion_hija: mInfo.nro_resolucion_hija,
+            numero_tuc: mInfo.numero_tuc
+          });
+          this.darDeBajaMismaEmpresa.set(true);
+          const resMis = mInfo.nro_resolucion_hija || mInfo.nro_resolucion_primigenia || 'Vigente';
+          this.snackBar.open(
+            `⚠️ ATENCIÓN: La unidad entrante ${placa} ya se encuentra HABILITADA en esta empresa (Res. ${resMis}). Se dará de baja su habilitación previa para regularizar (Doble Habilitación Prohibida).`,
+            'ENTENDIDO',
+            { duration: 7000 }
+          );
+        } else {
+          this.habilitacionMismaEmpresa.set(null);
+        }
+
+        if (resVerif.datos_tecnicos) {
+          const dt = resVerif.datos_tecnicos;
           this.datosTecnicosEntrante.set({
             placa,
-            marca: matchData.marca || '',
-            modelo: matchData.modelo || '',
-            anio_fabricacion: matchData.anio_fabricacion || null,
-            categoria: matchData.categoria || 'M2',
-            asientos: matchData.asientos || null,
-            peso_neto: matchData.peso_neto || null,
-            numero_tuc: matchData.numero_tuc || '',
-            color: matchData.color || '',
-            combustible: matchData.combustible || '',
-            numero_motor: matchData.numero_motor || '',
-            numero_serie: matchData.numero_serie || '',
-            vin: matchData.vin || ''
+            marca: dt.marca || '',
+            modelo: dt.modelo || '',
+            anio_fabricacion: dt.anio_fabricacion || null,
+            categoria: dt.categoria || 'M2',
+            asientos: dt.asientos || null,
+            peso_neto: dt.peso_neto || null,
+            numero_tuc: dt.numero_tuc || '',
+            color: dt.color || '',
+            combustible: dt.combustible || 'DIESEL',
+            numero_motor: dt.numero_motor || '',
+            numero_serie: dt.numero_serie || '',
+            vin: dt.vin || ''
           });
         }
 
-        // 2. Traer ficha técnica de SUNARP / Padron
+        // 2. Traer ficha técnica adicional de SUNARP / Padron
         this.vehiculoDataService.getVehiculoDataByPlaca(placa).subscribe({
           next: (res) => {
             this.buscandoPlacaEntrante.set(false);
@@ -2302,6 +2355,11 @@ export class CentroTramites implements OnInit {
     }
 
     const salienteObj = this.vehiculoSalienteSeleccionado() || this.vehiculosEnResolucion().find(v => v.placa === saliente) || {};
+    if (!salienteObj || !salienteObj.placa) {
+      this.snackBar.open(`⛔ El vehículo saliente ${saliente} no pertenece a la flota registrada ni habilitada de esta empresa.`, 'Cerrar', { duration: 4500 });
+      return;
+    }
+
     const estadoSal = String(salienteObj.estado || '').toUpperCase();
     const activoSal = salienteObj.esta_activo !== false;
     if (['SUSTITUIDO', 'INHABILITADO', 'BAJA'].includes(estadoSal) || !activoSal) {
@@ -2313,11 +2371,31 @@ export class CentroTramites implements OnInit {
       return;
     }
 
+    // Control estricto de Doble Habilitación para el vehículo entrante:
+    const otraEmp = this.habilitacionOtraEmpresa();
+    if (otraEmp && !this.darDeBajaOtraEmpresa()) {
+      this.snackBar.open(
+        `⛔ Bloqueo normativo: La unidad entrante ${entrante} cuenta con habilitación vigente en "${otraEmp.razon_social}" (RUC ${otraEmp.ruc}). Prohibida la doble habilitación; debe marcar "Dar de baja en la otra empresa" o registrar baja externa acreditada.`,
+        'CORREGIR',
+        { duration: 6000 }
+      );
+      return;
+    }
+
+    const mismaEmp = this.habilitacionMismaEmpresa();
+    if (mismaEmp && !this.darDeBajaMismaEmpresa()) {
+      this.snackBar.open(
+        `⛔ Bloqueo normativo: La unidad entrante ${entrante} ya está habilitada en esta empresa. Debe autorizar la baja previa de su habilitación anterior para regularizarla en este trámite.`,
+        'CORREGIR',
+        { duration: 6000 }
+      );
+      return;
+    }
+
     const entranteMisma = this.vehiculosEnResolucion().find(v => v.placa === entrante);
-    const esMismaEmpresaEntrante = !!entranteMisma && (entranteMisma.estado === 'HABILITADO' || entranteMisma.esta_activo !== false);
+    const esMismaEmpresaEntrante = !!mismaEmp || (!!entranteMisma && (entranteMisma.estado === 'HABILITADO' || entranteMisma.esta_activo !== false));
 
     const dt = this.datosTecnicosEntrante() || {};
-    const otraEmp = this.habilitacionOtraEmpresa();
     const rutasPar = (salienteObj?.rutas && salienteObj.rutas.length > 0)
       ? [...salienteObj.rutas]
       : this.rutasOpciones().map(o => o.codigo);
@@ -2345,10 +2423,10 @@ export class CentroTramites implements OnInit {
       otra_empresa_ruc: otraEmp ? otraEmp.ruc : null,
       otra_empresa_razon: otraEmp ? otraEmp.razon_social : null,
       baja_externa_registrada: false,
-      dar_de_baja_misma_empresa: esMismaEmpresaEntrante,
+      dar_de_baja_misma_empresa: esMismaEmpresaEntrante ? this.darDeBajaMismaEmpresa() : false,
       es_misma_empresa: esMismaEmpresaEntrante,
-      misma_empresa_resolucion: entranteMisma?.nro_resolucion_hija || entranteMisma?.nro_resolucion_primigenia || null,
-      misma_empresa_tuc: entranteMisma?.numero_tuc || null
+      misma_empresa_resolucion: mismaEmp?.nro_resolucion_hija || mismaEmp?.nro_resolucion_primigenia || entranteMisma?.nro_resolucion_hija || entranteMisma?.nro_resolucion_primigenia || null,
+      misma_empresa_tuc: mismaEmp?.numero_tuc || entranteMisma?.numero_tuc || null
     };
 
     this.paresSustitucion.update(pares => [...pares, nuevoPar]);
@@ -2362,6 +2440,8 @@ export class CentroTramites implements OnInit {
     this.datosTecnicosEntrante.set(null);
     this.habilitacionOtraEmpresa.set(null);
     this.darDeBajaOtraEmpresa.set(true);
+    this.habilitacionMismaEmpresa.set(null);
+    this.darDeBajaMismaEmpresa.set(true);
   }
 
   abrirModalBajaExterna(parIndex?: number) {
@@ -3754,6 +3834,28 @@ export class CentroTramites implements OnInit {
     if (tipo === 'SUSTITUCION') {
       if (this.paresSustitucion().length === 0) {
         this.snackBar.open('Debe configurar al menos un par de sustitución', 'Cerrar', { duration: 4000 });
+        return;
+      }
+      const tieneDobleHabilitacionOtra = this.paresSustitucion().find(
+        p => p.otra_empresa_ruc && !p.dar_de_baja_otra_empresa && !p.baja_externa_registrada
+      );
+      if (tieneDobleHabilitacionOtra) {
+        this.snackBar.open(
+          `⛔ Bloqueo normativo: La unidad entrante ${tieneDobleHabilitacionOtra.placa_entrante} cuenta con habilitación activa en ${tieneDobleHabilitacionOtra.otra_empresa_razon || 'otra empresa'}. Debe autorizar la baja previa (Art. 68.1) o registrar baja externa para prevenir la doble habilitación.`,
+          'CORREGIR',
+          { duration: 6000 }
+        );
+        return;
+      }
+      const tieneDobleHabilitacionMisma = this.paresSustitucion().find(
+        p => p.es_misma_empresa && !p.dar_de_baja_misma_empresa
+      );
+      if (tieneDobleHabilitacionMisma) {
+        this.snackBar.open(
+          `⛔ Bloqueo normativo: La unidad entrante ${tieneDobleHabilitacionMisma.placa_entrante} ya está habilitada en esta empresa sin regularización previa autorizada.`,
+          'CORREGIR',
+          { duration: 6000 }
+        );
         return;
       }
       vehiculosItems = this.paresSustitucion().map(p => ({

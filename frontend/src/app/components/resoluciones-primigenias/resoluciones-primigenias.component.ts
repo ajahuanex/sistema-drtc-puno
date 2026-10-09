@@ -498,6 +498,7 @@ import {
                 <div class="detail-item"><strong>N° Resolución:</strong> {{ selectedForDetail()?.nro_resolucion }}</div>
                 <div class="detail-item"><strong>Siglas:</strong> <span class="siglas-badge">{{ selectedForDetail()?.siglas || '-' }}</span></div>
                 <div class="detail-item"><strong>RUC Empresa:</strong> {{ selectedForDetail()?.ruc_empresa }}</div>
+                <div class="detail-item"><strong>Razón Social:</strong> {{ selectedForDetail()?.razon_social || getNombreEmpresaCompleto(selectedForDetail()?.ruc_empresa || '') || '-' }}</div>
                 <div class="detail-item"><strong>Estado Legal:</strong> <span [class]="'status-pill status-' + selectedForDetail()?.estado?.toLowerCase()">{{ selectedForDetail()?.estado }}</span></div>
                 <div class="detail-item"><strong>Modalidad:</strong> {{ selectedForDetail()?.tipo_autorizacion }}</div>
                 <div class="detail-item"><strong>Fecha Emisión:</strong> {{ selectedForDetail()?.fecha_resolucion | date:'dd/MM/yyyy' }}</div>
@@ -505,6 +506,7 @@ import {
                 <div class="detail-item"><strong>Vigencia Fin:</strong> {{ selectedForDetail()?.fecha_fin_vigencia | date:'dd/MM/yyyy' }} ({{ selectedForDetail()?.anios_vigencia }} Años)</div>
                 <div class="detail-item"><strong>Eficacia Anticipada:</strong> {{ selectedForDetail()?.tiene_eficacia_anticipada ? 'SÍ (Vigencia inició antes que emisión)' : 'NO' }}</div>
                 <div class="detail-item"><strong>Expedientes de Origen:</strong> {{ selectedForDetail()?.expedientes_codigos?.join(', ') || '-' }}</div>
+                <div class="detail-item"><strong>Rutas Autorizadas:</strong> {{ getRutasAutorizadas(selectedForDetail()).length > 0 ? getRutasAutorizadas(selectedForDetail()).join(', ') : '-' }}</div>
                 @if (selectedForDetail()?.link_documento) {
                   <div class="detail-item full-width">
                     <strong>Drive PDF:</strong> <a [href]="selectedForDetail()?.link_documento" target="_blank" class="drive-link">{{ selectedForDetail()?.link_documento }}</a>
@@ -697,6 +699,23 @@ import {
                         </th>
                       }
 
+                      @if (columnaVisible('expedientes_codigos')) {
+                        <th class="th-compact-col" matTooltip="Expedientes de origen vinculados">
+                          <div class="th-content-icon">
+                            <mat-icon class="th-icon">folder_open</mat-icon>
+                            <span>Expedientes</span>
+                          </div>
+                        </th>
+                      }
+                      @if (columnaVisible('rutas_autorizadas_ids')) {
+                        <th class="th-compact-col" matTooltip="Rutas autorizadas para el servicio">
+                          <div class="th-content-icon">
+                            <mat-icon class="th-icon">route</mat-icon>
+                            <span>Rutas</span>
+                          </div>
+                        </th>
+                      }
+
                       @if (columnaVisible('historial_modificaciones')) {
                         <th (click)="toggleSort('historial_modificaciones')" class="sortable-th th-compact-col th-mod-col" matTooltip="Modificaciones y Actos Posteriores vinculados">
                           <div class="th-content-icon">
@@ -751,9 +770,9 @@ import {
                         @if (columnaVisible('ruc_empresa')) {
                           <td>
                             <div class="ruc-container">
-                              @if (getNombreEmpresa(item.ruc_empresa)) {
-                                <span class="empresa-hint-text" [matTooltip]="getNombreEmpresaCompleto(item.ruc_empresa)">
-                                  {{ getNombreEmpresa(item.ruc_empresa) }}
+                              @if (item.razon_social || getNombreEmpresa(item.ruc_empresa)) {
+                                <span class="empresa-hint-text" [matTooltip]="item.razon_social || getNombreEmpresaCompleto(item.ruc_empresa)">
+                                  {{ item.razon_social || getNombreEmpresa(item.ruc_empresa) }}
                                 </span>
                               }
                               <span class="ruc-badge">{{ item.ruc_empresa }}</span>
@@ -826,6 +845,32 @@ import {
                               <span class="badge-eficacia" matTooltip="Vigencia surte efecto antes de la emisión">SÍ</span>
                             } @else {
                               <span class="badge-no">NO</span>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('expedientes_codigos')) {
+                          <td>
+                            @if (item.expedientes_codigos && item.expedientes_codigos.length > 0) {
+                              <div class="exp-chips-container">
+                                @for (exp of item.expedientes_codigos; track exp) {
+                                  <span class="exp-code-badge" [matTooltip]="'Expediente ' + exp">{{ exp }}</span>
+                                }
+                              </div>
+                            } @else {
+                              <span class="sin-datos">—</span>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('rutas_autorizadas_ids')) {
+                          <td>
+                            @if (getRutasAutorizadas(item).length > 0) {
+                              <div class="rutas-chips-container">
+                                @for (rId of getRutasAutorizadas(item); track rId) {
+                                  <span class="ruta-id-badge" [matTooltip]="'Ruta ' + rId">R-{{ rId }}</span>
+                                }
+                              </div>
+                            } @else {
+                              <span class="sin-datos">—</span>
                             }
                           </td>
                         }
@@ -1956,6 +2001,38 @@ import {
         text-transform: uppercase;
         line-height: 1.1;
       }
+    }
+
+    .exp-chips-container, .rutas-chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      max-width: 200px;
+    }
+
+    .exp-code-badge {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background-color: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      font-family: monospace;
+      white-space: nowrap;
+    }
+
+    .ruta-id-badge {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background-color: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+      white-space: nowrap;
     }
 
     .ruc-badge {
@@ -3143,7 +3220,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
         'empresa_nombre': {
           header: 'Razón Social Empresa',
           width: 45,
-          getValue: (r) => this.getNombreEmpresaCompleto(r.ruc_empresa) || this.getNombreEmpresa(r.ruc_empresa) || ''
+          getValue: (r) => r.razon_social || this.getNombreEmpresaCompleto(r.ruc_empresa) || this.getNombreEmpresa(r.ruc_empresa) || ''
         },
         'tipo_autorizacion': {
           header: 'Modalidad / Servicio',
@@ -3179,6 +3256,16 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
           header: 'Eficacia Anticipada',
           width: 14,
           getValue: (r) => r.tiene_eficacia_anticipada ? 'SÍ' : 'NO'
+        },
+        'expedientes_codigos': {
+          header: 'N° Expediente(s)',
+          width: 25,
+          getValue: (r) => (r.expedientes_codigos || []).join(', ') || '-'
+        },
+        'rutas_autorizadas_ids': {
+          header: 'Rutas Autorizadas',
+          width: 25,
+          getValue: (r) => this.getRutasAutorizadas(r).map(id => `R-${id}`).join(', ') || '-'
         },
         'historial_modificaciones': {
           header: 'Modificaciones y Actos Posteriores',
@@ -3536,6 +3623,8 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     { key: 'fecha_fin_vigencia', label: 'F. Fin Vigencia', required: false },
     { key: 'estado', label: 'Estado Legal', required: false },
     { key: 'tiene_eficacia_anticipada', label: 'Eficacia Ant.', required: false },
+    { key: 'expedientes_codigos', label: 'N° Expediente(s)', required: false },
+    { key: 'rutas_autorizadas_ids', label: 'Rutas Autorizadas', required: false },
     { key: 'historial_modificaciones', label: 'Modificaciones', required: false },
     { key: 'observaciones', label: 'Observaciones', required: false },
     { key: 'link_documento', label: 'Drive PDF', required: false },
@@ -3554,10 +3643,17 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     'fecha_fin_vigencia',
     'estado',
     'tiene_eficacia_anticipada',
+    'expedientes_codigos',
+    'rutas_autorizadas_ids',
     'historial_modificaciones',
     'observaciones',
     'acciones'
   ]);
+
+  getRutasAutorizadas(r: ResolucionPrimigenia | undefined | null): string[] {
+    if (!r) return [];
+    return (r as any).rutasAutorizadasIds || r.rutas_autorizadas_ids || [];
+  }
 
   columnaVisible(key: string): boolean {
     if (key === 'select' || key === 'nro_resolucion' || key === 'acciones') return true;

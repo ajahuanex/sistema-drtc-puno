@@ -1365,16 +1365,22 @@ class FlotaEmpresaService:
             f_inicio_calc = vig_veh.get("fecha_inicio") or (f_hija_input.isoformat()[:10] if isinstance(f_hija_input, (datetime, date)) else str(f_hija_input)[:10] if f_hija_input else None)
             f_fin_calc = vig_veh.get("fecha_fin")
 
+            es_tramite_hijo = req.tipo_tramite in ["SUSTITUCION", "INCREMENTO"]
+            fecha_hija_val = fecha_res if es_tramite_hijo else None
+            nro_hija_veh = nro_hija_val if es_tramite_hijo else None
+            tipo_hija_veh = tipo_hija_val if es_tramite_hijo else None
+
             # Construir objeto base del vehículo
             doc_veh = {
                 "ruc": ruc,
                 "razon_social": razon_social,
                 "nro_resolucion_primigenia": res_target,
-                "nro_resolucion_hija": nro_hija_val,
-                "resolucion_hija_id": doc_hija_id,
+                "nro_resolucion_hija": nro_hija_veh,
+                "resolucion_hija_id": doc_hija_id if es_tramite_hijo else None,
                 "tramite_id": doc_hija_id,
-                "tipo_resolucion_hija": tipo_hija_val,
-                "fecha_emision_resolucion": f_inicio_calc or req.fecha_emision_resolucion or req.nueva_fecha_emision,
+                "tipo_resolucion_hija": tipo_hija_veh,
+                "fecha_resolucion_hija": fecha_hija_val,
+                "fecha_emision_resolucion": fecha_hija_val or f_inicio_calc,
                 "fecha_inicio_vigencia": f_inicio_calc,
                 "fecha_vigencia_hasta": f_fin_calc,
                 "limite_permanencia_aplicado": vig_veh.get("influye_permanencia", False),
@@ -1463,27 +1469,31 @@ class FlotaEmpresaService:
             # Observaciones automatizadas según el tipo de trámite
             obs_lista = []
             res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
-            if req.tipo_tramite == "SUSTITUCION" and item.placa_saliente:
+            if req.tipo_tramite == "SUSTITUCION":
+                placa_sal = (getattr(item, "placa_saliente", None) or "").strip().upper()
+                if not placa_sal:
+                    raise ValueError(f"Operación Denegada: En trámite de SUSTITUCION, es obligatorio indicar el vehículo saliente para la unidad entrante {placa_in}.")
+                if placa_sal == placa_in:
+                    raise ValueError(f"Operación Denegada: La placa entrante ({placa_in}) no puede ser idéntica a la placa saliente.")
+
                 obs_lista.append({
                     "fecha": now,
-                    "texto": f"SUSTITUYE A {item.placa_saliente.strip().upper()} SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                    "texto": f"SUSTITUYE A {placa_sal} SEGUN RESOLUCION {res_ref} / {origen_texto}",
                     "fuente": "tramite_sustitucion"
                 })
 
-                # Dar de baja al vehículo saliente (Control estricto: no puede ser sustituido 2 veces)
-                placa_sal = item.placa_saliente.strip().upper()
+                # Dar de baja al vehículo saliente (Control estricto: debe pertenecer a la empresa y estar activo)
                 v_saliente = await self.collection.find_one({"ruc": ruc, "placa": placa_sal})
                 if not v_saliente:
-                    raise ValueError(f"Operación Denegada: El vehículo saliente {placa_sal} no pertenece a la flota registrada de la empresa.")
+                    raise ValueError(f"Operación Denegada: El vehículo saliente {placa_sal} no pertenece a la flota registrada de la empresa (RUC {ruc}).")
                 
                 estado_sal = str(v_saliente.get("estado", "")).upper()
                 activo_sal = v_saliente.get("esta_activo", True)
                 if estado_sal in ["SUSTITUIDO", "INHABILITADO", "BAJA"] or activo_sal is False:
                     raise ValueError(
-                        f"Operación Denegada: El vehículo {placa_sal} ya se encuentra en estado '{estado_sal}' (ya fue sustituido o dado de baja anteriormente). Un vehículo no puede ser sustituido 2 veces."
+                        f"Operación Denegada: El vehículo saliente {placa_sal} se encuentra en estado '{estado_sal}' (ya fue sustituido o dado de baja anteriormente). Un vehículo no puede ser sustituido 2 veces."
                     )
 
-                res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
                 nueva_obs_sal = {
                     "fecha": now,
                     "texto": f"BAJA POR SUSTITUCION (REEMPLAZADO POR {placa_in}) SEGUN RESOLUCION {res_ref} / {origen_texto}",
@@ -1610,15 +1620,32 @@ class FlotaEmpresaService:
                         bajas_desafectacion += 1
                         logger.info(f"Baja de habilitación previa procesada para placa {placa_in} en misma empresa {ruc}")
 
-            # 1. Baja de otra empresa regional DRTC Puno (Baja Interna Art. 68.1):
-            if getattr(item, "dar_de_baja_otra_empresa", False):
-                otra_flota_cursor = self.collection.find({
-                    "ruc": {"$ne": ruc},
-                    "placa": placa_in,
-                    "estado": "HABILITADO",
-                    "esta_activo": {"$ne": False}
-                })
-                async for v_otra in otra_flota_cursor:
+            # 1. Baja de otra empresa regional DRTC Puno (Baja Interna Art. 68.1) y Bloqueo de Doble Habilitación:
+            otra_flota_registros = await self.collection.find({
+                "ruc": {"$ne": ruc},
+                "placa": placa_in,
+                "estado": "HABILITADO",
+                "esta_activo": {"$ne": False}
+            }).to_list(length=10)
+
+            baja_ext = getattr(item, "baja_externa", None)
+            dar_baja_otra = getattr(item, "dar_de_baja_otra_empresa", False)
+
+            if otra_flota_registros and req.tipo_tramite in ["INCREMENTO", "SUSTITUCION", "RENOVACION"]:
+                if not dar_baja_otra and not baja_ext:
+                    v_otra_prim = otra_flota_registros[0]
+                    otra_emp_razon_err = v_otra_prim.get("razon_social") or "otra empresa"
+                    otra_emp_ruc_err = v_otra_prim.get("ruc") or ""
+                    otra_res_err = v_otra_prim.get("nro_resolucion_hija") or v_otra_prim.get("nro_resolucion_primigenia") or "S/N"
+                    raise ValueError(
+                        f"Doble Habilitación Prohibida: El vehículo {placa_in} ya se encuentra HABILITADO en la empresa "
+                        f"'{otra_emp_razon_err}' (RUC {otra_emp_ruc_err}, Resolución {otra_res_err}). "
+                        f"Un vehículo no puede tener doble habilitación simultánea (D.S. 017-2009-MTC). "
+                        f"Debe autorizar la desafectación/baja previa (Art. 68.1) o acreditar su baja externa antes de incorporarlo."
+                    )
+
+            if dar_baja_otra:
+                for v_otra in otra_flota_registros:
                     otra_emp_ruc = v_otra.get("ruc")
                     otra_emp_razon = v_otra.get("razon_social") or getattr(item, "otra_empresa_razon", "") or "Empresa Registrada"
                     otra_res_orig = v_otra.get("nro_resolucion_primigenia")
@@ -1668,7 +1695,6 @@ class FlotaEmpresaService:
                     logger.info(f"Baja previa procesada para placa {placa_in} en empresa RUC {otra_emp_ruc} (Art. 68.1)")
 
             # 2. Baja Externa Acreditada (MTC Nacional / Otra Región Art. 68.1):
-            baja_ext = getattr(item, "baja_externa", None)
             if baja_ext and isinstance(baja_ext, dict):
                 emp_ext = baja_ext.get("empresa_origen") or getattr(item, "otra_empresa_razon", "") or "Empresa Externa"
                 res_ext = baja_ext.get("resolucion_baja") or baja_ext.get("documento_baja") or "S/N"
@@ -1979,6 +2005,201 @@ class FlotaEmpresaService:
             "bajas_oficio": bajas_oficio,
             "bajas_cancelacion": bajas_cancelacion,
             "vehiculos": vehiculos_procesados_info
+        }
+
+    async def verificar_placa_tramite(self, placa: str, ruc_actual: Optional[str] = None) -> dict:
+        """
+        Verifica el estado de habilitación de una placa vehicular en todo el padrón DRTC Puno
+        para prevenir doble habilitación y validar aptitud en trámites.
+        """
+        clean_p = placa.replace("-", "").strip().upper()
+        p_hyphen = f"{clean_p[:3]}-{clean_p[3:]}" if len(clean_p) == 6 else clean_p
+        
+        # Buscar en flota_empresa
+        registros_cursor = self.collection.find({
+            "$or": [{"placa": clean_p}, {"placa": p_hyphen}]
+        })
+        registros = await registros_cursor.to_list(length=50)
+
+        # Buscar en vehiculos_data para especificaciones técnicas
+        vdata = await self.db["vehiculos_data"].find_one({
+            "$or": [{"placa_actual": clean_p}, {"placa_actual": p_hyphen}, {"placa": clean_p}, {"placa": p_hyphen}]
+        })
+        datos_tecnicos = None
+        if vdata:
+            datos_tecnicos = {
+                "placa": p_hyphen,
+                "marca": vdata.get("marca") or "",
+                "modelo": vdata.get("modelo") or "",
+                "anio_fabricacion": vdata.get("anio_fabricacion"),
+                "anio_modelo": vdata.get("anio_modelo"),
+                "categoria": vdata.get("categoria") or "M2",
+                "carroceria": vdata.get("carroceria") or "",
+                "clase": vdata.get("clase") or "",
+                "combustible": vdata.get("combustible") or "DIESEL",
+                "asientos": vdata.get("asientos") or vdata.get("numero_asientos") or vdata.get("pasajeros"),
+                "peso_neto": vdata.get("peso_neto") or vdata.get("peso_seco"),
+                "peso_bruto": vdata.get("peso_bruto"),
+                "numero_motor": vdata.get("numero_motor") or "",
+                "numero_serie": vdata.get("numero_serie") or vdata.get("vin") or "",
+                "vin": vdata.get("vin") or ""
+            }
+
+        habilitado_misma = False
+        misma_info = None
+        habilitado_otra = False
+        otra_info = None
+        historial_bajas = []
+
+        for r in registros:
+            r_ruc = str(r.get("ruc", "")).strip()
+            r_est = str(r.get("estado", "")).upper()
+            r_act = r.get("esta_activo", True) is not False
+            es_act = (r_est == "HABILITADO" or r_est == "ACTIVO") and r_act
+            
+            info_reg = {
+                "id": str(r.get("_id", "")),
+                "ruc": r_ruc,
+                "razon_social": r.get("razon_social", ""),
+                "nro_resolucion_primigenia": r.get("nro_resolucion_primigenia", ""),
+                "nro_resolucion_hija": r.get("nro_resolucion_hija", ""),
+                "numero_tuc": r.get("numero_tuc", ""),
+                "estado": r_est,
+                "esta_activo": r_act,
+                "fecha_inicio_vigencia": str(r.get("fecha_inicio_vigencia") or r.get("fecha_emision_resolucion") or ""),
+                "fecha_vigencia_hasta": str(r.get("fecha_vigencia_hasta") or "")
+            }
+
+            if es_act:
+                if ruc_actual and r_ruc == ruc_actual:
+                    habilitado_misma = True
+                    misma_info = info_reg
+                else:
+                    habilitado_otra = True
+                    if not otra_info:
+                        otra_info = info_reg
+            elif r_est in ["SUSTITUIDO", "BAJA", "INHABILITADO"] or not r_act:
+                historial_bajas.append({
+                    "ruc": r_ruc,
+                    "razon_social": r.get("razon_social", ""),
+                    "estado": r_est,
+                    "motivo_baja": r.get("motivo_baja") or r.get("detalles", ""),
+                    "resolucion": r.get("nro_resolucion_hija") or r.get("nro_resolucion_primigenia", "")
+                })
+
+        # Evaluar aptitud para saliente en sustitución:
+        # Debe pertenecer y estar habilitado en la misma empresa (ruc_actual)
+        apto_saliente = False
+        motivo_no_saliente = None
+        if not ruc_actual:
+            motivo_no_saliente = "No se especificó la empresa solicitante."
+        elif not habilitado_misma:
+            if historial_bajas and any(b["ruc"] == ruc_actual for b in historial_bajas):
+                motivo_no_saliente = f"El vehículo figura como DADO DE BAJA o INHABILITADO en esta empresa. No puede ser sustituido dos veces."
+            else:
+                motivo_no_saliente = f"El vehículo {p_hyphen} no pertenece a la flota habilitada de esta empresa (RUC {ruc_actual})."
+        else:
+            apto_saliente = True
+
+        # Evaluar aptitud para entrante en sustitución:
+        # No debe estar activo en otra empresa ni en la misma empresa
+        apto_entrante = not habilitado_otra and not habilitado_misma
+        motivo_no_entrante = None
+        if habilitado_otra:
+            otra_nom = otra_info.get("razon_social") if otra_info else "otra empresa"
+            otra_rc = otra_info.get("ruc") if otra_info else ""
+            otra_res = (otra_info.get("nro_resolucion_hija") or otra_info.get("nro_resolucion_primigenia")) if otra_info else ""
+            motivo_no_entrante = (
+                f"Doble Habilitación Prohibida: El vehículo ya está HABILITADO en '{otra_nom}' "
+                f"(RUC {otra_rc}, Res. {otra_res}). Requiere desafectación/baja previa (Art. 68.1) o baja externa."
+            )
+        elif habilitado_misma:
+            m_res = (misma_info.get("nro_resolucion_hija") or misma_info.get("nro_resolucion_primigenia")) if misma_info else ""
+            motivo_no_entrante = (
+                f"Doble Habilitación Prohibida: El vehículo ya forma parte de la flota activa de esta misma empresa "
+                f"(Res. {m_res}). No puede duplicar habilitación."
+            )
+
+        return {
+            "placa": p_hyphen,
+            "habilitado_misma_empresa": habilitado_misma,
+            "misma_empresa_info": misma_info,
+            "habilitado_otra_empresa": habilitado_otra,
+            "otra_empresa_info": otra_info,
+            "doble_habilitacion_riesgo": habilitado_otra or habilitado_misma,
+            "historial_bajas": historial_bajas,
+            "datos_tecnicos": datos_tecnicos,
+            "apto_saliente": apto_saliente,
+            "motivo_no_saliente": motivo_no_saliente,
+            "apto_entrante": apto_entrante,
+            "motivo_no_entrante": motivo_no_entrante
+        }
+
+    async def validar_sustitucion(
+        self,
+        ruc: str,
+        placa_saliente: str,
+        placa_entrante: str,
+        nro_resolucion_primigenia: Optional[str] = None
+    ) -> dict:
+        """
+        Valida formalmente la pareja de sustitución vehicular verificando:
+        1. Que el vehículo saliente pertenezca a la empresa y esté debidamente habilitado.
+        2. Que el vehículo entrante no cuente con doble habilitación en otra o en la misma empresa.
+        """
+        clean_sal = placa_saliente.replace("-", "").strip().upper()
+        sal_hyphen = f"{clean_sal[:3]}-{clean_sal[3:]}" if len(clean_sal) == 6 else clean_sal
+
+        clean_ent = placa_entrante.replace("-", "").strip().upper()
+        ent_hyphen = f"{clean_ent[:3]}-{clean_ent[3:]}" if len(clean_ent) == 6 else clean_ent
+
+        if sal_hyphen == ent_hyphen:
+            return {
+                "valido": False,
+                "puede_proceder": False,
+                "mensaje": "La placa entrante y la placa saliente no pueden ser idénticas.",
+                "saliente": {"placa": sal_hyphen, "valido": False, "mensaje": "Idéntica a entrante"},
+                "entrante": {"placa": ent_hyphen, "valido": False, "mensaje": "Idéntica a saliente"}
+            }
+
+        res_sal = await self.verificar_placa_tramite(sal_hyphen, ruc_actual=ruc)
+        res_ent = await self.verificar_placa_tramite(ent_hyphen, ruc_actual=ruc)
+
+        saliente_ok = res_sal["apto_saliente"]
+        saliente_msg = "Vehículo saliente verificado y habilitado en la empresa." if saliente_ok else res_sal["motivo_no_saliente"]
+
+        entrante_ok = res_ent["apto_entrante"]
+        requiere_baja_otra = res_ent["habilitado_otra_empresa"]
+        requiere_baja_misma = res_ent["habilitado_misma_empresa"]
+        
+        entrante_msg = "Vehículo entrante verificado y apto para ingresar."
+        if requiere_baja_otra:
+            entrante_msg = res_ent["motivo_no_entrante"]
+        elif requiere_baja_misma:
+            entrante_msg = res_ent["motivo_no_entrante"]
+
+        puede_proceder = saliente_ok and (entrante_ok or requiere_baja_otra or requiere_baja_misma)
+
+        return {
+            "valido": saliente_ok and entrante_ok,
+            "puede_proceder": puede_proceder,
+            "requiere_baja_otra_empresa": requiere_baja_otra,
+            "requiere_baja_misma_empresa": requiere_baja_misma,
+            "saliente": {
+                "placa": sal_hyphen,
+                "valido": saliente_ok,
+                "mensaje": saliente_msg,
+                "detalle": res_sal["misma_empresa_info"],
+                "datos_tecnicos": res_sal["datos_tecnicos"]
+            },
+            "entrante": {
+                "placa": ent_hyphen,
+                "valido": entrante_ok,
+                "mensaje": entrante_msg,
+                "otra_empresa": res_ent["otra_empresa_info"],
+                "misma_empresa": res_ent["misma_empresa_info"],
+                "datos_tecnicos": res_ent["datos_tecnicos"]
+            }
         }
 
 

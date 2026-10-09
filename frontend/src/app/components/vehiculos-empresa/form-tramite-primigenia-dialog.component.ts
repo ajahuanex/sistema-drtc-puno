@@ -40,6 +40,15 @@ export interface VehiculoProcesadoUI {
   origen_datos: 'DB_LOCAL' | 'PCM_API' | 'MANUAL';
   numero_tuc?: string;
   isEditing?: boolean;
+  saliente_valida?: boolean;
+  saliente_error?: string;
+  entrante_valida?: boolean;
+  entrante_error?: string;
+  doble_habilitacion_riesgo?: boolean;
+  otra_empresa_razon?: string;
+  otra_empresa_ruc?: string;
+  dar_de_baja_otra_empresa?: boolean;
+  dar_de_baja_misma_empresa?: boolean;
   datos_tecnicos: {
     placa: string;
     marca?: string;
@@ -412,6 +421,12 @@ export interface VehiculoProcesadoUI {
                           <span class="placa-badge font-mono">{{ v.placa }}</span>
                           @if (v.placa_saliente) {
                             <span class="sustituye-tag font-mono">➡ Reemplaza a {{ v.placa_saliente }}</span>
+                            @if (v.saliente_valida === false) {
+                              <span style="background: #fee2e2; color: #dc2626; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px;">✗ Saliente No Habilitado</span>
+                            }
+                          }
+                          @if (v.doble_habilitacion_riesgo) {
+                            <span style="background: #fef3c7; color: #b45309; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px;">⚠️ Doble Habilitación</span>
                           }
                           <span class="origin-tag" [class.db]="v.origen_datos==='DB_LOCAL'" [class.pcm]="v.origen_datos==='PCM_API'">
                             {{ v.origen_datos === 'PCM_API' ? 'SUNARP / PCM' : (v.origen_datos === 'DB_LOCAL' ? 'DB LOCAL' : 'MANUAL') }}
@@ -428,6 +443,23 @@ export interface VehiculoProcesadoUI {
 
                       <!-- CONTENIDO DEL VEHÍCULO (RESUMEN O EDICIÓN) -->
                       <div class="tech-specs-container" style="position: relative;">
+                        @if (v.saliente_valida === false) {
+                          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 14px; margin: 12px 16px 0; color: #991b1b; font-size: 12px; display: flex; align-items: center; gap: 8px;">
+                            <mat-icon style="color: #dc2626; font-size: 18px; width: 18px; height: 18px;">error</mat-icon>
+                            <span><strong>BLOQUEO NORMATIVO:</strong> {{ v.saliente_error || 'El vehículo saliente no pertenece a la flota habilitada de esta empresa o ya fue dado de baja.' }}</span>
+                          </div>
+                        }
+                        @if (v.doble_habilitacion_riesgo) {
+                          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin: 12px 16px 0; color: #92400e; font-size: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                              <mat-icon style="color: #d97706; font-size: 18px; width: 18px; height: 18px;">warning</mat-icon>
+                              <span><strong>ALERTA DOBLE HABILITACIÓN:</strong> La placa entrante {{ v.placa }} ya figura habilitada en {{ v.otra_empresa_razon || 'otra empresa' }} (RUC: {{ v.otra_empresa_ruc }}).</span>
+                            </div>
+                            <mat-checkbox [(ngModel)]="v.dar_de_baja_otra_empresa" color="warn">
+                              <span style="font-size: 11px; font-weight: 700; color: #b45309;">Autorizar baja previa (Art. 68.1)</span>
+                            </mat-checkbox>
+                          </div>
+                        }
                         @if (!v.isEditing) {
                           <div class="summary-view" style="padding: 16px;">
                             <button mat-icon-button (click)="v.isEditing = true" style="position: absolute; right: 16px; top: 16px; background-color: var(--background-secondary); border-radius: 50%;" title="Editar Vehículo">
@@ -1752,6 +1784,48 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
         baseTucNum++;
       }
 
+      let salienteValida = true;
+      let salienteError: string | undefined = undefined;
+      let entranteValida = true;
+      let entranteError: string | undefined = undefined;
+      let dobleRiesgo = false;
+      let otraEmpresaRazon: string | undefined = undefined;
+      let otraEmpresaRuc: string | undefined = undefined;
+
+      if (tipoTramite === 'SUSTITUCION' && placaOut) {
+        try {
+          const valResp: any = await this.flotaService.validarSustitucion(this.data.ruc, placaOut, placaIn).toPromise();
+          if (valResp) {
+            salienteValida = valResp.saliente?.valido ?? true;
+            salienteError = valResp.saliente?.mensaje;
+            entranteValida = valResp.entrante?.valido ?? true;
+            entranteError = valResp.entrante?.mensaje;
+            dobleRiesgo = valResp.requiere_baja_otra_empresa || valResp.requiere_baja_misma_empresa;
+            if (valResp.entrante?.otra_empresa) {
+              otraEmpresaRazon = valResp.entrante.otra_empresa.razon_social;
+              otraEmpresaRuc = valResp.entrante.otra_empresa.ruc;
+            }
+          }
+        } catch (e: any) {
+          console.warn('Error al validar sustitución:', e);
+        }
+      } else if (tipoTramite === 'INCREMENTO') {
+        try {
+          const verifResp: any = await this.flotaService.verificarPlacaTramite(placaIn, this.data.ruc).toPromise();
+          if (verifResp) {
+            entranteValida = verifResp.apto_entrante ?? true;
+            entranteError = verifResp.motivo_no_entrante;
+            dobleRiesgo = verifResp.doble_habilitacion_riesgo ?? false;
+            if (verifResp.otra_empresa_info) {
+              otraEmpresaRazon = verifResp.otra_empresa_info.razon_social;
+              otraEmpresaRuc = verifResp.otra_empresa_info.ruc;
+            }
+          }
+        } catch (e: any) {
+          console.warn('Error al verificar incremento:', e);
+        }
+      }
+
       listaProcesada.push({
         placa: placaIn,
         placa_saliente: placaOut,
@@ -1759,7 +1833,16 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
         tipo_operacion: tipoTramite,
         numero_tuc: assignedTuc,
         origen_datos: datosTech.origen,
-        datos_tecnicos: datosTech.data
+        datos_tecnicos: datosTech.data,
+        saliente_valida: salienteValida,
+        saliente_error: salienteError,
+        entrante_valida: entranteValida,
+        entrante_error: entranteError,
+        doble_habilitacion_riesgo: dobleRiesgo,
+        otra_empresa_razon: otraEmpresaRazon,
+        otra_empresa_ruc: otraEmpresaRuc,
+        dar_de_baja_otra_empresa: dobleRiesgo,
+        dar_de_baja_misma_empresa: false
       });
     }
 
@@ -1767,7 +1850,7 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
     this.processing.set(false);
 
     if (listaProcesada.length > 0) {
-      this.snackBar.open(`${listaProcesada.length} vehículo(s) procesado(s), autocompletados y correlativos TUC asignados.`, 'Excelente', { duration: 4000 });
+      this.snackBar.open(`${listaProcesada.length} vehículo(s) procesado(s), verificados y autocompletados.`, 'Excelente', { duration: 4000 });
     }
   }
 
@@ -1848,8 +1931,32 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
     const items = this.vehiculosProcesados();
     if (!items.length) return;
 
-    this.saving.set(true);
     const valEtapa1 = this.formEtapa1.getRawValue();
+
+    if (valEtapa1.tipo_tramite === 'SUSTITUCION') {
+      const salienteInvalida = items.find(v => v.saliente_valida === false);
+      if (salienteInvalida) {
+        this.snackBar.open(
+          `⛔ Bloqueo normativo: El vehículo saliente ${salienteInvalida.placa_saliente} no pertenece a la flota habilitada de esta empresa (o ya fue dado de baja).`,
+          'CORREGIR',
+          { duration: 6000 }
+        );
+        return;
+      }
+      const dobleHabilitacionSinBaja = items.find(
+        v => v.doble_habilitacion_riesgo && !v.dar_de_baja_otra_empresa && !v.dar_de_baja_misma_empresa
+      );
+      if (dobleHabilitacionSinBaja) {
+        this.snackBar.open(
+          `⛔ Bloqueo normativo: La unidad entrante ${dobleHabilitacionSinBaja.placa} cuenta con habilitación vigente previa. Debe autorizar la baja previa (Art. 68.1) para evitar la doble habilitación.`,
+          'CORREGIR',
+          { duration: 6000 }
+        );
+        return;
+      }
+    }
+
+    this.saving.set(true);
 
     const nuevas_rutas_detalle = valEtapa1.nuevas_rutas_array && valEtapa1.nuevas_rutas_array.length > 0
       ? valEtapa1.nuevas_rutas_array.map((r: any) => ({
@@ -1901,6 +2008,10 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
         rutas: v.rutas,
         tipo_operacion: v.tipo_operacion,
         numero_tuc: v.numero_tuc,
+        dar_de_baja_otra_empresa: !!v.dar_de_baja_otra_empresa,
+        otra_empresa_ruc: v.otra_empresa_ruc || undefined,
+        otra_empresa_razon: v.otra_empresa_razon || undefined,
+        dar_de_baja_misma_empresa: !!v.dar_de_baja_misma_empresa,
         datos_tecnicos: v.datos_tecnicos
       }))
     };

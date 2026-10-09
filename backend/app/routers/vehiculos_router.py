@@ -737,13 +737,22 @@ async def carga_masiva_vehiculos(
                             tipo_resolucion = "PRINCIPAL"
                             print(f"📋 Resolución PRINCIPAL detectada: {numero_base}")
                         
-                        # Buscar por número exacto y por número base
+                        # Buscar por número exacto y por número base en resoluciones_primigenias, resoluciones_hijas y fallback
                         for numero_busqueda in [resolucion_numero, numero_base]:
-                            async for resolucion in db["resoluciones"].find({"numero": numero_busqueda}):
-                                resolucion_id = str(resolucion["_id"])
+                            res_doc = await db["resoluciones_primigenias"].find_one({
+                                "$or": [{"nro_resolucion": numero_busqueda}, {"numero": numero_busqueda}]
+                            })
+                            if not res_doc:
+                                res_doc = await db["resoluciones_hijas"].find_one({
+                                    "$or": [{"nro_resolucion": numero_busqueda}, {"numero": numero_busqueda}]
+                                })
+                            if not res_doc:
+                                res_doc = await db["resoluciones"].find_one({
+                                    "$or": [{"nro_resolucion": numero_busqueda}, {"numero": numero_busqueda}]
+                                })
+                            if res_doc:
+                                resolucion_id = str(res_doc["_id"])
                                 print(f"✅ Resolución encontrada: {numero_busqueda} -> {resolucion_id} (Tipo: {tipo_resolucion})")
-                                break
-                            if resolucion_id:
                                 break
                         
                         if not resolucion_id:

@@ -1603,7 +1603,12 @@ export class TucStudioComponent implements OnInit {
 
     let suffix2 = v.suffix2 || '';
     let suffix3 = v.suffix3 || '';
-    if ((v.tag === '{{RES}}' || v.tag === '{{NUM_RESOLUCION}}') && valStr) {
+
+    // REGLA TUC: La resolución primigenia (anverso) NUNCA lleva fecha ni tipo de trámite (S)
+    if (v.tag === '{{RES}}') {
+      suffix2 = '';
+      suffix3 = '';
+    } else if (v.tag === '{{NUM_RESOLUCION}}' && valStr) {
       // 2do Sufijo: Fecha de la Resolución Hija
       const phFecha = ph['{{FECHA_RES}}'] !== undefined ? ph['{{FECHA_RES}}'] : ph['fecha_res'];
       if (phFecha !== undefined && phFecha !== null) {
@@ -1613,9 +1618,11 @@ export class TucStudioComponent implements OnInit {
         } else {
           suffix2 = '';
         }
+      } else {
+        suffix2 = '';
       }
 
-      // 3er Sufijo: Tipo de Trámite de la Resolución Hija
+      // 3er Sufijo: Tipo de Trámite de la Resolución Hija (I o S, nunca para Renovación)
       const phTipo = ph['{{TIPO_RES}}'] !== undefined ? ph['{{TIPO_RES}}'] : ph['tipo_res'];
       if (phTipo !== undefined && phTipo !== null) {
         const strT = String(phTipo).trim();
@@ -1626,6 +1633,8 @@ export class TucStudioComponent implements OnInit {
         }
       } else if (tramite === 'INCREMENTO' || tramite === 'SUSTITUCION') {
         suffix3 = tramite === 'INCREMENTO' ? ' (I)' : ' (S)';
+      } else {
+        suffix3 = '';
       }
     }
 
@@ -1721,16 +1730,24 @@ export class TucStudioComponent implements OnInit {
 
     let suffix2 = v.suffix2 || '';
     let suffix3 = v.suffix3 || '';
-    if ((v.tag === '{{RES}}' || v.tag === '{{NUM_RESOLUCION}}') && val) {
+
+    if (v.tag === '{{RES}}') {
+      suffix2 = '';
+      suffix3 = '';
+    } else if (v.tag === '{{NUM_RESOLUCION}}' && val) {
       const phFecha = ph['{{FECHA_RES}}'] !== undefined ? ph['{{FECHA_RES}}'] : ph['fecha_res'];
       if (phFecha !== undefined && phFecha !== null) {
         const strF = String(phFecha).trim();
         suffix2 = (strF && strF !== '-') ? (strF.startsWith('(') ? ` ${strF}` : ` (${strF})`) : '';
+      } else {
+        suffix2 = '';
       }
       const phTipo = ph['{{TIPO_RES}}'] !== undefined ? ph['{{TIPO_RES}}'] : ph['tipo_res'];
       if (phTipo !== undefined && phTipo !== null) {
         const strT = String(phTipo).trim();
         suffix3 = (strT && strT !== '-') ? (strT.startsWith('(') ? ` ${strT}` : ` (${strT})`) : '';
+      } else {
+        suffix3 = '';
       }
     }
 

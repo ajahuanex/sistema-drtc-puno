@@ -25,8 +25,8 @@ async def get_excel_service():
     db = await get_database()
     return ResolucionHijaExcelService(db)
 
-@router.post("", response_model=ResolucionHijaResponse, status_code=status.HTTP_201_CREATED)
-@router.post("/", response_model=ResolucionHijaResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ResolucionHijaResponse, response_model_by_alias=False, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ResolucionHijaResponse, response_model_by_alias=False, status_code=status.HTTP_201_CREATED)
 async def create_resolucion_hija(
     data: ResolucionHijaCreate,
     service: ResolucionHijaService = Depends(get_service)
@@ -45,8 +45,8 @@ async def create_resolucion_hija(
     except ResolucionAlreadyExistsException as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("", response_model=List[ResolucionHijaResponse])
-@router.get("/", response_model=List[ResolucionHijaResponse])
+@router.get("", response_model=List[ResolucionHijaResponse], response_model_by_alias=False)
+@router.get("/", response_model=List[ResolucionHijaResponse], response_model_by_alias=False)
 async def get_resoluciones_hijas(
     skip: int = Query(0, ge=0),
     limit: int = Query(10000, ge=1, le=50000),
@@ -71,7 +71,7 @@ async def get_resoluciones_hijas(
     paginadas = resoluciones[skip:skip + limit]
     return [ResolucionHijaResponse.model_validate(r) for r in paginadas]
 
-@router.get("/primigenia/{nro_resolucion_primigenia}", response_model=List[ResolucionHijaResponse])
+@router.get("/primigenia/{nro_resolucion_primigenia}", response_model=List[ResolucionHijaResponse], response_model_by_alias=False)
 async def get_hijas_by_primigenia(
     nro_resolucion_primigenia: str,
     service: ResolucionHijaService = Depends(get_service)
@@ -80,7 +80,7 @@ async def get_hijas_by_primigenia(
     hijas = await service.get_hijas_by_primigenia(nro_resolucion_primigenia)
     return [ResolucionHijaResponse.model_validate(h) for h in hijas]
 
-@router.get("/empresa/{ruc_empresa}", response_model=List[ResolucionHijaResponse])
+@router.get("/empresa/{ruc_empresa}", response_model=List[ResolucionHijaResponse], response_model_by_alias=False)
 async def get_hijas_by_empresa(
     ruc_empresa: str,
     service: ResolucionHijaService = Depends(get_service)
@@ -99,7 +99,7 @@ async def get_siguiente_numero_resolucion(
     siguiente = await service.generar_siguiente_numero(tipo_tramite, anio)
     return {"siguiente_numero": siguiente}
 
-@router.get("/numero/{nro_resolucion}", response_model=ResolucionHijaResponse)
+@router.get("/numero/{nro_resolucion}", response_model=ResolucionHijaResponse, response_model_by_alias=False)
 async def get_resolucion_hija_by_numero(
     nro_resolucion: str,
     service: ResolucionHijaService = Depends(get_service)
@@ -126,7 +126,7 @@ async def eliminar_masivo_resoluciones_hijas(
     eliminados = await service.bulk_delete_resoluciones_hijas(payload.ids)
     return {"eliminados": eliminados, "mensaje": f"{eliminados} resoluciones hijas eliminadas correctamente."}
 
-@router.get("/{hija_id}", response_model=ResolucionHijaResponse)
+@router.get("/{hija_id}", response_model=ResolucionHijaResponse, response_model_by_alias=False)
 async def get_resolucion_hija_by_id(
     hija_id: str,
     service: ResolucionHijaService = Depends(get_service)
@@ -137,7 +137,7 @@ async def get_resolucion_hija_by_id(
         raise HTTPException(status_code=404, detail=f"No se encontró resolución hija con ID {hija_id}")
     return ResolucionHijaResponse.model_validate(hija)
 
-@router.put("/{hija_id}", response_model=ResolucionHijaResponse)
+@router.put("/{hija_id}", response_model=ResolucionHijaResponse, response_model_by_alias=False)
 async def update_resolucion_hija(
     hija_id: str,
     data: ResolucionHijaUpdate,

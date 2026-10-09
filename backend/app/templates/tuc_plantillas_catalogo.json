@@ -63,8 +63,8 @@
         "prefix": "R.D.R. N° ",
         "valor_ejemplo": "0392-2023",
         "suffix": "-GR PUNO/GRI/DRTC",
-        "suffix2": " (15/03/2024)",
-        "suffix3": " (S)"
+        "suffix2": "",
+        "suffix3": ""
       },
       {
         "id": "fecha_res_p",
@@ -391,8 +391,8 @@
         "prefix": "R.D.R N° ",
         "valor_ejemplo": "0452-2024",
         "suffix": "-GR PUNO/GRI/DRTC",
-        "suffix2": " (15/03/2024)",
-        "suffix3": " (S)"
+        "suffix2": "",
+        "suffix3": ""
       },
       {
         "id": "fecha_res",
@@ -636,7 +636,7 @@
         "font_weight": "bold",
         "color": "#000000",
         "align": "left",
-        "visible": true,
+        "visible": false,
         "prefix": "(",
         "suffix": ")",
         "valor_ejemplo": "20/06/2023"
@@ -1150,7 +1150,7 @@
         "font_weight": "bold",
         "color": "#000000",
         "align": "left",
-        "visible": true,
+        "visible": false,
         "prefix": "(",
         "suffix": ")",
         "valor_ejemplo": "20/06/2023"
@@ -1664,7 +1664,7 @@
         "font_weight": "bold",
         "color": "#000000",
         "align": "left",
-        "visible": true,
+        "visible": false,
         "prefix": "(",
         "suffix": ")",
         "valor_ejemplo": "20/06/2023"

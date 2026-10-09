@@ -67,14 +67,14 @@ async def create_ruta(
     
     # Agregar el ID de la ruta al array rutasAutorizadasIds de la resolución
     if ruta_data.resolucion and ruta_data.resolucion.id:
-        resoluciones_collection = db["resoluciones"]
-        await resoluciones_collection.update_one(
-            {"$or": [
+        filtro_res = {
+            "$or": [
                 {"id": ruta_data.resolucion.id},
                 {"_id": ObjectId(ruta_data.resolucion.id) if ObjectId.is_valid(ruta_data.resolucion.id) else None}
-            ]},
-            {"$addToSet": {"rutasAutorizadasIds": ruta_id}}
-        )
+            ]
+        }
+        await db["resoluciones_primigenias"].update_one(filtro_res, {"$addToSet": {"rutasAutorizadasIds": ruta_id}})
+        await db["resoluciones"].update_one(filtro_res, {"$addToSet": {"rutasAutorizadasIds": ruta_id}})
     # Registro de auditoría
     try:
         nom_ruta = ruta_creada.get("nombre") or f"{ruta_data.codigoRuta}"
@@ -118,16 +118,23 @@ async def sincronizar_rutas_resoluciones(db = Depends(get_database)):
             resolucion_id = ruta.get("resolucion", {}).get("id")
             
             if resolucion_id:
-                # Agregar el ID de la ruta al array de la resolución
-                result = await resoluciones_collection.update_one(
-                    {"$or": [
+                filtro_res = {
+                    "$or": [
                         {"id": resolucion_id},
                         {"_id": ObjectId(resolucion_id) if ObjectId.is_valid(resolucion_id) else None}
-                    ]},
+                    ]
+                }
+                # Actualizar tanto la colección moderna (resoluciones_primigenias) como legacy
+                res_prim = await db["resoluciones_primigenias"].update_one(
+                    filtro_res,
+                    {"$addToSet": {"rutasAutorizadasIds": ruta_id}}
+                )
+                res_legacy = await resoluciones_collection.update_one(
+                    filtro_res,
                     {"$addToSet": {"rutasAutorizadasIds": ruta_id}}
                 )
                 
-                if result.modified_count > 0:
+                if res_prim.modified_count > 0 or res_legacy.modified_count > 0:
                     actualizadas += 1
         except Exception as e:
             errores.append(f"Error con ruta {ruta_id}: {str(e)}")

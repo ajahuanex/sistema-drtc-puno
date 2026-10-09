@@ -18,24 +18,62 @@ class SustitucionService:
         """
         Lógica core para sustituir un vehículo.
         """
-        # 1. Buscar placa_baja en flota_empresa
+        # 1. Validar que las placas no sean iguales
+        placa_baja_clean = request.placa_baja.strip().upper()
+        placa_alta_clean = request.placa_alta.strip().upper()
+        if placa_baja_clean == placa_alta_clean:
+            raise ValueError("Operación Denegada: La placa entrante no puede ser idéntica a la placa saliente.")
+
+        # 2. Buscar placa_baja en flota_empresa de la misma empresa
         vehiculo_baja = await self.flota_collection.find_one({
             "ruc": request.ruc_empresa,
-            "placa": request.placa_baja
+            "placa": placa_baja_clean
         })
         
         if not vehiculo_baja:
-            raise ValueError(f"El vehículo {request.placa_baja} no se encuentra registrado en la flota para el RUC {request.ruc_empresa}.")
+            raise ValueError(f"Operación Denegada: El vehículo saliente {placa_baja_clean} no se encuentra registrado en la flota para el RUC {request.ruc_empresa}.")
 
         estado_baja = str(vehiculo_baja.get("estado", "")).upper()
         activo_baja = vehiculo_baja.get("esta_activo", True)
         if estado_baja in ["SUSTITUIDO", "INHABILITADO", "BAJA"] or activo_baja is False:
-            raise ValueError(f"Operación Denegada: El vehículo {request.placa_baja} se encuentra en estado '{estado_baja}' (ya fue sustituido o dado de baja previamente). Un vehículo no puede ser sustituido 2 veces.")
+            raise ValueError(f"Operación Denegada: El vehículo saliente {placa_baja_clean} se encuentra en estado '{estado_baja}' (ya fue sustituido o dado de baja previamente). Un vehículo no puede ser sustituido 2 veces.")
+
+        # 3. Control de Doble Habilitación para placa_alta (Vehículo entrante):
+        # A) ¿Está habilitado en otra empresa?
+        otra_activa = await self.flota_collection.find_one({
+            "ruc": {"$ne": request.ruc_empresa},
+            "placa": placa_alta_clean,
+            "estado": "HABILITADO",
+            "esta_activo": {"$ne": False}
+        })
+        if otra_activa:
+            otra_emp_razon = otra_activa.get("razon_social") or "otra empresa"
+            otra_emp_ruc = otra_activa.get("ruc") or ""
+            otra_res = otra_activa.get("nro_resolucion_hija") or otra_activa.get("nro_resolucion_primigenia") or "S/N"
+            raise ValueError(
+                f"Doble Habilitación Prohibida: El vehículo entrante {placa_alta_clean} ya se encuentra HABILITADO "
+                f"en la empresa '{otra_emp_razon}' (RUC {otra_emp_ruc}, Resolución {otra_res}). "
+                f"Un vehículo no puede tener doble habilitación simultánea (D.S. 017-2009-MTC). Debe gestionar su baja previa."
+            )
+
+        # B) ¿Ya está habilitado en la misma empresa?
+        misma_activa = await self.flota_collection.find_one({
+            "ruc": request.ruc_empresa,
+            "placa": placa_alta_clean,
+            "estado": "HABILITADO",
+            "esta_activo": {"$ne": False}
+        })
+        if misma_activa and str(misma_activa.get("_id")) != str(vehiculo_baja.get("_id")):
+            res_misma = misma_activa.get("nro_resolucion_hija") or misma_activa.get("nro_resolucion_primigenia") or "S/N"
+            raise ValueError(
+                f"Doble Habilitación Prohibida: El vehículo entrante {placa_alta_clean} ya se encuentra HABILITADO "
+                f"en esta misma empresa bajo la Resolución {res_misma}."
+            )
             
         resolucion_primigenia = vehiculo_baja.get("nro_resolucion_primigenia", "S/N")
         razon_social = vehiculo_baja.get("razon_social", "")
         
-        # 2. Registrar en resoluciones_hijas
+        # 4. Registrar en resoluciones_hijas
         nro_res = request.numero_resolucion.upper().strip()
         resolucion_doc = {
             "nro_resolucion": nro_res,

@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
+from .base import CamelModel
 
 class EstadoResolucionPrimigenia(str, Enum):
     VIGENTE = "VIGENTE"
@@ -10,14 +11,14 @@ class EstadoResolucionPrimigenia(str, Enum):
     VENCIDA = "VENCIDA"
     ANULADA = "ANULADA"
 
-class FeErrata(BaseModel):
+class FeErrata(CamelModel):
     """Modelo para fe de erratas o rectificación de error material"""
     numero_resolucion: str = Field(..., description="Número de la resolución que contiene la fe de erratas")
     fecha_emision: datetime = Field(..., description="Fecha de emisión de la fe de erratas")
     detalle_correccion: str = Field(..., description="Detalle de los datos rectificados")
     documento_link: Optional[str] = Field(None, description="Enlace a la fe de erratas digital")
 
-class ModificacionHistorial(BaseModel):
+class ModificacionHistorial(CamelModel):
     """Modelo para registrar modificaciones posteriores realizadas por resoluciones hijas"""
     resolucion_hija_id: Optional[str] = Field(None, description="ID de la resolución modificatoria si existe")
     nro_resolucion_hija: str = Field(..., description="Número de la resolución modificatoria (ej. 0450-2023)")
@@ -25,7 +26,7 @@ class ModificacionHistorial(BaseModel):
     fecha_acto: datetime = Field(..., description="Fecha en que surte efecto la modificación")
     observacion: Optional[str] = Field(None, description="Detalles u observaciones de la modificación")
 
-class ResolucionPrimigenia(BaseModel):
+class ResolucionPrimigenia(CamelModel):
     model_config = ConfigDict(
         populate_by_name=True,
         from_attributes=True,
@@ -35,6 +36,7 @@ class ResolucionPrimigenia(BaseModel):
     
     id: Optional[str] = None
     ruc_empresa: str = Field(..., description="RUC del titular de la autorización (11 dígitos)")
+    razon_social: Optional[str] = Field(None, description="Razón social o denominación de la empresa titular")
     nro_resolucion: str = Field(..., description="Número correlativo y año de la resolución primigenia (ej: 0100-2021)")
     siglas: Optional[str] = Field(None, description="Siglas institucionales (ej. GRP/GRI/DRTC, GR PUNO/GRI/DRTC, GRP/DRTC)")
     
@@ -51,9 +53,10 @@ class ResolucionPrimigenia(BaseModel):
     tipo_autorizacion: Optional[str] = Field(default="PASAJEROS", description="Tipo o régimen de autorización (TURISMO, PERSONAL, TRABAJADORES, REGULAR, etc.)")
     modalidad: Optional[str] = Field(default=None, description="Modalidad de servicio autorizada (PASAJEROS, TURISMO, etc.)")
     
-    # Documentos y expedientes
+    # Documentos, expedientes y rutas
     link_documento: Optional[str] = Field(None, description="Enlace al archivo o expediente digital en Google Drive")
     expedientes_codigos: List[str] = Field(default_factory=list, description="Lista de números de expedientes originarios")
+    rutas_autorizadas_ids: List[str] = Field(default_factory=list, description="Lista de IDs o códigos de rutas autorizadas", alias="rutasAutorizadasIds")
     
     # Estructuras hijas y rectificaciones
     fe_erratas: List[FeErrata] = Field(default_factory=list, description="Lista de fe de erratas emitidas sobre esta resolución")
@@ -65,8 +68,9 @@ class ResolucionPrimigenia(BaseModel):
     fecha_registro: datetime = Field(default_factory=datetime.utcnow)
     fecha_actualizacion: Optional[datetime] = None
 
-class ResolucionPrimigeniaCreate(BaseModel):
+class ResolucionPrimigeniaCreate(CamelModel):
     ruc_empresa: str = Field(..., description="RUC del titular de la autorización (11 dígitos)")
+    razon_social: Optional[str] = None
     nro_resolucion: str = Field(..., description="Número de resolución (ej. 0100-2021)")
     siglas: Optional[str] = Field(None, description="Siglas institucionales (ej: GRP/GRI/DRTC)")
     fecha_resolucion: Optional[datetime] = None
@@ -79,11 +83,13 @@ class ResolucionPrimigeniaCreate(BaseModel):
     modalidad: Optional[str] = Field(default=None, description="PASAJEROS, TURISMO, etc.")
     link_documento: Optional[str] = None
     expedientes_codigos: List[str] = Field(default_factory=list)
+    rutas_autorizadas_ids: List[str] = Field(default_factory=list, alias="rutasAutorizadasIds")
     historial_modificaciones: List[ModificacionHistorial] = Field(default_factory=list)
     observaciones: Optional[str] = None
 
-class ResolucionPrimigeniaUpdate(BaseModel):
+class ResolucionPrimigeniaUpdate(CamelModel):
     nro_resolucion: Optional[str] = None
+    razon_social: Optional[str] = None
     siglas: Optional[str] = None
     fecha_resolucion: Optional[datetime] = None
     fecha_inicio_vigencia: Optional[datetime] = None
@@ -95,10 +101,11 @@ class ResolucionPrimigeniaUpdate(BaseModel):
     modalidad: Optional[str] = None
     link_documento: Optional[str] = None
     expedientes_codigos: Optional[List[str]] = None
+    rutas_autorizadas_ids: Optional[List[str]] = Field(default=None, alias="rutasAutorizadasIds")
     historial_modificaciones: Optional[List[ModificacionHistorial]] = None
     observaciones: Optional[str] = None
 
-class ResolucionPrimigeniaFiltros(BaseModel):
+class ResolucionPrimigeniaFiltros(CamelModel):
     ruc_empresa: Optional[str] = None
     nro_resolucion: Optional[str] = None
     estado: Optional[EstadoResolucionPrimigenia] = None

@@ -86,6 +86,49 @@ async def procesar_sustitucion_vehiculo(
         raise HTTPException(status_code=500, detail=f"Error interno procesando sustitución: {str(e)}")
 
 # ======================================================================
+# ENDPOINTS DE VALIDACIÓN Y CONTROL NORMATIVO
+# ======================================================================
+
+@router.get("/validar-sustitucion", summary="Validar par de sustitución vehicular y verificar doble habilitación")
+async def validar_sustitucion(
+    ruc: str = Query(..., description="RUC de la empresa"),
+    placa_saliente: str = Query(..., description="Placa del vehículo saliente a dar de baja"),
+    placa_entrante: str = Query(..., description="Placa del vehículo entrante a habilitar"),
+    nro_resolucion: Optional[str] = Query(None, description="Resolución primigenia o hija de contexto"),
+    service: FlotaEmpresaService = Depends(get_service)
+):
+    """
+    Valida en tiempo real si el vehículo saliente está habilitado en la misma empresa,
+    y si el vehículo entrante ya está habilitado en otra empresa o en la misma empresa
+    (control estricto de doble habilitación según D.S. 017-2009-MTC).
+    """
+    try:
+        return await service.validar_sustitucion(
+            ruc=ruc.strip(),
+            placa_saliente=placa_saliente.strip(),
+            placa_entrante=placa_entrante.strip(),
+            nro_resolucion_primigenia=nro_resolucion
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al validar sustitución: {str(e)}")
+
+
+@router.get("/verificar-placa-tramite/{placa}", summary="Verificar habilitación de placa y riesgo de doble habilitación")
+async def verificar_placa_tramite(
+    placa: str,
+    ruc_actual: Optional[str] = Query(None, description="RUC de la empresa solicitante"),
+    service: FlotaEmpresaService = Depends(get_service)
+):
+    """
+    Verifica si una placa vehicular cuenta con habilitación vigente en alguna empresa
+    de la región DRTC Puno o si cuenta con historial de bajas.
+    """
+    try:
+        return await service.verificar_placa_tramite(placa=placa.strip(), ruc_actual=ruc_actual)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al verificar placa: {str(e)}")
+
+# ======================================================================
 # ENDPOINTS DE CONSULTA
 # ======================================================================
 

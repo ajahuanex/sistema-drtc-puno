@@ -31,6 +31,8 @@ export interface ResolucionPrimigenia {
   modalidad?: string;
   link_documento?: string;
   expedientes_codigos: string[];
+  rutas_autorizadas_ids?: string[];
+  rutasAutorizadasIds?: string[];
   fe_erratas: FeErrata[];
   historial_modificaciones: ModificacionHistorial[];
   observaciones?: string;

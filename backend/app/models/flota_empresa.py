@@ -6,6 +6,7 @@ from typing import Optional, List, Any
 from datetime import datetime
 from pydantic import BaseModel, Field
 from enum import Enum
+from .base import CamelModel
 
 
 class EstadoVehiculoEmpresa(str, Enum):
@@ -24,7 +25,7 @@ class TipoResolucionHija(str, Enum):
     CANCELACION = "C"
 
 
-class EntradaObservacion(BaseModel):
+class EntradaObservacion(CamelModel):
     texto: str
     fecha: Optional[datetime] = None
     fuente: Optional[str] = None  # "importacion", "manual", etc.
@@ -33,7 +34,7 @@ class EntradaObservacion(BaseModel):
         json_encoders = {datetime: lambda v: v.isoformat() if v else None}
 
 
-class VehiculoEmpresaCreate(BaseModel):
+class VehiculoEmpresaCreate(CamelModel):
     ruc: str = Field(..., min_length=11, max_length=11, description="RUC de la empresa (11 dígitos)")
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: str = Field(..., description="Número de resolución primigenia (ej: R-0128-2024)")
@@ -98,7 +99,7 @@ class VehiculoEmpresaCreate(BaseModel):
     fila_origen_matriz: Optional[int] = Field(default=None, description="Número de fila de origen en la hoja DB_MATRIZ")
 
 
-class VehiculoEmpresaUpdate(BaseModel):
+class VehiculoEmpresaUpdate(CamelModel):
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: Optional[str] = None
     fecha_emision_resolucion: Optional[Any] = None
@@ -152,12 +153,12 @@ class VehiculoEmpresaUpdate(BaseModel):
     detalles: Optional[str] = None
 
 
-class AgregarObservacionRequest(BaseModel):
+class AgregarObservacionRequest(CamelModel):
     texto: str = Field(..., min_length=1, description="Texto de la nueva observación")
     fuente: Optional[str] = Field(default="manual", description="Fuente de la observación")
 
 
-class VehiculoEmpresaResponse(BaseModel):
+class VehiculoEmpresaResponse(CamelModel):
     id: str
     ruc: str
     razon_social: Optional[str] = None
@@ -238,7 +239,7 @@ class VehiculoEmpresaResponse(BaseModel):
         return cls(**doc)
 
 
-class ItemTramiteVehiculo(BaseModel):
+class ItemTramiteVehiculo(CamelModel):
     placa: str = Field(..., description="Placa del vehículo entrante/tramitado")
     placa_saliente: Optional[str] = Field(default=None, description="Placa del vehículo que se da de baja (Sustitución)")
     rutas: List[str] = Field(default_factory=list, description="Lista de códigos de rutas")
@@ -258,7 +259,7 @@ class ItemTramiteVehiculo(BaseModel):
     orden: Optional[int] = Field(default=None, description="Número de orden correlativo en la resolución/flota")
 
 
-class RutaRenovacionDetalle(BaseModel):
+class RutaRenovacionDetalle(CamelModel):
     codigo: str = Field(..., description="Código de la ruta")
     origen: str = Field(..., description="Localidad de origen")
     destino: str = Field(..., description="Localidad de destino")
@@ -266,7 +267,7 @@ class RutaRenovacionDetalle(BaseModel):
     frecuencia: str = Field(default="", description="Frecuencia del servicio")
 
 
-class TramiteMasivoRequest(BaseModel):
+class TramiteMasivoRequest(CamelModel):
     ruc: str = Field(..., min_length=11, max_length=11, description="RUC de la empresa")
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: str = Field(..., description="Resolución primigenia actual o de referencia")

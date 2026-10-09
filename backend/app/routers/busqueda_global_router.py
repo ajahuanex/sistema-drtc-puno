@@ -196,10 +196,21 @@ async def buscar_global(
             cursor_prim = db["resoluciones_primigenias"].find(filter_res).limit(limit_per_category)
             docs_prim = await cursor_prim.to_list(length=limit_per_category)
             
+            cursor_hijas = db["resoluciones_hijas"].find(filter_res).limit(limit_per_category)
+            docs_hijas = await cursor_hijas.to_list(length=limit_per_category)
+            
             cursor_gen = db["resoluciones"].find(filter_res).limit(limit_per_category)
             docs_gen = await cursor_gen.to_list(length=limit_per_category)
             
-            combined = docs_prim + [d for d in docs_gen if d.get("nro_resolucion") not in {p.get("nro_resolucion") for p in docs_prim}]
+            seen_nros = set()
+            combined = []
+            for d in docs_prim + docs_hijas + docs_gen:
+                nro = d.get("nro_resolucion") or d.get("nroResolucion")
+                if nro and nro not in seen_nros:
+                    seen_nros.add(nro)
+                    combined.append(d)
+                elif not nro:
+                    combined.append(d)
             results = []
             for r in combined[:limit_per_category]:
                 nro = r.get("nro_resolucion") or r.get("nroResolucion") or "S/N"

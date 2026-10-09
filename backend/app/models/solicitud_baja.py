@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from enum import Enum
+from .base import CamelModel
 
 class MotivoBaja(str, Enum):
     ACCIDENTE = "ACCIDENTE"
@@ -20,12 +21,12 @@ class EstadoSolicitudBaja(str, Enum):
     RECHAZADA = "RECHAZADA"
     CANCELADA = "CANCELADA"
 
-class UsuarioInfo(BaseModel):
+class UsuarioInfo(CamelModel):
     usuarioId: str
     nombreUsuario: str
     email: str
 
-class DocumentoSoporte(BaseModel):
+class DocumentoSoporte(CamelModel):
     id: str
     nombre: str
     tipo: str
@@ -33,7 +34,7 @@ class DocumentoSoporte(BaseModel):
     url: str
     fechaSubida: datetime
 
-class SolicitudBajaBase(BaseModel):
+class SolicitudBajaBase(CamelModel):
     vehiculoId: str
     motivo: MotivoBaja
     descripcion: str
@@ -42,7 +43,7 @@ class SolicitudBajaBase(BaseModel):
 class SolicitudBajaCreate(SolicitudBajaBase):
     pass
 
-class SolicitudBajaUpdate(BaseModel):
+class SolicitudBajaUpdate(CamelModel):
     estado: Optional[EstadoSolicitudBaja] = None
     observaciones: Optional[str] = None
     fechaRevision: Optional[datetime] = None

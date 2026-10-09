@@ -87,9 +87,30 @@ import {
               <mat-icon>delete_sweep</mat-icon> Eliminar Seleccionados ({{ selectedIdsState().length }})
             </button>
           }
-          <button mat-raised-button color="accent" (click)="descargarPlantilla()" [disabled]="isLoading()">
-            <mat-icon>file_download</mat-icon> Plantilla Excel
+          <button mat-button class="header-action-btn" [matMenuTriggerFor]="exportExcelMenu" [disabled]="isLoading()" matTooltip="Exportar a varios formatos Excel">
+            <mat-icon class="btn-icon">file_download</mat-icon>
+            <span class="btn-text">Exportar Excel</span>
+            <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
           </button>
+          <mat-menu #exportExcelMenu="matMenu">
+            <button mat-menu-item (click)="exportarAExcel('seleccionadas')" [disabled]="selectedIdsState().length === 0">
+              <mat-icon color="primary">check_box</mat-icon>
+              <span>Exportar Seleccionadas ({{ selectedIdsState().length }})</span>
+            </button>
+            <button mat-menu-item (click)="exportarAExcel('filtradas')">
+              <mat-icon color="accent">filter_alt</mat-icon>
+              <span>Exportar Vista Filtrada ({{ resolucionesFiltradas().length }})</span>
+            </button>
+            <button mat-menu-item (click)="exportarAExcel('todas')">
+              <mat-icon style="color: #10b981;">table_chart</mat-icon>
+              <span>Exportar Todas ({{ resoluciones().length }})</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="descargarPlantilla()">
+              <mat-icon>description</mat-icon>
+              <span>Descargar Plantilla Excel</span>
+            </button>
+          </mat-menu>
           <button mat-raised-button color="accent" (click)="abrirCargaMasiva()" [disabled]="isLoading()">
             <mat-icon>file_upload</mat-icon> Carga Masiva
           </button>
@@ -261,6 +282,10 @@ import {
                   <span class="detail-value">{{ det.fecha_resolucion | date:'dd/MM/yyyy' }}</span>
                 </div>
                 <div class="detail-item">
+                  <span class="detail-label">Fecha Inicio Efectos</span>
+                  <span class="detail-value">{{ det.fecha_inicio_efectos ? (det.fecha_inicio_efectos | date:'dd/MM/yyyy') : '-' }}</span>
+                </div>
+                <div class="detail-item">
                   <span class="detail-label">N° Expediente</span>
                   <span class="detail-value">{{ det.expediente_numero || '-' }}</span>
                 </div>
@@ -278,7 +303,7 @@ import {
                 </div>
               </div>
 
-              <div class="detail-lists" style="margin-top: 1.25rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+              <div class="detail-lists" style="margin-top: 1.25rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
                 <div class="detail-card-box" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1rem; border-radius: 8px;">
                   <h4 style="margin: 0 0 0.5rem 0; color: #166534; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 4px;">
                     <mat-icon style="font-size: 1.1rem; height: 1.1rem; width: 1.1rem; color: #16a34a;">directions_car</mat-icon>
@@ -308,6 +333,38 @@ import {
                     </div>
                   } @else {
                     <span class="sin-datos" style="font-size: 0.85rem;">Ningún vehículo saliente</span>
+                  }
+                </div>
+
+                <div class="detail-card-box" style="background: #f0fdfa; border: 1px solid #99f6e4; padding: 1rem; border-radius: 8px;">
+                  <h4 style="margin: 0 0 0.5rem 0; color: #0f766e; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                    <mat-icon style="font-size: 1.1rem; height: 1.1rem; width: 1.1rem; color: #0d9488;">credit_card</mat-icon>
+                    TUCs Otorgados ({{ det.numeros_tuc?.length || 0 }})
+                  </h4>
+                  @if (det.numeros_tuc && det.numeros_tuc.length > 0) {
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                      @for (tuc of det.numeros_tuc; track tuc) {
+                        <span class="badge-tuc" style="font-size: 0.82rem; padding: 0.25rem 0.6rem;">{{ tuc }}</span>
+                      }
+                    </div>
+                  } @else {
+                    <span class="sin-datos" style="font-size: 0.85rem;">Ningún TUC registrado</span>
+                  }
+                </div>
+
+                <div class="detail-card-box" style="background: #f5f3ff; border: 1px solid #ddd6fe; padding: 1rem; border-radius: 8px;">
+                  <h4 style="margin: 0 0 0.5rem 0; color: #6d28d9; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                    <mat-icon style="font-size: 1.1rem; height: 1.1rem; width: 1.1rem; color: #7c3aed;">route</mat-icon>
+                    Rutas Afectadas ({{ det.rutas_modificadas_ids?.length || 0 }})
+                  </h4>
+                  @if (det.rutas_modificadas_ids && det.rutas_modificadas_ids.length > 0) {
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                      @for (rId of det.rutas_modificadas_ids; track rId) {
+                        <span class="badge-ruta" style="font-size: 0.82rem; padding: 0.25rem 0.6rem;">R-{{ rId }}</span>
+                      }
+                    </div>
+                  } @else {
+                    <span class="sin-datos" style="font-size: 0.85rem;">Ninguna ruta modificada</span>
                   }
                 </div>
               </div>
@@ -456,7 +513,18 @@ import {
                       }
                       @if (columnaVisible('tipo_acto')) { <th>Acto Modificatorio</th> }
                       @if (columnaVisible('nro_resolucion_primigenia')) { <th>N° Primigenia Matriz</th> }
-                      @if (columnaVisible('ruc_empresa')) { <th>RUC Empresa</th> }
+                      @if (columnaVisible('ruc_empresa')) { <th>RUC Empresa / Razón Social</th> }
+                      @if (columnaVisible('fecha_resolucion')) {
+                        <th (click)="toggleSort('fecha_resolucion')" class="sortable-th" matTooltip="Clic para ordenar por Fecha de Emisión">
+                          <div class="th-content">
+                            <span>F. Emisión</span>
+                            <mat-icon class="sort-icon" [class.active-sort]="sortField() === 'fecha_resolucion'">
+                              {{ sortField() === 'fecha_resolucion' ? (sortOrder() === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                            </mat-icon>
+                          </div>
+                        </th>
+                      }
+                      @if (columnaVisible('fecha_inicio_efectos')) { <th>F. Efectos</th> }
                       @if (columnaVisible('expediente_numero')) {
                         <th (click)="toggleSort('expediente_numero')" class="sortable-th" matTooltip="Clic para ordenar por Número de Expediente">
                           <div class="th-content">
@@ -469,6 +537,8 @@ import {
                       }
                       @if (columnaVisible('flota_ingresante')) { <th>Flota Ingresante</th> }
                       @if (columnaVisible('flota_saliente')) { <th>Flota Saliente</th> }
+                      @if (columnaVisible('numeros_tuc')) { <th>TUCs Otorgados</th> }
+                      @if (columnaVisible('rutas_modificadas_ids')) { <th>Rutas Afectadas</th> }
                       @if (columnaVisible('observaciones')) { <th>Observaciones</th> }
                       @if (columnaVisible('siglas')) { <th>Siglas Organismo</th> }
                       @if (columnaVisible('link_documento')) { <th>Drive</th> }
@@ -522,7 +592,32 @@ import {
                         }
                         @if (columnaVisible('ruc_empresa')) {
                           <td>
-                            <span class="ruc-badge">{{ item.ruc_empresa }}</span>
+                            <div class="ruc-container">
+                              @if (item.razon_social) {
+                                <span class="empresa-hint-text" [matTooltip]="item.razon_social">
+                                  {{ item.razon_social }}
+                                </span>
+                              }
+                              <span class="ruc-badge">{{ item.ruc_empresa }}</span>
+                            </div>
+                          </td>
+                        }
+                        @if (columnaVisible('fecha_resolucion')) {
+                          <td>
+                            @if (item.fecha_resolucion) {
+                              <span class="fecha-cell">{{ item.fecha_resolucion | date:'dd/MM/yyyy' }}</span>
+                            } @else {
+                              <span class="sin-datos">-</span>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('fecha_inicio_efectos')) {
+                          <td>
+                            @if (item.fecha_inicio_efectos) {
+                              <span class="fecha-cell">{{ item.fecha_inicio_efectos | date:'dd/MM/yyyy' }}</span>
+                            } @else {
+                              <span class="sin-datos">-</span>
+                            }
                           </td>
                         }
                         @if (columnaVisible('expediente_numero')) {
@@ -560,6 +655,32 @@ import {
                             }
                           </td>
                         }
+                        @if (columnaVisible('numeros_tuc')) {
+                          <td>
+                            @if (item.numeros_tuc && item.numeros_tuc.length > 0) {
+                              <div class="tucs-container">
+                                @for (tuc of item.numeros_tuc; track tuc) {
+                                  <span class="badge-tuc" [matTooltip]="'TUC N° ' + tuc">{{ tuc }}</span>
+                                }
+                              </div>
+                            } @else {
+                              <span class="sin-datos">-</span>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('rutas_modificadas_ids')) {
+                          <td>
+                            @if (item.rutas_modificadas_ids && item.rutas_modificadas_ids.length > 0) {
+                              <div class="rutas-container">
+                                @for (rId of item.rutas_modificadas_ids; track rId) {
+                                  <span class="badge-ruta" [matTooltip]="'Ruta ' + rId">R-{{ rId }}</span>
+                                }
+                              </div>
+                            } @else {
+                              <span class="sin-datos">-</span>
+                            }
+                          </td>
+                        }
                         @if (columnaVisible('observaciones')) {
                           <td>
                             <span class="obs-text" [matTooltip]="item.observaciones || ''">
@@ -578,7 +699,13 @@ import {
                         }
                         @if (columnaVisible('link_documento')) {
                           <td class="text-center">
-                            <span class="sin-datos">-</span>
+                            @if (item.link_documento) {
+                              <a [href]="item.link_documento" target="_blank" class="drive-link" matTooltip="Abrir en Google Drive">
+                                <mat-icon>open_in_new</mat-icon>
+                              </a>
+                            } @else {
+                              <span class="sin-datos">-</span>
+                            }
                           </td>
                         }
                         @if (columnaVisible('acciones')) {
@@ -920,6 +1047,94 @@ import {
       font-weight: 600;
     }
 
+    .ruc-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.15rem;
+
+      .empresa-hint-text {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #0f766e;
+        max-width: 190px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        line-height: 1.1;
+      }
+    }
+
+    .fecha-cell {
+      white-space: nowrap;
+      font-size: 0.85rem;
+      color: #334155;
+      font-weight: 500;
+    }
+
+    .tucs-container, .rutas-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      max-width: 180px;
+    }
+
+    .badge-tuc {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background-color: #f0fdfa;
+      color: #0f766e;
+      border: 1px solid #99f6e4;
+      font-family: monospace;
+      white-space: nowrap;
+    }
+
+    .badge-ruta {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background-color: #f5f3ff;
+      color: #6d28d9;
+      border: 1px solid #ddd6fe;
+      white-space: nowrap;
+    }
+
+    .header-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(255, 255, 255, 0.15);
+      color: white !important;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 0 1rem;
+      height: 38px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.28);
+      }
+      .btn-icon {
+        font-size: 1.15rem;
+        width: 1.15rem;
+        height: 1.15rem;
+      }
+      .dropdown-arrow {
+        font-size: 1.2rem;
+        width: 1.2rem;
+        height: 1.2rem;
+        margin-left: -2px;
+      }
+    }
+
     .ruc-badge {
       background-color: #f1f5f9;
       color: #334155;
@@ -1239,7 +1454,7 @@ export class ResolucionesHijasComponent implements OnInit {
   });
 
   // Signals para Ordenamiento
-  sortField = signal<'nro_resolucion' | 'expediente_numero' | null>('nro_resolucion');
+  sortField = signal<'nro_resolucion' | 'expediente_numero' | 'fecha_resolucion' | null>('nro_resolucion');
   sortOrder = signal<'asc' | 'desc'>('desc');
 
   // Auxiliar para extraer número secuencial y año para ordenamiento numérico preciso
@@ -1272,7 +1487,7 @@ export class ResolucionesHijasComponent implements OnInit {
     return { num, year };
   }
 
-  toggleSort(field: 'nro_resolucion' | 'expediente_numero'): void {
+  toggleSort(field: 'nro_resolucion' | 'expediente_numero' | 'fecha_resolucion'): void {
     if (this.sortField() === field) {
       // Alternar orden asc <-> desc
       this.sortOrder.set(this.sortOrder() === 'asc' ? 'desc' : 'asc');
@@ -1293,11 +1508,13 @@ export class ResolucionesHijasComponent implements OnInit {
       const nro = (r.nro_resolucion || '').toLowerCase();
       const nroPrim = (r.nro_resolucion_primigenia || '').toLowerCase();
       const ruc = (r.ruc_empresa || '').toLowerCase();
+      const razonSocial = (r.razon_social || '').toLowerCase();
 
       const matchSearch = !search ||
         nro.includes(search) ||
         nroPrim.includes(search) ||
-        ruc.includes(search);
+        ruc.includes(search) ||
+        razonSocial.includes(search);
 
       const matchTipo = !tipo || r.tipo_acto === tipo;
       return matchSearch && matchTipo;
@@ -1306,6 +1523,12 @@ export class ResolucionesHijasComponent implements OnInit {
     if (!field) return filtradas;
 
     return [...filtradas].sort((a, b) => {
+      if (field === 'fecha_resolucion') {
+        const timeA = a.fecha_resolucion ? new Date(a.fecha_resolucion).getTime() : 0;
+        const timeB = b.fecha_resolucion ? new Date(b.fecha_resolucion).getTime() : 0;
+        return order === 'asc' ? timeA - timeB : timeB - timeA;
+      }
+
       let valAStr = '';
       let valBStr = '';
 
@@ -1357,10 +1580,14 @@ export class ResolucionesHijasComponent implements OnInit {
     { key: 'nro_resolucion', label: 'N° Res. Hija', required: true },
     { key: 'tipo_acto', label: 'Acto Modificatorio', required: false },
     { key: 'nro_resolucion_primigenia', label: 'N° Primigenia Matriz', required: false },
-    { key: 'ruc_empresa', label: 'RUC Empresa', required: false },
+    { key: 'ruc_empresa', label: 'RUC Empresa / Razón Social', required: false },
+    { key: 'fecha_resolucion', label: 'F. Emisión', required: false },
+    { key: 'fecha_inicio_efectos', label: 'F. Efectos', required: false },
     { key: 'expediente_numero', label: 'N° Expediente', required: false },
     { key: 'flota_ingresante', label: 'Flota Ingresante', required: false },
     { key: 'flota_saliente', label: 'Flota Saliente', required: false },
+    { key: 'numeros_tuc', label: 'TUCs Otorgados', required: false },
+    { key: 'rutas_modificadas_ids', label: 'Rutas Afectadas', required: false },
     { key: 'observaciones', label: 'Observaciones', required: false },
     { key: 'siglas', label: 'Siglas Organismo', required: false },
     { key: 'link_documento', label: 'Drive', required: false },
@@ -1372,9 +1599,13 @@ export class ResolucionesHijasComponent implements OnInit {
     'tipo_acto',
     'nro_resolucion_primigenia',
     'ruc_empresa',
+    'fecha_resolucion',
+    'fecha_inicio_efectos',
     'expediente_numero',
     'flota_ingresante',
     'flota_saliente',
+    'numeros_tuc',
+    'rutas_modificadas_ids',
     'observaciones',
     'link_documento',
     'acciones'
@@ -1606,6 +1837,151 @@ export class ResolucionesHijasComponent implements OnInit {
           this.snackBar.open('Error al eliminar resolución hija', 'Cerrar', { duration: 3000 });
         }
       });
+    }
+  }
+
+  async exportarAExcel(modo: 'seleccionadas' | 'filtradas' | 'todas' = 'seleccionadas'): Promise<void> {
+    let dataToExport: ResolucionHija[] = [];
+    let filename = '';
+
+    if (modo === 'seleccionadas') {
+      const ids = this.selectedIdsState();
+      dataToExport = this.resoluciones().filter(r => ids.includes(r.id));
+      if (dataToExport.length === 0) {
+        this.snackBar.open('No hay resoluciones hijas seleccionadas para exportar', 'Cerrar', { duration: 3000 });
+        return;
+      }
+      filename = `resoluciones_hijas_seleccionadas_${Date.now()}.xlsx`;
+    } else if (modo === 'filtradas') {
+      dataToExport = this.resolucionesFiltradas();
+      if (dataToExport.length === 0) {
+        this.snackBar.open('No hay resoluciones hijas filtradas para exportar', 'Cerrar', { duration: 3000 });
+        return;
+      }
+      filename = `resoluciones_hijas_filtradas_${Date.now()}.xlsx`;
+    } else {
+      dataToExport = this.resoluciones();
+      if (dataToExport.length === 0) {
+        this.snackBar.open('No hay resoluciones hijas para exportar', 'Cerrar', { duration: 3000 });
+        return;
+      }
+      filename = `resoluciones_hijas_todas_${Date.now()}.xlsx`;
+    }
+
+    try {
+      const XLSX = await import('xlsx');
+      const columnasExcelMap: { [key: string]: { header: string; width: number; getValue: (r: ResolucionHija) => any } } = {
+        'nro_resolucion': {
+          header: 'N° Res. Hija',
+          width: 18,
+          getValue: (r) => this.getNroHijaDisplay(r)
+        },
+        'siglas': {
+          header: 'Siglas Organismo',
+          width: 16,
+          getValue: (r) => r.siglas || ''
+        },
+        'nro_resolucion_primigenia': {
+          header: 'N° Primigenia Matriz',
+          width: 20,
+          getValue: (r) => this.formatPrimigeniaNro(r.nro_resolucion_primigenia)
+        },
+        'tipo_acto': {
+          header: 'Acto Modificatorio',
+          width: 24,
+          getValue: (r) => this.getTipoActoDisplay(r.tipo_acto)
+        },
+        'ruc_empresa': {
+          header: 'RUC Empresa',
+          width: 15,
+          getValue: (r) => r.ruc_empresa || ''
+        },
+        'razon_social': {
+          header: 'Razón Social Empresa',
+          width: 40,
+          getValue: (r) => r.razon_social || ''
+        },
+        'fecha_resolucion': {
+          header: 'Fecha Emisión',
+          width: 14,
+          getValue: (r) => r.fecha_resolucion ? new Date(r.fecha_resolucion).toLocaleDateString('es-PE') : ''
+        },
+        'fecha_inicio_efectos': {
+          header: 'Fecha Inicio Efectos',
+          width: 16,
+          getValue: (r) => r.fecha_inicio_efectos ? new Date(r.fecha_inicio_efectos).toLocaleDateString('es-PE') : ''
+        },
+        'expediente_numero': {
+          header: 'N° Expediente',
+          width: 18,
+          getValue: (r) => r.expediente_numero || ''
+        },
+        'flota_ingresante': {
+          header: 'Flota Ingresante',
+          width: 25,
+          getValue: (r) => (r.vehiculos_ingresantes || []).join(', ') || '-'
+        },
+        'flota_saliente': {
+          header: 'Flota Saliente',
+          width: 25,
+          getValue: (r) => (r.vehiculos_salientes || []).join(', ') || '-'
+        },
+        'numeros_tuc': {
+          header: 'TUCs Otorgados',
+          width: 25,
+          getValue: (r) => (r.numeros_tuc || []).join(', ') || '-'
+        },
+        'rutas_modificadas_ids': {
+          header: 'Rutas Afectadas',
+          width: 25,
+          getValue: (r) => (r.rutas_modificadas_ids || []).map(id => `R-${id}`).join(', ') || '-'
+        },
+        'observaciones': {
+          header: 'Observaciones',
+          width: 35,
+          getValue: (r) => r.observaciones || ''
+        },
+        'link_documento': {
+          header: 'Link Drive PDF',
+          width: 35,
+          getValue: (r) => r.link_documento || ''
+        }
+      };
+
+      const keysVisibles: string[] = [];
+      this.columnasDisponibles.forEach(col => {
+        if (col.key !== 'acciones' && this.columnaVisible(col.key)) {
+          if (col.key === 'ruc_empresa') {
+            keysVisibles.push('ruc_empresa');
+            keysVisibles.push('razon_social');
+          } else if (columnasExcelMap[col.key]) {
+            keysVisibles.push(col.key);
+          }
+        }
+      });
+
+      const keysFinales = keysVisibles.length > 0 ? keysVisibles : Object.keys(columnasExcelMap);
+      const rows = dataToExport.map(r => {
+        const rowObj: { [header: string]: any } = {};
+        keysFinales.forEach(k => {
+          const colDef = columnasExcelMap[k];
+          if (colDef) {
+            rowObj[colDef.header] = colDef.getValue(r);
+          }
+        });
+        return rowObj;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      worksheet['!cols'] = keysFinales.map(k => ({ wch: columnasExcelMap[k]?.width || 15 }));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Resoluciones Hijas');
+      XLSX.writeFile(workbook, filename);
+
+      this.snackBar.open(`Exportadas exitosamente ${rows.length} resoluciones hijas a Excel`, 'Cerrar', { duration: 3000 });
+    } catch (err) {
+      console.error('Error al exportar a Excel:', err);
+      this.snackBar.open('Error al generar archivo Excel', 'Cerrar', { duration: 3000 });
     }
   }
 

@@ -165,7 +165,7 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
         "font_weight": "bold",
         "color": "#000000",
         "align": "left",
-        "visible": True,
+        "visible": False,
         "prefix": "(",
         "suffix": ")",
         "valor_ejemplo": "20/06/2023"
@@ -517,8 +517,8 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
         "bloqueado": False,
         "prefix": "R.D.R N° ",
         "suffix": "-GR PUNO/GRI/DRTC",
-        "suffix2": " (15/03/2024)",
-        "suffix3": " (S)",
+        "suffix2": "",
+        "suffix3": "",
         "valor_ejemplo": "0452-2024"
     },
     {
@@ -1468,20 +1468,30 @@ class TucCalibradorService:
                 suffix2 = v.get("suffix2") or ""
                 suffix3 = v.get("suffix3") or ""
 
-                # Para num_resolucion, integrar automáticamente fecha y trámite como 2do y 3er sufijo
-                if tag == "{{NUM_RESOLUCION}}":
-                    fecha_val = valores_map.get("{{FECHA_RES}}") or ""
-                    tipo_val = valores_map.get("{{TIPO_RES}}") or ""
-                    if fecha_val:
-                        if not suffix2:
+                # REGLA ESTRICTA TUC: La resolución primigenia (anverso) NUNCA lleva fecha ni tipo de trámite (S)
+                if tag == "{{RES}}":
+                    suffix2 = ""
+                    suffix3 = ""
+
+                # Para num_resolucion (reverso / acto resolutivo), la fecha sí va y el tipo (I / S) también
+                elif tag == "{{NUM_RESOLUCION}}":
+                    fecha_val = (valores_map.get("{{FECHA_RES}}") or "").strip()
+                    tipo_val = (valores_map.get("{{TIPO_RES}}") or "").strip()
+                    if fecha_val and fecha_val != "-":
+                        if not suffix2 or "15/03/2024" in suffix2:
                             suffix2 = f" ({fecha_val})"
                         elif "{{FECHA_RES}}" in suffix2:
                             suffix2 = suffix2.replace("{{FECHA_RES}}", fecha_val)
-                    if tipo_val:
+                    else:
+                        suffix2 = ""
+
+                    if tipo_val and tipo_val != "-":
                         if not suffix3:
                             suffix3 = f" ({tipo_val})"
                         elif "{{TIPO_RES}}" in suffix3:
                             suffix3 = suffix3.replace("{{TIPO_RES}}", tipo_val)
+                    else:
+                        suffix3 = ""
 
                 partes_html = []
                 if prefix:

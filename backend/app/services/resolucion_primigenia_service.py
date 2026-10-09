@@ -28,6 +28,30 @@ class ResolucionPrimigeniaService:
     async def _generate_uuid(self) -> str:
         return str(uuid.uuid4())
 
+    async def _enrich_empresa_names(self, docs: List[dict]):
+        rucs_to_fetch = set()
+        for d in docs:
+            if not d.get("razon_social") and d.get("ruc_empresa"):
+                rucs_to_fetch.add(d["ruc_empresa"].strip())
+        if rucs_to_fetch:
+            try:
+                empresas = await self.db.empresas.find(
+                    {"ruc": {"$in": list(rucs_to_fetch)}},
+                    {"ruc": 1, "razonSocial": 1}
+                ).to_list(length=None)
+                mapa_rs = {}
+                for emp in empresas:
+                    rs = emp.get("razonSocial")
+                    if isinstance(rs, dict):
+                        mapa_rs[emp.get("ruc")] = rs.get("principal") or rs.get("sunat") or rs.get("minimo") or ""
+                    elif isinstance(rs, str):
+                        mapa_rs[emp.get("ruc")] = rs
+                for d in docs:
+                    if not d.get("razon_social") and d.get("ruc_empresa"):
+                        d["razon_social"] = mapa_rs.get(d["ruc_empresa"].strip(), "")
+            except Exception:
+                pass
+
     async def create_resolucion_primigenia(self, resolucion_data: ResolucionPrimigeniaCreate) -> ResolucionPrimigenia:
         from app.utils.resolucion_utils import normalizar_numero_resolucion, determinar_siglas_resolucion
         resolucion_data.nro_resolucion = normalizar_numero_resolucion(resolucion_data.nro_resolucion)
@@ -122,6 +146,7 @@ class ResolucionPrimigeniaService:
                 from app.utils.resolucion_utils import determinar_siglas_resolucion
                 doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
             doc["estado"] = self._calcular_estado_efectivo(doc)
+            await self._enrich_empresa_names([doc])
             return ResolucionPrimigenia(**doc)
         return None
 
@@ -142,6 +167,7 @@ class ResolucionPrimigeniaService:
             if not doc.get("siglas"):
                 doc["siglas"] = determinar_siglas_resolucion(doc.get("nro_resolucion"))
             doc["estado"] = self._calcular_estado_efectivo(doc)
+            await self._enrich_empresa_names([doc])
             return ResolucionPrimigenia(**doc)
         return None
 
@@ -164,6 +190,7 @@ class ResolucionPrimigeniaService:
                 doc["tipo_autorizacion"] = "PASAJEROS"
             doc["estado"] = self._calcular_estado_efectivo(doc)
         
+        await self._enrich_empresa_names(docs)
         return [ResolucionPrimigenia(**doc) for doc in docs]
 
     async def get_resoluciones_con_filtros(self, filtros: Dict[str, Any]) -> List[ResolucionPrimigenia]:
@@ -211,6 +238,7 @@ class ResolucionPrimigeniaService:
                 doc["tipo_autorizacion"] = "PASAJEROS"
             doc["estado"] = self._calcular_estado_efectivo(doc)
                 
+        await self._enrich_empresa_names(docs)
         return [ResolucionPrimigenia(**doc) for doc in docs]
 
     async def update_resolucion_primigenia(

@@ -28,8 +28,8 @@ async def get_excel_service():
     db = await get_database()
     return ResolucionPrimigeniaExcelService(db)
 
-@router.post("", response_model=ResolucionPrimigeniaResponse, status_code=status.HTTP_201_CREATED)
-@router.post("/", response_model=ResolucionPrimigeniaResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ResolucionPrimigeniaResponse, response_model_by_alias=False, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ResolucionPrimigeniaResponse, response_model_by_alias=False, status_code=status.HTTP_201_CREATED)
 async def create_resolucion_primigenia(
     data: ResolucionPrimigeniaCreate,
     service: ResolucionPrimigeniaService = Depends(get_service)
@@ -46,8 +46,8 @@ async def create_resolucion_primigenia(
     except ResolucionAlreadyExistsException as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("", response_model=List[ResolucionPrimigeniaResponse])
-@router.get("/", response_model=List[ResolucionPrimigeniaResponse])
+@router.get("", response_model=List[ResolucionPrimigeniaResponse], response_model_by_alias=False)
+@router.get("/", response_model=List[ResolucionPrimigeniaResponse], response_model_by_alias=False)
 async def get_resoluciones_primigenias(
     skip: int = Query(0, ge=0),
     limit: int = Query(10000, ge=1, le=100000),
@@ -72,7 +72,7 @@ async def get_resoluciones_primigenias(
     paginadas = resoluciones[skip:skip + limit]
     return [ResolucionPrimigeniaResponse.model_validate(r) for r in paginadas]
 
-@router.get("/empresa/{ruc_empresa}", response_model=List[ResolucionPrimigeniaResponse])
+@router.get("/empresa/{ruc_empresa}", response_model=List[ResolucionPrimigeniaResponse], response_model_by_alias=False)
 async def get_resoluciones_by_empresa(
     ruc_empresa: str,
     service: ResolucionPrimigeniaService = Depends(get_service)
@@ -81,7 +81,7 @@ async def get_resoluciones_by_empresa(
     resoluciones = await service.get_resoluciones_by_ruc(ruc_empresa)
     return [ResolucionPrimigeniaResponse.model_validate(r) for r in resoluciones]
 
-@router.get("/numero/{nro_resolucion}", response_model=ResolucionPrimigeniaResponse)
+@router.get("/numero/{nro_resolucion}", response_model=ResolucionPrimigeniaResponse, response_model_by_alias=False)
 async def get_resolucion_by_numero(
     nro_resolucion: str,
     service: ResolucionPrimigeniaService = Depends(get_service)
@@ -92,7 +92,7 @@ async def get_resolucion_by_numero(
         raise HTTPException(status_code=404, detail=f"No se encontró resolución primigenia con número {nro_resolucion}")
     return ResolucionPrimigeniaResponse.model_validate(res)
 
-@router.get("/{resolucion_id}", response_model=ResolucionPrimigeniaResponse)
+@router.get("/{resolucion_id}", response_model=ResolucionPrimigeniaResponse, response_model_by_alias=False)
 async def get_resolucion_by_id(
     resolucion_id: str,
     service: ResolucionPrimigeniaService = Depends(get_service)
@@ -103,7 +103,7 @@ async def get_resolucion_by_id(
         raise HTTPException(status_code=404, detail=f"No se encontró resolución primigenia con ID {resolucion_id}")
     return ResolucionPrimigeniaResponse.model_validate(res)
 
-@router.put("/{resolucion_id}", response_model=ResolucionPrimigeniaResponse)
+@router.put("/{resolucion_id}", response_model=ResolucionPrimigeniaResponse, response_model_by_alias=False)
 async def update_resolucion_primigenia(
     resolucion_id: str,
     data: ResolucionPrimigeniaUpdate,
@@ -115,7 +115,7 @@ async def update_resolucion_primigenia(
         raise HTTPException(status_code=404, detail=f"No se encontró resolución primigenia con ID {resolucion_id}")
     return ResolucionPrimigeniaResponse.model_validate(res)
 
-@router.post("/{resolucion_id}/fe-erratas", response_model=ResolucionPrimigeniaResponse)
+@router.post("/{resolucion_id}/fe-erratas", response_model=ResolucionPrimigeniaResponse, response_model_by_alias=False)
 async def agregar_fe_errata(
     resolucion_id: str,
     fe_errata: FeErrata,
@@ -128,7 +128,7 @@ async def agregar_fe_errata(
     except ResolucionNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-@router.post("/{resolucion_id}/historial-modificaciones", response_model=ResolucionPrimigeniaResponse)
+@router.post("/{resolucion_id}/historial-modificaciones", response_model=ResolucionPrimigeniaResponse, response_model_by_alias=False)
 async def agregar_modificacion_historial(
     resolucion_id: str,
     modificacion: ModificacionHistorial,

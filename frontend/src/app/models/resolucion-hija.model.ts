@@ -52,6 +52,8 @@ export interface ResolucionHijaCreate {
   vehiculos_ingresantes?: string[];
   vehiculos_salientes?: string[];
   rutas_modificadas_ids?: string[];
+  numeros_tuc?: string[];
+  tucs_baja?: string[];
   observaciones?: string;
 }
 
@@ -68,6 +70,8 @@ export interface ResolucionHijaUpdate {
   vehiculos_ingresantes?: string[];
   vehiculos_salientes?: string[];
   rutas_modificadas_ids?: string[];
+  numeros_tuc?: string[];
+  tucs_baja?: string[];
   observaciones?: string;
 }
 

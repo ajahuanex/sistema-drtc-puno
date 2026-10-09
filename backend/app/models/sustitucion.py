@@ -1,8 +1,9 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
+from .base import CamelModel
 
-class SustitucionRequest(BaseModel):
+class SustitucionRequest(CamelModel):
     ruc_empresa: str = Field(..., description="RUC de la empresa donde se realiza la sustitución")
     
     # Datos de la baja

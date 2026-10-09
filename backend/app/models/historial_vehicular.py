@@ -7,6 +7,7 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, Field
 from bson import ObjectId
+from .base import CamelModel
 
 
 class TipoEventoHistorial(str, Enum):
@@ -33,7 +34,7 @@ class TipoEventoHistorial(str, Enum):
     OTROS = "OTROS"
 
 
-class HistorialVehicularBase(BaseModel):
+class HistorialVehicularBase(CamelModel):
     """Modelo base para eventos del historial vehicular"""
     vehiculoId: str = Field(..., description="ID del vehículo")
     placa: str = Field(..., description="Placa del vehículo en formato XXX-123")

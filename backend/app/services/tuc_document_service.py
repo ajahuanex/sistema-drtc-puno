@@ -269,7 +269,38 @@ class TucDocumentService:
         tipo_hija = (vehiculo.get("tipo_resolucion_hija") or vehiculo.get("tipo_tramite_origen") or vehiculo.get("tramite") or "").strip().upper()
         fecha_hija = vehiculo.get("fecha_resolucion_hija") or vehiculo.get("fecha_emision_resolucion")
 
-        # 1. Si es Duplicado, buscar el trámite original del vehículo
+        # 1. Si no tiene fecha_resolucion_hija explícita en vehiculo, buscar en resoluciones_hijas
+        if not vehiculo.get("fecha_resolucion_hija") and nro_hija_raw:
+            norm_h = clean_num_resolucion(nro_hija_raw)
+            try:
+                rh_doc = await db.resoluciones_hijas.find_one({
+                    "$or": [
+                        {"nro_resolucion": {"$regex": f"^{re.escape(nro_hija_raw)}$", "$options": "i"}},
+                        {"nro_resolucion": {"$regex": f"{re.escape(norm_h)}$", "$options": "i"}},
+                        {"id": vehiculo.get("resolucion_hija_id")},
+                        {"id": vehiculo.get("tramite_id")}
+                    ]
+                })
+                if rh_doc:
+                    fecha_hija_bd = rh_doc.get("fecha_resolucion") or rh_doc.get("fecha_inicio_efectos") or rh_doc.get("fecha_emision")
+                    if fecha_hija_bd:
+                        fecha_hija = fecha_hija_bd
+                    if not tipo_hija:
+                        tipo_acto = str(rh_doc.get("tipo_acto") or rh_doc.get("tipo_tramite_origen") or "").upper()
+                        if "SUSTITUCION" in tipo_acto:
+                            tipo_hija = "S"
+                        elif "INCREMENTO" in tipo_acto:
+                            tipo_hija = "I"
+            except Exception as e_hija:
+                logger.warning(f"Error consultando resolucion_hija para acto reverso TUC: {e_hija}")
+
+        # Si fecha_hija terminó siendo idéntica a la fecha de la primigenia por herencia incorrecta, descartar
+        fecha_p_str = str(fecha_res_p or "").strip()
+        if fecha_hija and fecha_p_str and fecha_p_str != "-":
+            if format_fecha(fecha_hija) == fecha_p_str and not vehiculo.get("fecha_resolucion_hija"):
+                fecha_hija = None
+
+        # 2. Si es Duplicado, buscar el trámite original del vehículo
         if tipo_hija in ["D", "DUPLICADO"]:
             orig_veh = None
             if placa and placa != "-":
@@ -290,22 +321,23 @@ class TucDocumentService:
                 # Si no tiene trámite modificatorio previo en la flota, su origen fue autorización o renovación
                 tipo_hija = "R"
 
-        # 2. Normalizar tipo de trámite a sigla oficial DRTC
+        # 3. Normalizar tipo de trámite a sigla oficial DRTC
         # REGLA: Esta resolución hija SOLAMENTE aparece cuando es Sustitución (S) o Incremento (I)
-        # (o en Duplicado si su origen fue S o I). Si el vehículo fue registrado en una resolución
-        # primigenia (autorización nueva/renovación), es obvio que no tiene resolución hija y debe estar en blanco.
+        # (o en Duplicado si su origen fue S o I).
+        # Si es RENOVACIÓN o AUTORIZACIÓN regular, toda la fila en blanco (NUNCA mostrar 'S' ni fecha).
         sigla = ""
         es_en_blanco = False
 
-        # Si el número registrado como 'hija' es idéntico a la primigenia, o no existe resolución hija:
-        if not nro_hija_raw or (nro_primigenia_raw and clean_num_resolucion(nro_hija_raw) == clean_num_resolucion(nro_primigenia_raw)):
+        if tipo_hija in ["R", "RENOVACION", "RENOVACIÓN"] or (vehiculo.get("tramite") or "").upper() in ["RENOVACION", "RENOVACIÓN"]:
+            es_en_blanco = True
+        elif not nro_hija_raw or (nro_primigenia_raw and clean_num_resolucion(nro_hija_raw) == clean_num_resolucion(nro_primigenia_raw)):
             es_en_blanco = True
         elif tipo_hija in ["I", "INCREMENTO", "INCREMENTO DE FLOTA"]:
             sigla = "I"
         elif tipo_hija in ["S", "SUSTITUCION", "SUSTITUCIÓN", "SUSTITUCION DE VEHICULO"]:
             sigla = "S"
         else:
-            # Cualquier otro trámite (Primigenia, Nueva, Renovación, Modificación menor, etc.) queda totalmente en blanco
+            # Cualquier otro trámite no modificatorio queda totalmente en blanco
             es_en_blanco = True
 
         if es_en_blanco or not nro_hija_raw or not sigla:
@@ -322,9 +354,15 @@ class TucDocumentService:
 
         from app.utils.resolucion_utils import determinar_siglas_resolucion
         num_res_clean = clean_num_resolucion(nro_hija_raw)
-        fecha_res_clean = format_fecha(fecha_hija)
+        fecha_res_clean = format_fecha(fecha_hija) if fecha_hija else ""
+        if fecha_res_clean == "-":
+            fecha_res_clean = ""
         siglas_acto = determinar_siglas_resolucion(nro_hija_raw)
-        texto = f"R.D.R N° {num_res_clean}-{siglas_acto} ({fecha_res_clean}) ({sigla})"
+        
+        if fecha_res_clean:
+            texto = f"R.D.R N° {num_res_clean}-{siglas_acto} ({fecha_res_clean}) ({sigla})"
+        else:
+            texto = f"R.D.R N° {num_res_clean}-{siglas_acto} ({sigla})"
 
         return {
             "es_en_blanco": False,

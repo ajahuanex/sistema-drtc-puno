@@ -251,6 +251,21 @@ export class FlotaEmpresaService {
     return this.http.post<any>(`${this.baseUrl}/sustitucion`, payload);
   }
 
+  validarSustitucion(ruc: string, placaSaliente: string, placaEntrante: string, nroResolucion?: string): Observable<any> {
+    let p = new HttpParams()
+      .set('ruc', ruc)
+      .set('placa_saliente', placaSaliente)
+      .set('placa_entrante', placaEntrante);
+    if (nroResolucion) p = p.set('nro_resolucion', nroResolucion);
+    return this.http.get<any>(`${this.baseUrl}/validar-sustitucion`, { params: p });
+  }
+
+  verificarPlacaTramite(placa: string, rucActual?: string): Observable<any> {
+    let p = new HttpParams();
+    if (rucActual) p = p.set('ruc_actual', rucActual);
+    return this.http.get<any>(`${this.baseUrl}/verificar-placa-tramite/${encodeURIComponent(placa)}`, { params: p });
+  }
+
   getFlotaPaginada(params: {
     skip?: number;
     limit?: number;

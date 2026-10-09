@@ -44,6 +44,15 @@ class EstadoFisicoVehiculo(str, Enum):
     MALO = "MALO"
 
 
+class TipoCombustible(str, Enum):
+    GASOLINA = "GASOLINA"
+    DIESEL = "DIESEL"
+    GLP = "GLP"
+    GNV = "GNV"
+    ELECTRICO = "ELECTRICO"
+    HIBRIDO = "HIBRIDO"
+
+
 class FuenteDatos(str, Enum):
     SUNARP = "SUNARP"
     SUTRAN = "SUTRAN"

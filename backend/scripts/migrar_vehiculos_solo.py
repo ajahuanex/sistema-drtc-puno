@@ -18,8 +18,7 @@ from datetime import datetime
 import uuid
 
 from app.database import SessionLocal, engine
-from app.models.vehiculo import Vehiculo
-from app.models.vehiculo_solo import (
+from app.schemas.vehiculo_solo import (
     VehiculoSolo, CategoriaVehiculo, TipoCarroceria,
     TipoCombustible, EstadoFisicoVehiculo, FuenteDatos
 )

@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List, Union
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from enum import Enum
+from .base import CamelModel
 
 class TipoActoModificatorio(str, Enum):
     AUTORIZACION = "AUTORIZACION"
@@ -16,7 +17,7 @@ class TipoActoModificatorio(str, Enum):
     CANCELACION_PARCIAL = "CANCELACION_PARCIAL"
     OTROS = "OTROS"
 
-class ResolucionHija(BaseModel):
+class ResolucionHija(CamelModel):
     model_config = ConfigDict(
         populate_by_name=True,
         from_attributes=True,
@@ -65,7 +66,7 @@ class ResolucionHija(BaseModel):
     fecha_registro: Optional[datetime] = Field(default=None, description="Fecha de creación en el sistema")
     fecha_actualizacion: Optional[datetime] = None
 
-class ResolucionHijaCreate(BaseModel):
+class ResolucionHijaCreate(CamelModel):
     nro_resolucion: str = Field(..., description="Número normalizado de la resolución hija (ej. R-0450-2023(I))")
     siglas: Optional[str] = Field(None, description="Siglas institucionales (ej: GRP/GRI/DRTC, GRP/DRTC, GR PUNO/GRI/DRTC)")
     nro_resolucion_primigenia: str = Field(..., description="Número de la resolución primigenia a modificar")
@@ -87,7 +88,7 @@ class ResolucionHijaCreate(BaseModel):
     id_origen: Optional[str] = None
     observaciones: Optional[str] = None
 
-class ResolucionHijaUpdate(BaseModel):
+class ResolucionHijaUpdate(CamelModel):
     nro_resolucion: Optional[str] = None
     siglas: Optional[str] = None
     nro_resolucion_primigenia: Optional[str] = None
@@ -109,7 +110,7 @@ class ResolucionHijaUpdate(BaseModel):
     id_origen: Optional[str] = None
     observaciones: Optional[str] = None
 
-class ResolucionHijaFiltros(BaseModel):
+class ResolucionHijaFiltros(CamelModel):
     nro_resolucion: Optional[str] = None
     nro_resolucion_primigenia: Optional[str] = None
     ruc_empresa: Optional[str] = None

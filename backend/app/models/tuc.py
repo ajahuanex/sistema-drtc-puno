@@ -2,6 +2,7 @@ from datetime import datetime, date
 from typing import Optional, List, Dict, Any, Union
 from pydantic import BaseModel, Field
 from enum import Enum
+from .base import CamelModel
 
 class TipoEmisionTuc(str, Enum):
     ELECTRONICA = "ELECTRONICA"
@@ -34,7 +35,7 @@ class MotivoEmision(str, Enum):
     HISTORICO_MIGRADO = "HISTORICO_MIGRADO"
     OTROS = "OTROS"
 
-class Tuc(BaseModel):
+class Tuc(CamelModel):
     id: Optional[str] = None
     _id: Optional[str] = None
     nroTuc: str

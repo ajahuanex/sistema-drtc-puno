@@ -1,3 +1,4 @@
+from .base import CamelModel, MongoCamelModel
 from .usuario import UsuarioCreate, UsuarioUpdate, UsuarioInDB, UsuarioResponse
 from .empresa import (
     EmpresaCreate, 
@@ -29,9 +30,19 @@ from .empresa import (
 from .vehiculo import VehiculoCreate, VehiculoUpdate, VehiculoInDB, VehiculoResponse
 from .ruta import RutaCreate, RutaUpdate, RutaInDB, RutaResponse
 from .resolucion import ResolucionCreate, ResolucionUpdate, ResolucionInDB, ResolucionResponse
+from .resolucion_primigenia import ResolucionPrimigenia, ResolucionPrimigeniaCreate, ResolucionPrimigeniaUpdate
+from .resolucion_hija import ResolucionHija, ResolucionHijaCreate, ResolucionHijaUpdate
 from .tuc import TucCreate, TucUpdate, TucInDB, TucResponse, Tuc
 
 __all__ = [
+    "CamelModel",
+    "MongoCamelModel",
+    "ResolucionPrimigenia",
+    "ResolucionPrimigeniaCreate",
+    "ResolucionPrimigeniaUpdate",
+    "ResolucionHija",
+    "ResolucionHijaCreate",
+    "ResolucionHijaUpdate",
     "UsuarioCreate",
     "UsuarioUpdate", 
     "UsuarioInDB",
