@@ -1364,45 +1364,195 @@
         letter-spacing: 0.04em;
       }
     }
+  }
 
-    .rutas-table-render {
-      font-size: 5.5pt;
-      line-height: 1.25;
+  .rutas-table-render {
+    font-size: 5.5pt;
+    line-height: 1.25;
+    width: 100%;
+    position: relative;
 
-      .ruta-row {
-        margin-bottom: 1mm;
+    .rutas-table-grid {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
 
-        .r-cod {
+      &.guias-activas {
+        .col-cod {
+          border-right: 1.5px dashed #0284c7 !important;
+        }
+        .col-tramo {
+          border-right: 1.5px dashed #0284c7 !important;
+        }
+      }
+
+      .ruta-tr {
+        border-bottom: none !important;
+
+        &.is-last-ruta {
+          border-bottom: 0.8px solid #000000 !important;
+        }
+
+        td {
+          vertical-align: top;
+          padding: 0.2mm 0.8mm 0.2mm 0.4mm;
+          line-height: 1.08;
+        }
+
+        .col-cod {
           font-weight: 800;
           color: #000000;
-          margin-right: 1mm;
+          white-space: nowrap;
+          padding-left: 0 !important;
+          line-height: 1.08;
         }
 
-        .r-orig, .r-dest {
+        .col-tramo {
           color: #000000;
+          line-height: 1.08;
+
+          .r-itin {
+            color: #616161;
+          }
         }
 
-        .r-itin, .r-frec {
-          color: #616161;
+        .col-frec {
+          color: #000000;
+          text-align: right;
+          padding-right: 0 !important;
+          line-height: 1.0;
+
+          .frec-col-cell,
+          .clamp-2-cell {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-end !important;
+            justify-content: flex-start !important;
+            max-height: none !important;
+            line-height: 1.0 !important;
+            width: 100% !important;
+          }
+
+          .frec-txt {
+            display: block;
+            white-space: nowrap;
+            line-height: 1.0 !important;
+            text-align: right;
+          }
+
+          .frec-dias {
+            display: block;
+            margin-top: 0 !important;
+            line-height: 1.0 !important;
+            opacity: 0.92;
+            text-align: right;
+          }
+        }
+
+        .clamp-2-cell {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 1.08;
+          max-height: calc(2 * 1.08 * 1em);
+          word-break: break-word;
+
+          &.text-right {
+            text-align: right;
+          }
+
+          &.shrink-font {
+            font-size: calc(1em - 0.5pt) !important;
+            max-height: calc(2 * 1.25 * (1em - 0.5pt));
+          }
+        }
+
+        &.r-empty {
+          color: #64748b;
+
+          td {
+            color: #64748b;
+          }
+
+          .col-cod {
+            color: #64748b;
+          }
+
+          .col-frec {
+            color: #475569;
+          }
         }
       }
     }
 
-    .tags-placeholder-box {
-      border: 1px dashed #0284c7;
-      background: rgba(2, 132, 199, 0.04);
-      padding: 2mm;
-      border-radius: 1mm;
-      font-size: 5pt;
+    .resolucion-hija-bajo-rutas {
+      position: relative;
+      width: 100% !important;
+      display: block !important;
+      margin: 0 auto !important;
+      padding: 0.2mm 0 0 0 !important;
       text-align: center;
-      color: #0284c7;
+      line-height: 1.15;
+      cursor: pointer;
+      box-sizing: border-box;
+      user-select: none;
+      color: #000000;
 
-      .sub {
-        display: block;
-        font-size: 4pt;
-        color: #64748b;
+      .var-rendered-content {
+        width: 100% !important;
+        text-align: inherit !important;
+        display: block !important;
+        margin: 0 auto !important;
+        line-height: 1.15;
+      }
+
+      &:hover {
+        background: rgba(2, 132, 199, 0.05);
+      }
+
+      &.is-selected {
+        outline: 1.5px dashed #0284c7;
+        background: rgba(2, 132, 199, 0.08);
+
+        .selection-overlay {
+          position: absolute;
+          inset: -2px;
+          border: 1.5px solid #0284c7;
+          pointer-events: none;
+          z-index: 10;
+        }
       }
     }
+
+    .ruta-col-guide-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      border-left: 1.5px dashed rgba(2, 132, 199, 0.7);
+      pointer-events: none;
+      z-index: 6;
+    }
+  }
+
+  .tags-placeholder-box {
+    border: 1px dashed #0284c7;
+    background: rgba(2, 132, 199, 0.04);
+    padding: 2mm;
+    border-radius: 1mm;
+    font-size: 5pt;
+    text-align: center;
+    color: #0284c7;
+
+    .sub {
+      display: block;
+      font-size: 4pt;
+      color: #64748b;
+    }
+  }
 
     .reverso-security-footer {
       position: absolute;
@@ -1426,7 +1576,6 @@
         }
       }
     }
-  }
 
   // LÍNEAS GUÍAS DE MÁRGENES (VERTICALES Y HORIZONTALES REFERENCIALES)
   .margin-guide {
@@ -1668,6 +1817,19 @@
     white-space: nowrap;
     transition: background 0.1s ease;
 
+    &.is-tabla-rutas {
+      height: auto !important;
+      min-height: auto !important;
+      display: block !important;
+      justify-content: flex-start !important;
+      align-items: flex-start !important;
+      transform: none !important;
+
+      .rutas-table-render {
+        height: auto !important;
+      }
+    }
+
     &.is-hidden-empty {
       display: none !important;
     }
@@ -1894,6 +2056,232 @@
         grid-template-columns: 1fr 1fr;
         gap: 6px;
         align-items: center;
+      }
+
+      .compact-grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .rutas-cols-box {
+        grid-column: 1 / -1;
+        margin-top: 6px;
+        padding: 6px 8px;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        box-sizing: border-box;
+        width: 100%;
+
+        .rutas-cols-title {
+          font-size: 11px;
+          font-weight: 700;
+          color: #1e293b;
+          margin-bottom: 5px;
+        }
+
+        .rutas-cols-row {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 4px;
+          width: 100%;
+          box-sizing: border-box;
+
+          .col-field {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+
+            .col-lbl {
+              font-size: 10px;
+              font-weight: 700;
+              color: #475569;
+              text-align: center;
+            }
+
+            .col-stepper {
+              display: flex;
+              align-items: center;
+              background: #ffffff;
+              border: 1px solid #94a3b8;
+              border-radius: 4px;
+              overflow: hidden;
+              height: 24px;
+              width: 100%;
+              box-sizing: border-box;
+
+              .mini-btn {
+                border: none;
+                background: #f1f5f9;
+                color: #1e293b;
+                font-weight: 800;
+                font-size: 12px;
+                width: 18px;
+                height: 100%;
+                cursor: pointer;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+
+                &:hover {
+                  background: #e2e8f0;
+                  color: #0f172a;
+                }
+              }
+
+              input {
+                width: 100%;
+                min-width: 0;
+                flex: 1;
+                border: none;
+                outline: none;
+                text-align: center;
+                font-size: 11px;
+                font-weight: 700;
+                color: #0f172a;
+                padding: 0 1px;
+                background: transparent;
+                -moz-appearance: textfield;
+                &::-webkit-outer-spin-button,
+                &::-webkit-inner-spin-button {
+                  -webkit-appearance: none;
+                  margin: 0;
+                }
+              }
+            }
+          }
+        }
+
+        .frec-dias-config {
+          margin-top: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 6px;
+          padding-top: 5px;
+          border-top: 1px dashed #cbd5e1;
+
+          .col-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            color: #475569;
+            white-space: nowrap;
+          }
+
+          .col-stepper {
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #94a3b8;
+            border-radius: 4px;
+            overflow: hidden;
+            height: 22px;
+            width: 76px;
+
+            .mini-btn {
+              border: none;
+              background: #f1f5f9;
+              font-size: 11px;
+              font-weight: 800;
+              width: 18px;
+              height: 100%;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+              &:hover { background: #e2e8f0; }
+            }
+
+            input {
+              width: 100%;
+              min-width: 0;
+              flex: 1;
+              border: none;
+              outline: none;
+              text-align: center;
+              font-size: 10px;
+              font-weight: 700;
+              padding: 0;
+              background: transparent;
+              -moz-appearance: textfield;
+              &::-webkit-outer-spin-button,
+              &::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+              }
+            }
+          }
+
+          .scale-hint {
+            font-size: 10px;
+            font-weight: 800;
+            color: #0284c7;
+          }
+
+          .btn-toggle-bold {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            border-radius: 4px;
+            padding: 1px 7px;
+            height: 22px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #475569;
+            transition: all 0.15s ease;
+
+            strong {
+              font-weight: 900;
+              font-size: 11px;
+            }
+
+            .bold-text-lbl {
+              font-size: 10px;
+              font-weight: 600;
+            }
+
+            &:hover {
+              background: #f1f5f9;
+              color: #0f172a;
+              border-color: #94a3b8;
+            }
+
+            &.active {
+              background: #1e3a8a;
+              color: #ffffff;
+              border-color: #1e3a8a;
+            }
+          }
+        }
+
+        .rutas-res-section {
+          margin-top: 8px;
+          padding-top: 6px;
+          border-top: 1px dashed #94a3b8;
+
+          .rutas-cols-title {
+            color: #0369a1;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 3px;
+          }
+
+          .frec-dias-config {
+            border-top: none;
+            padding-top: 3px;
+          }
+        }
       }
 
       .compact-field {
@@ -2219,6 +2607,27 @@
               color: #ffffff;
             }
           }
+        }
+      }
+
+      .docked-hint-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        margin: 4px 0 6px 0;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 4px;
+        color: #1d4ed8;
+        font-size: 10px;
+        font-weight: 600;
+
+        mat-icon {
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
+          color: #2563eb;
         }
       }
 
@@ -3704,16 +4113,43 @@
   letter-spacing: -0.2px;
 }
 
-// Variables multilínea y 2 filas
-.positioned-var.has-two-lines,
+// Tabla de Rutas: Debe ocupar toda la altura dinámica y anclarse desde la parte superior (Y = top) hacia abajo
+.positioned-var.is-tabla-rutas {
+  height: auto !important;
+  min-height: auto !important;
+  display: block !important;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  white-space: normal !important;
+  transform: none !important;
+
+  .rutas-table-render {
+    height: auto !important;
+  }
+}
+
+// Variables con 2 filas (Ocupan el espacio vertical de 2 filas de manera flexible sin recortar la base)
+.positioned-var.has-two-lines {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  height: auto !important;
+  min-height: calc(2 * var(--line-height, 1.25) * 1em) !important;
+  white-space: normal !important;
+}
+
 .var-rendered-content.clamp-2-lines {
+  width: 100% !important;
   white-space: normal !important;
   display: -webkit-box !important;
   -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   word-break: break-word !important;
-  line-height: 1.15 !important;
+  line-height: var(--line-height, 1.22) !important;
+  padding-bottom: 3px !important;
+  box-sizing: border-box !important;
 }
 
 .positioned-var.has-multiline,

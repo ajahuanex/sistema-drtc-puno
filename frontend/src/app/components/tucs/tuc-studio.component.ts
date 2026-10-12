@@ -196,9 +196,28 @@ export class TucStudioComponent implements OnInit {
   placasLoteTexto = signal<string>('VBE-959\nZ4B-960\nX1Y-234');
   generandoLotePdf = signal<boolean>(false);
 
-  // Elementos por Sección
-  varsAnverso = computed(() => this.config()?.variables?.filter(v => v.visible && v.seccion === 'anverso') || []);
-  varsReverso = computed(() => this.config()?.variables?.filter(v => v.visible && v.seccion === 'reverso') || []);
+  // Detección de Tabla de Rutas y Resolución Hija Acoplada
+  tieneTablaRutas = computed(() => {
+    return (this.config()?.variables || []).some(v => v.visible && (v.tag === '{{TABLA_RUTAS}}' || v.id === 'tabla_rutas'));
+  });
+
+  variableNumResolucion = computed(() => {
+    const res = this.config()?.variables?.find(v => v.tag === '{{NUM_RESOLUCION}}' || v.id === 'num_resolucion') || null;
+    if (res && (!res.align || res.align === 'left')) {
+      res.align = 'center';
+    }
+    return res;
+  });
+
+  // Elementos por Sección (Si existe tabla de rutas, NUM_RESOLUCION se acopla dinámicamente justo bajo ella)
+  varsAnverso = computed(() => {
+    const list = this.config()?.variables?.filter(v => v.visible && v.seccion === 'anverso') || [];
+    return this.tieneTablaRutas() ? list.filter(v => v.tag !== '{{NUM_RESOLUCION}}') : list;
+  });
+  varsReverso = computed(() => {
+    const list = this.config()?.variables?.filter(v => v.visible && v.seccion === 'reverso') || [];
+    return this.tieneTablaRutas() ? list.filter(v => v.tag !== '{{NUM_RESOLUCION}}') : list;
+  });
 
   // Vehículo de prueba en tiempo real
   searchPlaca = signal<string>('VBE-959');
@@ -360,6 +379,13 @@ export class TucStudioComponent implements OnInit {
             // La fecha y tipo de la resolución hija ahora se muestran integrados como 2do y 3er sufijo
             if (v.tag === '{{FECHA_RES}}' || v.tag === '{{TIPO_RES}}' || v.id === 'fecha_res' || v.id === 'tipo_res') {
               v.visible = false;
+            }
+            if (v.tag === '{{TABLA_RUTAS}}' || v.id === 'tabla_rutas') {
+              v.max_lineas = 0;
+              v.height_mm = undefined;
+              if (v.frec_bold === undefined) {
+                v.frec_bold = true;
+              }
             }
           });
 
@@ -656,7 +682,11 @@ export class TucStudioComponent implements OnInit {
   notificarCambio(): void {
     const c = this.config();
     if (c) {
-      this.config.set({ ...c });
+      this.config.set({
+        ...c,
+        variables: [...c.variables]
+      });
+      this.selectedVariables.set([...this.selectedVariables()]);
     }
   }
 
@@ -1690,11 +1720,20 @@ export class TucStudioComponent implements OnInit {
     const etiquetaWeight = sel.etiqueta_font_weight || 'bold';
     const valorWeight = sel.font_weight || 'normal';
     const maxLineas = sel.max_lineas || 1;
-    const lineStyle = maxLineas === 2
-      ? 'white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.15; word-break: break-word;'
-      : (maxLineas === 0 ? 'white-space: normal; line-height: 1.18; word-break: break-word;' : 'white-space: nowrap; line-height: 1.25;');
-
     const widthStyle = sel.width_mm ? ` width: ${sel.width_mm}mm;` : '';
+    if (maxLineas === 2) {
+      const heightStyle = sel.height_mm ? ` height: ${sel.height_mm}mm;` : ` height: calc(2 * ${sel.line_height || 1.15} * 1em);`;
+      return `<div class="tuc-var ${sel.id}" style="position: absolute; left: ${sel.x_mm}mm; top: ${sel.y_mm}mm;${widthStyle}${heightStyle} font-size: ${sel.font_size_pt}pt; color: ${sel.color}; display: flex; flex-direction: column; justify-content: center;">
+  <div style="white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: ${sel.line_height || 1.15}; word-break: break-word; width: 100%; text-align: ${sel.align || 'left'};">
+    ${etiqueta ? `<span class="tuc-etiqueta" style="font-weight: ${etiquetaWeight};">${this.escapeHtml(etiqueta)}</span>` : ''}
+    <span class="tuc-valor" style="font-weight: ${valorWeight};">${sel.tag}</span>${sel.suffix || ''}${sel.suffix2 || ''}${sel.suffix3 || ''}
+  </div>
+</div>`;
+    }
+
+    const lineStyle = maxLineas === 0
+      ? 'white-space: normal; line-height: 1.18; word-break: break-word;'
+      : 'white-space: nowrap; line-height: 1.25;';
 
     return `<div class="tuc-var ${sel.id}" style="position: absolute; left: ${sel.x_mm}mm; top: ${sel.y_mm}mm;${widthStyle} font-size: ${sel.font_size_pt}pt; color: ${sel.color}; ${lineStyle}">
   ${etiqueta ? `<span class="tuc-etiqueta" style="font-weight: ${etiquetaWeight};">${this.escapeHtml(etiqueta)}</span>` : ''}
@@ -2178,6 +2217,232 @@ export class TucStudioComponent implements OnInit {
     this.config.set({ ...this.config()! });
     this.snackBar.open('Imagen removida. Ahora es línea vectorial.', 'OK', { duration: 2000 });
   }
+
+  ajustarColumnaRuta(campo: 'col_codigo_mm' | 'col_tramo_mm' | 'col_frecuencia_mm', delta: number): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const defaults = { col_codigo_mm: 13.0, col_tramo_mm: 41.0, col_frecuencia_mm: 14.0 };
+    const actual = sel[campo] !== undefined ? sel[campo]! : defaults[campo];
+    sel[campo] = Math.max(2.0, Math.round((actual + delta) * 10) / 10);
+    this.notificarCambio();
+  }
+  obtenerTramoTexto(r: any): string {
+    if (!r) return '';
+    if (r.origen || r.destino) {
+      const itin = r.itinerario ? ` - ${r.itinerario} - ` : ' - ';
+      return `${r.origen || ''}${itin}${r.destino || ''}`.trim();
+    }
+    return (r.tramo || 'AMBITO REGIONAL PUNO').trim();
+  }
+
+  obtenerEscalaDiasFrec(v?: VariablePlantillaTuc | null): number {
+    return v?.escala_dias_frec !== undefined ? v.escala_dias_frec : 0.80;
+  }
+
+  ajustarEscalaDiasFrec(delta: number): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const actual = this.obtenerEscalaDiasFrec(sel);
+    sel.escala_dias_frec = Math.min(1.0, Math.max(0.4, Math.round((actual + delta) * 100) / 100));
+    this.notificarCambio();
+  }
+
+  cambiarEscalaDiasFrec(sel: VariablePlantillaTuc, event: Event): void {
+    const val = parseFloat((event.target as HTMLInputElement).value);
+    if (!isNaN(val)) {
+      sel.escala_dias_frec = Math.min(1.0, Math.max(0.4, Math.round(val * 100) / 100));
+      this.notificarCambio();
+    }
+  }
+
+  obtenerEscalaItinerario(v?: VariablePlantillaTuc | null): number {
+    return v?.escala_itinerario !== undefined ? v.escala_itinerario : 0.85;
+  }
+
+  ajustarEscalaItinerario(delta: number): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const actual = this.obtenerEscalaItinerario(sel);
+    sel.escala_itinerario = Math.min(1.2, Math.max(0.4, Math.round((actual + delta) * 100) / 100));
+    this.notificarCambio();
+  }
+
+  cambiarEscalaItinerario(sel: VariablePlantillaTuc, event: Event): void {
+    const val = parseFloat((event.target as HTMLInputElement).value);
+    if (!isNaN(val)) {
+      sel.escala_itinerario = Math.min(1.2, Math.max(0.4, Math.round(val * 100) / 100));
+      this.notificarCambio();
+    }
+  }
+
+  obtenerFontItinerarioPt(v?: VariablePlantillaTuc | null): number {
+    const basePt = v?.font_size_pt || 6.0;
+    const escala = v?.escala_itinerario !== undefined ? v.escala_itinerario : 0.85;
+    const esc = Math.min(1.2, Math.max(0.4, Number(escala) || 0.85));
+    return Math.round(basePt * esc * 10) / 10;
+  }
+
+  obtenerEspacioFilasRutas(v?: VariablePlantillaTuc | null): number {
+    return v?.espacio_filas_rutas_mm !== undefined ? v.espacio_filas_rutas_mm : 0.2;
+  }
+
+  ajustarEspacioFilasRutas(delta: number): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const actual = this.obtenerEspacioFilasRutas(sel);
+    sel.espacio_filas_rutas_mm = Math.min(2.0, Math.max(0.0, Math.round((actual + delta) * 10) / 10));
+    this.notificarCambio();
+  }
+
+  cambiarEspacioFilasRutas(sel: VariablePlantillaTuc, event: Event): void {
+    const val = parseFloat((event.target as HTMLInputElement).value);
+    if (!isNaN(val)) {
+      sel.espacio_filas_rutas_mm = Math.min(2.0, Math.max(0.0, Math.round(val * 10) / 10));
+      this.notificarCambio();
+    }
+  }
+
+  esFrecuenciaBold(v?: VariablePlantillaTuc | null): boolean {
+    if (!v) return true;
+    return v.frec_bold !== false;
+  }
+
+  toggleFrecuenciaBold(v: VariablePlantillaTuc): void {
+    if (!v || v.bloqueado) return;
+    v.frec_bold = !this.esFrecuenciaBold(v);
+    this.notificarCambio();
+  }
+
+  obtenerFontResolucionHijaPt(): number {
+    const res = this.variableNumResolucion();
+    return res?.font_size_pt || 7.0;
+  }
+
+  ajustarFontResolucionHija(delta: number): void {
+    const res = this.variableNumResolucion();
+    if (!res || res.bloqueado) return;
+    const actual = this.obtenerFontResolucionHijaPt();
+    const nuevo = Math.min(14.0, Math.max(4.0, Math.round((actual + delta) * 10) / 10));
+    res.font_size_pt = nuevo;
+    res.prefix_font_size_pt = nuevo;
+    res.suffix_font_size_pt = nuevo;
+    res.suffix2_font_size_pt = nuevo;
+    res.suffix3_font_size_pt = nuevo;
+    this.notificarCambio();
+  }
+
+  cambiarFontResolucionHija(event: Event): void {
+    const val = parseFloat((event.target as HTMLInputElement).value);
+    if (!isNaN(val)) {
+      const res = this.variableNumResolucion();
+      if (!res || res.bloqueado) return;
+      const nuevo = Math.min(14.0, Math.max(4.0, Math.round(val * 10) / 10));
+      res.font_size_pt = nuevo;
+      res.prefix_font_size_pt = nuevo;
+      res.suffix_font_size_pt = nuevo;
+      res.suffix2_font_size_pt = nuevo;
+      res.suffix3_font_size_pt = nuevo;
+      this.notificarCambio();
+    }
+  }
+
+  esResolucionHijaBold(): boolean {
+    const res = this.variableNumResolucion();
+    if (!res) return true;
+    return res.font_weight === 'bold' || res.prefix_font_weight === 'bold';
+  }
+
+  toggleResolucionHijaBold(): void {
+    const res = this.variableNumResolucion();
+    if (!res || res.bloqueado) return;
+    const nuevoWeight = this.esResolucionHijaBold() ? 'normal' : 'bold';
+    res.font_weight = nuevoWeight;
+    res.prefix_font_weight = nuevoWeight;
+    res.suffix_font_weight = nuevoWeight;
+    res.suffix2_font_weight = nuevoWeight;
+    res.suffix3_font_weight = nuevoWeight;
+    this.notificarCambio();
+  }
+
+  setResolucionHijaAlign(align: 'left' | 'center' | 'right'): void {
+    const res = this.variableNumResolucion();
+    if (!res || res.bloqueado) return;
+    res.align = align;
+    this.notificarCambio();
+  }
+
+  obtenerFontDiasPt(v?: VariablePlantillaTuc | null): number {
+    const basePt = v?.font_size_pt || 6.0;
+    const escala = v?.escala_dias_frec !== undefined ? v.escala_dias_frec : 0.80;
+    const esc = Math.min(1.0, Math.max(0.4, Number(escala) || 0.80));
+    return Math.round(basePt * esc * 10) / 10;
+  }
+
+  obtenerPartesFrecuencia(frec: string | null | undefined): { principal: string; dias: string } {
+    if (!frec) return { principal: '', dias: '' };
+    const clean = frec.trim();
+    const openParenIdx = clean.indexOf('(');
+    if (openParenIdx !== -1) {
+      return {
+        principal: clean.substring(0, openParenIdx).replace(/\s+/g, ' ').trim(),
+        dias: clean.substring(openParenIdx).replace(/\s+/g, ' ').trim()
+      };
+    }
+    if (clean.includes('\n')) {
+      const partes = clean.split('\n').map(p => p.trim()).filter(Boolean);
+      if (partes.length >= 2) {
+        return {
+          principal: partes[0],
+          dias: partes.slice(1).join(' ')
+        };
+      }
+    }
+    return { principal: clean, dias: '' };
+  }
+
+  formatearFrecuenciaHtml(frec: string | null | undefined, escala: number = 0.80, fontSizeBasePt: number = 6, bold: boolean = true): string {
+    if (!frec) return '';
+    const clean = frec.trim();
+    const openParenIdx = clean.indexOf('(');
+    const esc = Math.min(1.0, Math.max(0.4, Number(escala) || 0.80));
+    const fontDiasPt = Math.round((fontSizeBasePt || 6) * esc * 10) / 10;
+    const fwTxt = bold ? '700' : '400';
+    const fwDias = bold ? '600' : '400';
+    if (openParenIdx !== -1) {
+      const textoPrincipal = clean.substring(0, openParenIdx).replace(/\s+/g, ' ').trim();
+      const textoDias = clean.substring(openParenIdx).replace(/\s+/g, ' ').trim();
+      return `<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;">` +
+        `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:${fwTxt};color:#000000;line-height:1.0;">${this.escapeHtml(textoPrincipal)}</div>` +
+        `<div class="frec-dias" style="display:block;margin-top:0px;font-size:${fontDiasPt}pt !important;font-weight:${fwDias};opacity:0.92;color:#000000;text-align:right;line-height:1.0;white-space:normal;word-break:break-word;">${this.escapeHtml(textoDias)}</div>` +
+        `</div>`;
+    }
+    // Si no contiene paréntesis pero viene con saltos de línea
+    if (clean.includes('\n')) {
+      const partes = clean.split('\n').map(p => p.trim()).filter(Boolean);
+      if (partes.length >= 2) {
+        const textoPrincipal = partes[0];
+        const textoDias = partes.slice(1).join(' ');
+        return `<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;">` +
+          `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:${fwTxt};color:#000000;line-height:1.0;">${this.escapeHtml(textoPrincipal)}</div>` +
+          `<div class="frec-dias" style="display:block;margin-top:0px;font-size:${fontDiasPt}pt !important;font-weight:${fwDias};opacity:0.92;color:#000000;text-align:right;line-height:1.0;white-space:normal;word-break:break-word;">${this.escapeHtml(textoDias)}</div>` +
+          `</div>`;
+      }
+    }
+    return `<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;">` +
+      `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:${fwTxt};color:#000000;line-height:1.0;">${this.escapeHtml(clean)}</div>` +
+      `</div>`;
+  }
+
+  esTextoLargo2Lineas(texto: string | null | undefined, colMm: number, fontSizePt: number = 6): boolean {
+    if (!texto) return false;
+    const clean = texto.trim();
+    if (!clean) return false;
+    if ((clean.match(/\n/g) || []).length >= 2) return true;
+    const avgCharWidthMm = Math.max(0.55, (fontSizePt || 6) * 0.3528 * 0.50);
+    const charsPorLinea = Math.max(5, (colMm || 40) / avgCharWidthMm);
+    return clean.length > (charsPorLinea * 1.8);
+  }
+
 
   alinearLineaConRutas(v: VariablePlantillaTuc): void {
     const c = this.config();

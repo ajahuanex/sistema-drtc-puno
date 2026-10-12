@@ -227,8 +227,15 @@ def _normalizar_rutas(val) -> List[str]:
     - '01 02 03' → ['01', '02', '03']
     - '01, 02, 03' → ['01', '02', '03']
     - '01-02-03' → ['01', '02', '03']
+    - '16(2-15)' → ['16']
     """
     s = _clean_str(val)
+    if not s:
+        return []
+    
+    # 0. Limpiar notas o aclaraciones entre paréntesis para evitar fragmentaciones indebidas
+    s = re.sub(r'\(.*?\)', '', s)
+    s = re.sub(r'[\(\)]', '', s).strip()
     if not s:
         return []
     
@@ -239,9 +246,11 @@ def _normalizar_rutas(val) -> List[str]:
         for p in partes:
             p = p.strip()
             if p and p.upper() not in ("NAN", "NONE", "-", ""):
-                if p.isdigit():
-                    p = p.zfill(2)
-                result.append(p)
+                m = re.search(r'(\d+)', p)
+                if m:
+                    result.append(m.group(1).zfill(2))
+                else:
+                    result.append(p)
         return list(dict.fromkeys(result))
     
     # 2. Si NO contiene delimitadores y son solo dígitos (ej: "10203", "010203", "01", "1")
@@ -261,6 +270,9 @@ def _normalizar_rutas(val) -> List[str]:
             i += 2
         return list(dict.fromkeys(tokens))
     
+    m_single = re.search(r'(\d+)', s)
+    if m_single:
+        return [m_single.group(1).zfill(2)]
     return [s]
 
 

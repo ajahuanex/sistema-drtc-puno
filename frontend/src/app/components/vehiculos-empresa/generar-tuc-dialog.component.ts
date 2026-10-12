@@ -138,14 +138,17 @@ export interface GenerarTucDialogData {
                             @if (v.visible) {
                               <div class="positioned-var"
                                    [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea'"
-                                   [class.has-two-lines]="v.max_lineas === 2"
-                                   [class.has-multiline]="v.max_lineas === 0"
+                                   [class.is-tabla-rutas]="v.tag === '{{TABLA_RUTAS}}'"
+                                   [class.has-two-lines]="v.tag !== '{{TABLA_RUTAS}}' && v.max_lineas === 2"
+                                   [class.has-multiline]="v.tag !== '{{TABLA_RUTAS}}' && v.max_lineas === 0"
                                    [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
                                    [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
                                    [style.left.mm]="v.x_mm"
                                    [style.top.mm]="v.y_mm"
                                    [style.width.mm]="v.width_mm"
-                                   [style.height.mm]="v.height_mm"
+                                   [style.height.mm]="(v.tag === '{{TABLA_RUTAS}}' || v.max_lineas === 2 || v.max_lineas === 0) ? null : v.height_mm"
+                                   [style.lineHeight]="v.line_height || (v.max_lineas === 2 ? 1.22 : 1.15)"
+                                   [style.--line-height]="v.line_height || (v.max_lineas === 2 ? 1.22 : 1.15)"
                                    [style.fontSize.pt]="v.font_size_pt"
                                    [style.color]="v.color"
                                    [style.textAlign]="v.align">
@@ -161,13 +164,65 @@ export interface GenerarTucDialogData {
                                        [style.borderTopColor]="v.color || '#000000'">
                                   </div>
                                 } @else if (v.tag === '{{TABLA_RUTAS}}') {
-                                  <div class="rutas-table-render">
-                                    @if (rutasList().length > 0) {
-                                      @for (r of rutasList(); track $index) {
-                                        <div class="ruta-row">{{ r }}</div>
+                                  <div class="rutas-table-render" [style.width.mm]="v.width_mm || 68">
+                                    <table class="rutas-table-grid" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                                      <colgroup>
+                                        <col [style.width.mm]="v.col_codigo_mm || 13" />
+                                        <col [style.width.mm]="v.col_tramo_mm || 41" />
+                                        <col [style.width.mm]="v.col_frecuencia_mm || 14" />
+                                      </colgroup>
+                                      <tbody>
+                                        @if (rutasDetalleList().length > 0) {
+                                          @for (r of rutasDetalleList(); track $index) {
+                                            <tr class="ruta-tr" [class.is-last-ruta]="$last">
+                                              <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                {{ r.codigo }}
+                                              </td>
+                                              <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
+                                                <div class="clamp-2-cell"
+                                                     [class.shrink-font]="esTextoLargo2Lineas(r.tramo, v.col_tramo_mm || 56, v.font_size_pt || 6)"
+                                                     [innerHTML]="formatearTramoHtml(r.tramo, v.escala_itinerario || 0.85, v.font_size_pt || 6)">
+                                                </div>
+                                              </td>
+                                              <td class="col-frec" [class.frec-normal]="v.frec_bold === false" style="vertical-align: top; text-align: right; font-weight: 700; color: #000000; padding: 0.8mm 0 0.8mm 0.4mm;">
+                                                <div class="frec-col-cell text-right"
+                                                     style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
+                                                     [class.shrink-font]="esTextoLargo2Lineas(r.frecuencia, v.col_frecuencia_mm || 14, v.font_size_pt || 6)"
+                                                     [innerHTML]="formatearFrecuenciaHtml(r.frecuencia, v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false)">
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          }
+                                        } @else {
+                                          <tr class="ruta-tr r-empty is-last-ruta">
+                                            <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap;">
+                                              Ruta 01:
+                                            </td>
+                                            <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
+                                              <div class="clamp-2-cell"
+                                                   [innerHTML]="formatearTramoHtml('JULIACA - PUTINA - ANANEA - LA RINCONADA', v.escala_itinerario || 0.85, v.font_size_pt || 6)">
+                                              </div>
+                                            </td>
+                                            <td class="col-frec" style="vertical-align: top; text-align: right; font-weight: 700; color: #000000; padding: 0.8mm 0 0.8mm 0.4mm;">
+                                              <div class="frec-col-cell text-right"
+                                                   style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
+                                                   [innerHTML]="formatearFrecuenciaHtml('20 DIARIAS (LUN A SAB)', v.escala_dias_frec || 0.80)">
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        }
+                                      </tbody>
+                                    </table>
+                                    <!-- RESOLUCIÓN HIJA ACOPLADA JUSTO BAJO RUTAS (SIN ESPACIADO Y CENTRADO) -->
+                                    @if (variableNumResolucion(); as numResVar) {
+                                      @if (tieneValorResolucionHija(numResVar)) {
+                                        <div class="resolucion-hija-bajo-rutas"
+                                             [style.textAlign]="numResVar.align || 'center'"
+                                             [style.fontSize.pt]="numResVar.font_size_pt || 7"
+                                             [style.color]="numResVar.color || '#000000'">
+                                          <div class="var-rendered-content" [style.textAlign]="numResVar.align || 'center'" [innerHTML]="obtenerHtmlRender(numResVar)"></div>
+                                        </div>
                                       }
-                                    } @else {
-                                      <div class="r-empty">Ruta 01: JULIACA - PUTINA - ANANEA - LA RINCONADA</div>
                                     }
                                   </div>
                                 } @else {
@@ -197,14 +252,17 @@ export interface GenerarTucDialogData {
                             @if (v.visible) {
                               <div class="positioned-var"
                                    [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea'"
-                                   [class.has-two-lines]="v.max_lineas === 2"
-                                   [class.has-multiline]="v.max_lineas === 0"
+                                   [class.is-tabla-rutas]="v.tag === '{{TABLA_RUTAS}}'"
+                                   [class.has-two-lines]="v.tag !== '{{TABLA_RUTAS}}' && v.max_lineas === 2"
+                                   [class.has-multiline]="v.tag !== '{{TABLA_RUTAS}}' && v.max_lineas === 0"
                                    [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
                                    [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
                                    [style.left.mm]="v.x_mm"
                                    [style.top.mm]="v.y_mm"
                                    [style.width.mm]="v.width_mm"
-                                   [style.height.mm]="v.height_mm"
+                                   [style.height.mm]="(v.tag === '{{TABLA_RUTAS}}' || v.max_lineas === 2 || v.max_lineas === 0) ? null : v.height_mm"
+                                   [style.lineHeight]="v.line_height || (v.max_lineas === 2 ? 1.22 : 1.15)"
+                                   [style.--line-height]="v.line_height || (v.max_lineas === 2 ? 1.22 : 1.15)"
                                    [style.fontSize.pt]="v.font_size_pt"
                                    [style.color]="v.color"
                                    [style.textAlign]="v.align">
@@ -220,14 +278,55 @@ export interface GenerarTucDialogData {
                                        [style.borderTopColor]="v.color || '#000000'">
                                   </div>
                                 } @else if (v.tag === '{{TABLA_RUTAS}}') {
-                                  <div class="rutas-table-render">
-                                    @if (rutasList().length > 0) {
-                                      @for (r of rutasList(); track $index) {
-                                        <div class="ruta-row">{{ r }}</div>
-                                      }
-                                    } @else {
-                                      <div class="r-empty">Ruta 01: JULIACA - PUTINA - ANANEA - LA RINCONADA</div>
-                                    }
+                                  <div class="rutas-table-render" [style.width.mm]="v.width_mm || 68">
+                                    <table class="rutas-table-grid" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                                      <colgroup>
+                                        <col [style.width.mm]="v.col_codigo_mm || 13" />
+                                        <col [style.width.mm]="v.col_tramo_mm || 41" />
+                                        <col [style.width.mm]="v.col_frecuencia_mm || 14" />
+                                      </colgroup>
+                                      <tbody>
+                                        @if (rutasDetalleList().length > 0) {
+                                          @for (r of rutasDetalleList(); track $index) {
+                                            <tr class="ruta-tr" [class.is-last-ruta]="$last">
+                                              <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                {{ r.codigo }}
+                                              </td>
+                                              <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
+                                                <div class="clamp-2-cell"
+                                                     [class.shrink-font]="esTextoLargo2Lineas(r.tramo, v.col_tramo_mm || 56, v.font_size_pt || 6)">
+                                                  {{ r.tramo }}
+                                                </div>
+                                              </td>
+                                              <td class="col-frec" [class.frec-normal]="v.frec_bold === false" style="vertical-align: top; text-align: right; font-weight: 700; color: #000000; padding: 0.8mm 0 0.8mm 0.4mm;">
+                                                <div class="frec-col-cell text-right"
+                                                    style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
+                                                     [class.shrink-font]="esTextoLargo2Lineas(r.frecuencia, v.col_frecuencia_mm || 14, v.font_size_pt || 6)"
+                                                     [innerHTML]="formatearFrecuenciaHtml(r.frecuencia, v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false)">
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          }
+                                        } @else {
+                                          <tr class="ruta-tr r-empty is-last-ruta">
+                                            <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap;">
+                                              Ruta 01:
+                                            </td>
+                                            <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
+                                              <div class="clamp-2-cell">
+                                                JULIACA - PUTINA - ANANEA - LA RINCONADA
+                                              </div>
+                                            </td>
+                                            <td class="col-frec" style="vertical-align: top; text-align: right; font-weight: 700; color: #000000; padding: 0.8mm 0 0.8mm 0.4mm;">
+                                              <div class="frec-col-cell text-right"
+                                                   style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
+                                                   [innerHTML]="formatearFrecuenciaHtml('20 DIARIAS (LUN A SAB)', v.escala_dias_frec || 0.80)">
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        }
+                                      </tbody>
+                                    </table>
                                   </div>
                                 } @else {
                                   <div class="var-rendered-content"
@@ -257,14 +356,17 @@ export interface GenerarTucDialogData {
                           @if (v.visible) {
                             <div class="positioned-var"
                                  [class.is-graphic]="v.tipo === 'imagen' || v.tipo === 'qr' || v.tipo === 'linea'"
-                                 [class.has-two-lines]="v.max_lineas === 2"
-                                 [class.has-multiline]="v.max_lineas === 0"
+                                 [class.is-tabla-rutas]="v.tag === '{{TABLA_RUTAS}}'"
+                                 [class.has-two-lines]="v.tag !== '{{TABLA_RUTAS}}' && v.max_lineas === 2"
+                                 [class.has-multiline]="v.tag !== '{{TABLA_RUTAS}}' && v.max_lineas === 0"
                                  [class.is-vertical]="v.orientacion_texto === 'vertical' || v.rotacion === 90"
                                  [class.is-vertical-270]="v.orientacion_texto === 'vertical_270' || v.rotacion === 270"
                                  [style.left.mm]="v.x_mm"
                                  [style.top.mm]="v.y_mm"
                                  [style.width.mm]="v.width_mm"
-                                 [style.height.mm]="v.height_mm"
+                                 [style.height.mm]="(v.tag === '{{TABLA_RUTAS}}' || v.max_lineas === 2 || v.max_lineas === 0) ? null : v.height_mm"
+                                 [style.lineHeight]="v.line_height || (v.max_lineas === 2 ? 1.22 : 1.15)"
+                                 [style.--line-height]="v.line_height || (v.max_lineas === 2 ? 1.22 : 1.15)"
                                  [style.fontSize.pt]="v.font_size_pt"
                                  [style.color]="v.color"
                                  [style.textAlign]="v.align">
@@ -280,14 +382,66 @@ export interface GenerarTucDialogData {
                                      [style.borderTopColor]="v.color || '#000000'">
                                 </div>
                               } @else if (v.tag === '{{TABLA_RUTAS}}') {
-                                <div class="rutas-table-render">
-                                  @if (rutasList().length > 0) {
-                                    @for (r of rutasList(); track $index) {
-                                      <div class="ruta-row">{{ r }}</div>
+                                <div class="rutas-table-render" [style.width.mm]="v.width_mm || 68">
+                                  <table class="rutas-table-grid" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                                    <colgroup>
+                                      <col [style.width.mm]="v.col_codigo_mm || 13" />
+                                      <col [style.width.mm]="v.col_tramo_mm || 41" />
+                                      <col [style.width.mm]="v.col_frecuencia_mm || 14" />
+                                    </colgroup>
+                                    <tbody>
+                                      @if (rutasDetalleList().length > 0) {
+                                        @for (r of rutasDetalleList(); track $index) {
+                                          <tr class="ruta-tr" [class.is-last-ruta]="$last">
+                                            <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                              {{ r.codigo }}
+                                            </td>
+                                            <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
+                                              <div class="clamp-2-cell"
+                                                   [class.shrink-font]="esTextoLargo2Lineas(r.tramo, v.col_tramo_mm || 56, v.font_size_pt || 6)"
+                                                   [innerHTML]="formatearTramoHtml(r.tramo, v.escala_itinerario || 0.85, v.font_size_pt || 6)">
+                                              </div>
+                                            </td>
+                                            <td class="col-frec" [class.frec-normal]="v.frec_bold === false" style="vertical-align: top; text-align: right; font-weight: 700; color: #000000; padding: 0.8mm 0 0.8mm 0.4mm;">
+                                              <div class="frec-col-cell text-right"
+                                                   style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
+                                                   [class.shrink-font]="esTextoLargo2Lineas(r.frecuencia, v.col_frecuencia_mm || 14, v.font_size_pt || 6)"
+                                                   [innerHTML]="formatearFrecuenciaHtml(r.frecuencia, v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false)">
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        }
+                                      } @else {
+                                        <tr class="ruta-tr r-empty is-last-ruta">
+                                          <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap;">
+                                            Ruta 01:
+                                          </td>
+                                          <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
+                                            <div class="clamp-2-cell"
+                                                 [innerHTML]="formatearTramoHtml('JULIACA - PUTINA - ANANEA - LA RINCONADA', v.escala_itinerario || 0.85, v.font_size_pt || 6)">
+                                            </div>
+                                          </td>
+                                          <td class="col-frec" style="vertical-align: top; text-align: right; font-weight: 700; color: #000000; padding: 0.8mm 0 0.8mm 0.4mm;">
+                                            <div class="frec-col-cell text-right"
+                                                 style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
+                                                 [innerHTML]="formatearFrecuenciaHtml('20 DIARIAS (LUN A SAB)', v.escala_dias_frec || 0.80)">
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      }
+                                    </tbody>
+                                  </table>
+                                    <!-- RESOLUCIÓN HIJA ACOPLADA JUSTO BAJO RUTAS (SIN ESPACIADO Y CENTRADO) -->
+                                    @if (variableNumResolucion(); as numResVar) {
+                                      @if (tieneValorResolucionHija(numResVar)) {
+                                        <div class="resolucion-hija-bajo-rutas"
+                                             [style.textAlign]="numResVar.align || 'center'"
+                                             [style.fontSize.pt]="numResVar.font_size_pt || 7"
+                                             [style.color]="numResVar.color || '#000000'">
+                                          <div class="var-rendered-content" [style.textAlign]="numResVar.align || 'center'" [innerHTML]="obtenerHtmlRender(numResVar)"></div>
+                                        </div>
+                                      }
                                     }
-                                  } @else {
-                                    <div class="r-empty">Ruta 01: JULIACA - PUTINA - ANANEA - LA RINCONADA</div>
-                                  }
                                 </div>
                               } @else {
                                 <div class="var-rendered-content"
@@ -1076,15 +1230,37 @@ export interface GenerarTucDialogData {
               letter-spacing: -0.2px;
             }
 
-            &.has-two-lines,
+            &.is-tabla-rutas {
+              height: auto !important;
+              min-height: auto !important;
+              display: block !important;
+              justify-content: flex-start !important;
+              align-items: flex-start !important;
+              white-space: normal !important;
+              transform: none !important;
+
+              .rutas-table-render {
+                height: auto !important;
+              }
+            }
+
+            &.has-two-lines {
+              height: auto !important;
+              min-height: calc(2 * var(--line-height, 1.25) * 1em) !important;
+              white-space: normal !important;
+            }
+
             .var-rendered-content.clamp-2-lines {
               white-space: normal !important;
               display: -webkit-box !important;
               -webkit-line-clamp: 2 !important;
+              line-clamp: 2 !important;
               -webkit-box-orient: vertical !important;
-              overflow: hidden !important;
+              overflow: visible !important;
               word-break: break-word !important;
-              line-height: 1.15 !important;
+              line-height: var(--line-height, 1.22) !important;
+              padding-bottom: 3px !important;
+              box-sizing: border-box !important;
             }
 
             &.has-multiline,
@@ -1115,10 +1291,153 @@ export interface GenerarTucDialogData {
             .rutas-table-render {
               font-size: 5.5pt;
               line-height: 1.25;
+              width: 100%;
 
-              .ruta-row {
-                margin-bottom: 0.8mm;
-                color: #000000;
+              .rutas-table-grid {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+
+                .ruta-tr {
+                  border-bottom: none !important;
+
+                  &.is-last-ruta {
+                    border-bottom: 0.8px solid #000000 !important;
+                  }
+
+                  td {
+                    vertical-align: top;
+                    padding: 0.2mm 0.8mm 0.2mm 0.4mm;
+                    line-height: 1.08;
+                  }
+
+                  .col-cod {
+                    font-weight: 800;
+                    color: #000000;
+                    white-space: nowrap;
+                    padding-left: 0 !important;
+                    line-height: 1.08;
+                  }
+
+                  .col-tramo {
+                    color: #000000;
+                    line-height: 1.08;
+
+                    .r-itin {
+                      color: #616161;
+                    }
+                  }
+
+                  .col-frec {
+                    font-weight: 700;
+                    color: #000000;
+                    text-align: right;
+                    padding-right: 0 !important;
+                    line-height: 1.0;
+
+                    &.frec-normal {
+                      font-weight: 400 !important;
+
+                      .frec-col-cell,
+                      .clamp-2-cell {
+                        font-weight: 400 !important;
+                      }
+
+                      ::ng-deep .frec-txt {
+                        font-weight: 400 !important;
+                      }
+
+                      ::ng-deep .frec-dias {
+                        font-weight: 400 !important;
+                      }
+                    }
+
+                    .frec-col-cell,
+                    .clamp-2-cell {
+                      display: flex !important;
+                      flex-direction: column !important;
+                      align-items: flex-end !important;
+                      justify-content: flex-start !important;
+                      max-height: none !important;
+                      line-height: 1.0 !important;
+                      width: 100% !important;
+                    }
+
+                    ::ng-deep .frec-txt {
+                      display: block !important;
+                      white-space: nowrap !important;
+                      line-height: 1.0 !important;
+                      text-align: right !important;
+                    }
+
+                    ::ng-deep .frec-dias {
+                      display: block !important;
+                      margin-top: 0 !important;
+                      font-weight: 600 !important;
+                      line-height: 1.0 !important;
+                      opacity: 0.92 !important;
+                      text-align: right !important;
+                    }
+                  }
+
+                  .clamp-2-cell {
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    line-height: 1.25;
+                    max-height: calc(2 * 1.25 * 1em);
+                    word-break: break-word;
+
+                    &.text-right {
+                      text-align: right;
+                    }
+
+                    &.shrink-font {
+                      font-size: calc(1em - 0.5pt) !important;
+                      max-height: calc(2 * 1.25 * (1em - 0.5pt));
+                    }
+                  }
+
+                  &.r-empty {
+                    color: #64748b;
+
+                    td {
+                      color: #64748b;
+                    }
+
+                    .col-cod {
+                      color: #64748b;
+                    }
+
+                    .col-frec {
+                      color: #475569;
+                    }
+                  }
+                }
+              }
+
+              .resolucion-hija-bajo-rutas {
+                position: relative;
+                width: 100% !important;
+                display: block !important;
+                margin: 0 auto !important;
+                padding-top: 0.2mm !important;
+                padding-bottom: 0 !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                text-align: center;
+                line-height: 1.15;
+                box-sizing: border-box;
+
+                .var-rendered-content {
+                  width: 100% !important;
+                  text-align: inherit !important;
+                  display: block !important;
+                  line-height: 1.15;
+                }
               }
 
               .r-empty {
@@ -1697,8 +2016,26 @@ export class GenerarTucDialogComponent implements OnInit {
   plantillaActivaNombre = computed(() => this.configCalibrador()?.nombre || 'Plantilla Oficial DRTC Puno');
 
   // Variables por Sección exactamente igual a TUC Studio
-  varsAnverso = computed(() => this.configCalibrador()?.variables?.filter(v => v.visible && (v.seccion === 'anverso' || !v.seccion)) || []);
-  varsReverso = computed(() => this.configCalibrador()?.variables?.filter(v => v.visible && v.seccion === 'reverso') || []);
+  tieneTablaRutas = computed(() => {
+    return (this.configCalibrador()?.variables || []).some(v => v.visible && (v.tag === '{{TABLA_RUTAS}}' || v.id === 'tabla_rutas'));
+  });
+
+  variableNumResolucion = computed(() => {
+    const res = this.configCalibrador()?.variables?.find(v => v.tag === '{{NUM_RESOLUCION}}' || v.id === 'num_resolucion') || null;
+    if (res && (!res.align || res.align === 'left')) {
+      res.align = 'center';
+    }
+    return res;
+  });
+
+  varsAnverso = computed(() => {
+    const list = this.configCalibrador()?.variables?.filter(v => v.visible && (v.seccion === 'anverso' || !v.seccion)) || [];
+    return this.tieneTablaRutas() ? list.filter(v => v.tag !== '{{NUM_RESOLUCION}}') : list;
+  });
+  varsReverso = computed(() => {
+    const list = this.configCalibrador()?.variables?.filter(v => v.visible && v.seccion === 'reverso') || [];
+    return this.tieneTablaRutas() ? list.filter(v => v.tag !== '{{NUM_RESOLUCION}}') : list;
+  });
   formatoPapel = computed(() => this.configCalibrador()?.formato_papel || 'A4');
   orientacion = computed(() => this.configCalibrador()?.orientacion || 'portrait');
 
@@ -1756,6 +2093,83 @@ export class GenerarTucDialogComponent implements OnInit {
   hayModificaciones = computed(() => this.camposModificadosCount() > 0);
 
   // Computado: lista reactiva de rutas para renderizar en el reverso
+  rutasDetalleList = computed<{ codigo: string; tramo: string; frecuencia: string }[]>(() => {
+    const text = this.datosEditados()['tabla_rutas_text'] || '';
+    if (text && text.trim().length > 0) {
+      return text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0).map((l: string, idx: number) => {
+        const m = l.match(/^(Ruta\s*\d+:?|\d+:?)\s*(.*?)(?:\s+((?:\d+\s*(?:DIARIAS|SEMANALES|MENSUALES|HORAS|VECES|SALIDAS|VIAJES)[^.]*|\([^)]+\)))\s*)?$/i);
+        if (m) {
+          const cod = m[1].endsWith(':') ? m[1] : `${m[1]}:`;
+          return { codigo: cod, tramo: m[2] || '', frecuencia: m[3] || '' };
+        }
+        const numStr = (idx + 1).toString().padStart(2, '0');
+        return { codigo: `Ruta ${numStr}:`, tramo: l, frecuencia: '' };
+      });
+    }
+    const dt = this.tucData()?.datos?.rutas_detalle;
+    if (Array.isArray(dt) && dt.length > 0) {
+      return dt.map((r: any, idx: number) => {
+        const codNum = (r.codigo || (idx + 1)).toString().padStart(2, '0');
+        const cod = `Ruta ${codNum}:`;
+        let tramo = '';
+        if (r.origen || r.destino) {
+          const itin = r.itinerario ? ` - ${r.itinerario} - ` : ' - ';
+          tramo = `${r.origen || ''}${itin}${r.destino || ''}`.trim();
+        } else {
+          tramo = (r.tramo || 'AMBITO REGIONAL PUNO').trim();
+        }
+        const frecuencia = (r.frecuencia || '').trim();
+        return { codigo: cod, tramo, frecuencia };
+      });
+    }
+    return [
+      { codigo: 'Ruta 01:', tramo: 'AMBITO REGIONAL PUNO', frecuencia: '20 DIARIAS' }
+    ];
+  });
+
+  esTextoLargo2Lineas(texto: string | null | undefined, colMm: number, fontSizePt: number = 6): boolean {
+    if (!texto) return false;
+    const clean = texto.trim();
+    if (!clean) return false;
+    if ((clean.match(/\n/g) || []).length >= 2) return true;
+    const avgCharWidthMm = Math.max(0.55, (fontSizePt || 6) * 0.3528 * 0.50);
+    const charsPorLinea = Math.max(5, (colMm || 40) / avgCharWidthMm);
+    return clean.length > (charsPorLinea * 1.8);
+  }
+
+  formatearFrecuenciaHtml(frec: string | null | undefined, escala: number = 0.80, fontSizeBasePt: number = 6, bold: boolean = true): string {
+    if (!frec) return '';
+    const clean = frec.trim();
+    const openParenIdx = clean.indexOf('(');
+    const esc = Math.min(1.0, Math.max(0.4, Number(escala) || 0.80));
+    const fontDiasPt = Math.round((fontSizeBasePt || 6) * esc * 10) / 10;
+    const fwTxt = bold ? '700' : '400';
+    const fwDias = bold ? '600' : '400';
+    if (openParenIdx !== -1) {
+      const textoPrincipal = clean.substring(0, openParenIdx).replace(/\s+/g, ' ').trim();
+      const textoDias = clean.substring(openParenIdx).replace(/\s+/g, ' ').trim();
+      return `<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.15;">` +
+        `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:${fwTxt};color:#000000;line-height:1.15;">${this.escapeHtml(textoPrincipal)}</div>` +
+        `<div class="frec-dias" style="display:block;margin-top:2px;font-size:${fontDiasPt}pt !important;font-weight:${fwDias};opacity:0.92;color:#000000;text-align:right;line-height:1.15;white-space:normal;word-break:break-word;">${this.escapeHtml(textoDias)}</div>` +
+        `</div>`;
+    }
+    // Si no contiene paréntesis pero viene con saltos de línea
+    if (clean.includes('\n')) {
+      const partes = clean.split('\n').map(p => p.trim()).filter(Boolean);
+      if (partes.length >= 2) {
+        const textoPrincipal = partes[0];
+        const textoDias = partes.slice(1).join(' ');
+        return `<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.15;">` +
+          `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:${fwTxt};color:#000000;line-height:1.15;">${this.escapeHtml(textoPrincipal)}</div>` +
+          `<div class="frec-dias" style="display:block;margin-top:2px;font-size:${fontDiasPt}pt !important;font-weight:${fwDias};opacity:0.92;color:#000000;text-align:right;line-height:1.15;white-space:normal;word-break:break-word;">${this.escapeHtml(textoDias)}</div>` +
+          `</div>`;
+      }
+    }
+    return `<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.15;">` +
+      `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:${fwTxt};color:#000000;line-height:1.15;">${this.escapeHtml(clean)}</div>` +
+      `</div>`;
+  }
+
   rutasList = computed<string[]>(() => {
     const text = this.datosEditados()['tabla_rutas_text'] || '';
     if (text && text.trim().length > 0) {
@@ -1864,12 +2278,76 @@ export class GenerarTucDialogComponent implements OnInit {
     }).join('');
   }
 
+  determinarSiglasResolucion(nroResolucion: string): string {
+    if (!nroResolucion) return 'GRP/GRI/DRTC';
+    const s = String(nroResolucion).trim().toUpperCase();
+    const match = s.match(/(?:^|[^\d])0*(\d{1,6})\s*[-/.\s]+\s*(\d{4})\b/);
+    let num: number | null = null;
+    let year: number | null = null;
+    if (match) {
+      num = parseInt(match[1], 10);
+      year = parseInt(match[2], 10);
+    } else {
+      const match2d = s.match(/(?:^|[^\d])0*(\d{1,6})\s*[-/.\s]+\s*(\d{2})\b/);
+      if (match2d) {
+        num = parseInt(match2d[1], 10);
+        const yr2 = parseInt(match2d[2], 10);
+        year = yr2 < 50 ? 2000 + yr2 : 1900 + yr2;
+      }
+    }
+    if (num === null || year === null) {
+      return 'GRP/GRI/DRTC';
+    }
+    if (year < 2025 || (year === 2025 && num <= 900)) {
+      return 'GR PUNO/GRI/DRTC';
+    } else if ((year === 2025 && num >= 901) || (year === 2026 && num < 124)) {
+      return 'GRP/DRTC';
+    } else {
+      return 'GRP/GRI/DRTC';
+    }
+  }
+
+  formatearTramoHtml(tramo: string | null | undefined, escalaItin: number = 0.85, fontSizeBasePt: number = 6): string {
+    if (!tramo) return '';
+    const clean = tramo.trim();
+    const esc = Math.min(1.2, Math.max(0.4, Number(escalaItin) || 0.85));
+    const fontItinPt = Math.round((fontSizeBasePt || 6) * esc * 10) / 10;
+
+    // Si tiene separadores '-' separar origen, itinerarios y destino
+    const partes = clean.split('-').map(p => p.trim()).filter(Boolean);
+    if (partes.length > 2) {
+      const origen = this.escapeHtml(partes[0]);
+      const destino = this.escapeHtml(partes[partes.length - 1]);
+      const itinIntermedio = partes.slice(1, partes.length - 1).map(p => this.escapeHtml(p)).join(' - ');
+      return `<span>${origen}</span> <span class="r-itin" style="color: #616161; font-size: ${fontItinPt}pt !important;">- ${itinIntermedio} -</span> <span>${destino}</span>`;
+    }
+    return `<span>${this.escapeHtml(clean)}</span>`;
+  }
+
+  tieneValorResolucionHija(numResVar: VariablePlantillaTuc | null): boolean {
+    if (!numResVar || !numResVar.visible) return false;
+    const ph = this.placeholdersVehiculo();
+    const val = ph[numResVar.tag] !== undefined ? ph[numResVar.tag] : (numResVar.valor_ejemplo || '');
+    const valStr = String(val || '').trim();
+    return !!valStr && valStr !== '-';
+  }
+
   obtenerHtmlRender(v: VariablePlantillaTuc): SafeHtml {
     const ph = this.placeholdersVehiculo();
     let val = ph[v.tag] !== undefined ? ph[v.tag] : (v.valor_ejemplo || '');
+    const valStr = (val !== null && val !== undefined) ? String(val).trim() : '';
+
+    if (!valStr || valStr === '-') {
+      return this.sanitizer.bypassSecurityTrustHtml('');
+    }
 
     const prefix = v.prefix !== undefined && v.prefix !== '' ? v.prefix : (v.etiqueta || '');
-    const suffix = v.suffix || '';
+    let suffix = v.suffix || '';
+    if ((v.tag === '{{RES}}' || v.tag === '{{NUM_RESOLUCION}}') && valStr) {
+      if (!suffix || suffix.includes('DRTC') || suffix.includes('GRP') || suffix.includes('GR PUNO')) {
+        suffix = `-${this.determinarSiglasResolucion(valStr)}`;
+      }
+    }
     const baseSize = v.font_size_pt || 7.0;
 
     const prefixWeight = v.prefix_font_weight || v.etiqueta_font_weight || 'bold';
@@ -1882,7 +2360,45 @@ export class GenerarTucDialogComponent implements OnInit {
     const suffixWeight = v.suffix_font_weight || 'normal';
     const suffixSize = v.suffix_font_size_pt || baseSize;
 
-    const valHtml = this.formatearTextoConComillas(String(val), resaltar);
+    let suffix2 = v.suffix2 || '';
+    let suffix3 = v.suffix3 || '';
+
+    if (v.tag === '{{RES}}') {
+      suffix2 = '';
+      suffix3 = '';
+    } else if (v.tag === '{{NUM_RESOLUCION}}' && valStr) {
+      const phFecha = ph['{{FECHA_RES}}'] !== undefined ? ph['{{FECHA_RES}}'] : ph['fecha_res'];
+      if (phFecha !== undefined && phFecha !== null) {
+        const strF = String(phFecha).trim();
+        if (strF && strF !== '-') {
+          suffix2 = strF.startsWith('(') ? ` ${strF}` : ` (${strF})`;
+        } else {
+          suffix2 = '';
+        }
+      } else {
+        suffix2 = '';
+      }
+
+      const phTipo = ph['{{TIPO_RES}}'] !== undefined ? ph['{{TIPO_RES}}'] : ph['tipo_res'];
+      if (phTipo !== undefined && phTipo !== null) {
+        const strT = String(phTipo).trim();
+        if (strT && strT !== '-') {
+          suffix3 = strT.startsWith('(') ? ` ${strT}` : ` (${strT})`;
+        } else {
+          suffix3 = '';
+        }
+      } else {
+        suffix3 = '';
+      }
+    }
+
+    const suffix2Weight = v.suffix2_font_weight || suffixWeight;
+    const suffix2Size = v.suffix2_font_size_pt || suffixSize;
+
+    const suffix3Weight = v.suffix3_font_weight || 'bold';
+    const suffix3Size = v.suffix3_font_size_pt || suffixSize;
+
+    const valHtml = this.formatearTextoConComillas(valStr, resaltar);
 
     let htmlOut = '';
     if (prefix) {
@@ -1893,6 +2409,12 @@ export class GenerarTucDialogComponent implements OnInit {
     }
     if (suffix) {
       htmlOut += `<span class="tuc-suffix" style="font-weight: ${suffixWeight}; font-size: ${suffixSize}pt;">${this.escapeHtml(suffix)}</span>`;
+    }
+    if (suffix2) {
+      htmlOut += `<span class="tuc-suffix2" style="font-weight: ${suffix2Weight}; font-size: ${suffix2Size}pt;">${this.escapeHtml(suffix2)}</span>`;
+    }
+    if (suffix3) {
+      htmlOut += `<span class="tuc-suffix3" style="font-weight: ${suffix3Weight}; font-size: ${suffix3Size}pt;">${this.escapeHtml(suffix3)}</span>`;
     }
 
     return this.sanitizer.bypassSecurityTrustHtml(htmlOut);

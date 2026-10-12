@@ -80,6 +80,13 @@ export interface VariablePlantillaTuc {
   etiqueta_font_size_pt?: number;
   max_lineas?: number;
   resaltar_comillas?: boolean;
+  col_codigo_mm?: number;
+  col_tramo_mm?: number;
+  col_frecuencia_mm?: number;
+  escala_dias_frec?: number; // Escala proporcional (ej: 0.80 = 80%) para días entre paréntesis en frecuencias
+  escala_itinerario?: number; // Escala proporcional (ej: 0.85 = 85%) para itinerario en rutas
+  espacio_filas_rutas_mm?: number; // Espacio vertical (padding) entre filas de rutas en mm (ej: 0.4 = más compacto)
+  frec_bold?: boolean; // Alternar negrita (true por defecto) o normal (false) en las frecuencias
   orientacion_texto?: 'horizontal' | 'vertical' | 'vertical_270';
   rotacion?: number;
   imprimible?: boolean;

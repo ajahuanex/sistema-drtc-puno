@@ -473,11 +473,16 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
         "x_mm": 12.0,
         "y_mm": 60.0,
         "width_mm": 68.0,
+        "col_codigo_mm": 13.0,
+        "col_tramo_mm": 41.0,
+        "col_frecuencia_mm": 14.0,
         "font_size_pt": 6.5,
         "font_weight": "normal",
         "color": "#000000",
         "align": "left",
         "visible": True,
+        "max_lineas": 0,
+        "frec_bold": True,
         "valor_ejemplo": "Ruta 01: JULIACA - PUTINA - QUILCAPUNO - ANANEA - C.P. LA RINCONADA - C.P. CERRO LUNAR 20 DIARIAS"
     },
     {
@@ -1320,8 +1325,11 @@ class TucCalibradorService:
             [v for v in variables if v.get("visible", True)],
             key=lambda item: (item.get("seccion", "anverso"), float(item.get("y_mm", 0.0)), float(item.get("x_mm", 0.0)))
         )
+        tiene_tabla_rutas = any(var.get("tag") == "{{TABLA_RUTAS}}" or var.get("id") == "tabla_rutas" for var in variables if var.get("visible", True))
 
         for v in variables_ordenadas:
+            if tiene_tabla_rutas and v.get("tag") == "{{NUM_RESOLUCION}}":
+                continue  # Acoplada dinámicamente justo debajo de la tabla de rutas sin espaciado y centrada
             seccion = v.get("seccion", "anverso")
             tipo = v.get("tipo", "texto")
             x = float(v.get("x_mm", 0.0))
@@ -1399,36 +1407,179 @@ class TucCalibradorService:
             if val is None or (str(val).strip() in ("", "-") and es_muestra_ejemplo):
                 val = v.get("valor_ejemplo", "")
 
-            # Si es la tabla de rutas, formatear adecuadamente
             if tag == "{{TABLA_RUTAS}}":
-                filas_rutas_html = []
                 val_custom = valores_map.get("{{TABLA_RUTAS}}")
+                col_cod_w = float(v.get("col_codigo_mm") or 9.5)
+                col_tra_w = float(v.get("col_tramo_mm") or 56.0)
+                col_frec_w = float(v.get("col_frecuencia_mm") or 14.0)
+                font_size_base = float(v.get("font_size") or 6.0)
+                escala_dias = float(v.get("escala_dias_frec") or 0.80)
+                escala_itin = float(v.get("escala_itinerario") or 0.85)
+                font_itin_pt = round(font_size_base * max(0.4, min(1.2, escala_itin)), 1)
+                espacio_filas_mm = float(v.get("espacio_filas_rutas_mm") if v.get("espacio_filas_rutas_mm") is not None else 0.2)
+                frec_es_bold = v.get("frec_bold") is not False
+                frec_peso_txt = "700" if frec_es_bold else "400"
+                frec_peso_dias = "600" if frec_es_bold else "400"
+
+                def formatear_frecuencia_backend(frec_str: str, escala: float, fs_base: float = 6.0) -> str:
+                    clean = str(frec_str or "").strip()
+                    open_paren_idx = clean.find("(")
+                    esc = max(0.4, min(1.0, float(escala or 0.80)))
+                    font_dias_pt = round(fs_base * esc, 1)
+                    if open_paren_idx != -1:
+                        t_prin = html_escape(re.sub(r'\s+', ' ', clean[:open_paren_idx]).strip())
+                        t_dias = html_escape(re.sub(r'\s+', ' ', clean[open_paren_idx:]).strip())
+                        return (
+                            f'<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;">'
+                            f'<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:{frec_peso_txt};color:#000000;line-height:1.0;">{t_prin}</div>'
+                            f'<div class="frec-dias" style="display:block;margin-top:0px;font-size:{font_dias_pt}pt !important;font-weight:{frec_peso_dias};opacity:0.92;color:#000000;text-align:right;line-height:1.0;white-space:normal;word-break:break-word;">{t_dias}</div>'
+                            f'</div>'
+                        )
+                    if "\n" in clean:
+                        partes = [p.strip() for p in clean.split("\n") if p.strip()]
+                        if len(partes) >= 2:
+                            t_prin = html_escape(partes[0])
+                            t_dias = html_escape(" ".join(partes[1:]))
+                            return (
+                                f'<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;">'
+                                f'<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:{frec_peso_txt};color:#000000;line-height:1.0;">{t_prin}</div>'
+                                f'<div class="frec-dias" style="display:block;margin-top:0px;font-size:{font_dias_pt}pt !important;font-weight:{frec_peso_dias};opacity:0.92;color:#000000;text-align:right;line-height:1.0;white-space:normal;word-break:break-word;">{t_dias}</div>'
+                                f'</div>'
+                            )
+                    return f'<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;"><div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:{frec_peso_txt};color:#000000;line-height:1.0;">{html_escape(clean)}</div></div>'
+
+                def render_celda_2_lineas(contenido_html: str, texto_plano: str, col_mm: float, fs_base: float, align_right: bool = False) -> str:
+                    clean = str(texto_plano or "").strip()
+                    avg_char_w = max(0.55, fs_base * 0.3528 * 0.50)
+                    chars_linea = max(5, col_mm / avg_char_w)
+                    es_largo = len(clean) > (chars_linea * 1.8) or clean.count("\n") >= 2
+                    fs_final = max(3.5, fs_base - 0.5) if es_largo else fs_base
+                    fs_style = f"font-size:{fs_final:.1f}pt;" if es_largo else ""
+                    if align_right:
+                        return (
+                            f'<div style="display:flex; flex-direction:column; align-items:flex-end; justify-content:flex-start;'
+                            f'text-align:right; line-height:1.0; {fs_style}">{contenido_html}</div>'
+                        )
+                    return (
+                        f'<div style="display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;'
+                        f'overflow:hidden;text-overflow:ellipsis;line-height:1.08;max-height:calc(2 * 1.08 * 1em);'
+                        f'word-break:break-word;{fs_style}">{contenido_html}</div>'
+                    )
+
+                filas_datos = []
                 if datos_override and ("tabla_rutas_text" in datos_override or "rutas" in datos_override or "{{TABLA_RUTAS}}" in datos_override):
-                    for l in str(val_custom or "").split("\n"):
+                    for idx_l, l in enumerate(str(val_custom or "").split("\n")):
                         l_clean = l.strip()
                         if l_clean:
-                            filas_rutas_html.append(f'<div>{html_escape(l_clean)}</div>')
+                            m_ruta = re.match(r'^(Ruta\s*\d+:?|\d+:?)\s*(.*?)(?:\s+((?:\d+\s*(?:DIARIAS|SEMANALES|MENSUALES|HORAS|VECES|SALIDAS|VIAJES)[^.]*|\([^)]+\)))\s*)?$', l_clean, re.IGNORECASE)
+                            if m_ruta:
+                                c_part = html_escape(m_ruta.group(1).strip())
+                                if not c_part.endswith(":"):
+                                    c_part += ":"
+                                t_part = html_escape(m_ruta.group(2).strip())
+                                f_part = (m_ruta.group(3) or "").strip()
+                            else:
+                                c_part = f"Ruta {str(idx_l + 1).zfill(2)}:"
+                                t_part = html_escape(l_clean)
+                                f_part = ""
+                            filas_datos.append((c_part, t_part, t_part, f_part))
                 else:
-                    for idx, r in enumerate(rutas_detalle):
-                        cod = str(r.get("codigo") or (idx + 1)).zfill(2)
+                    for idx_r, r in enumerate(rutas_detalle):
+                        cod = str(r.get("codigo") or (idx_r + 1)).zfill(2)
                         orig = r.get("origen", "")
                         dest = r.get("destino", "")
                         itin = r.get("itinerario", "")
                         frec = r.get("frecuencia", "")
                         tramo = r.get("tramo", "")
 
+                        c_part = f"Ruta {cod}:"
                         if orig or dest:
-                            itin_part = f' <span style="color:#616161;">- {itin} -</span> ' if itin else ' - '
-                            frec_part = f' <span style="color:#616161; margin-left: 6px;">{frec}</span>' if frec else ''
-                            fila = f'<div><strong>Ruta {cod}:</strong> <span>{orig}</span>{itin_part}<span>{dest}</span>{frec_part}</div>'
+                            itin_font_style = f"font-size:{font_itin_pt}pt !important;"
+                            itin_part = f' <span class="r-itin" style="color:#616161; {itin_font_style}">- {html_escape(itin)} -</span> ' if itin else ' - '
+                            t_part = f'<span>{html_escape(orig)}</span>{itin_part}<span>{html_escape(dest)}</span>'
+                            t_plain = f"{orig} - {itin} - {dest}" if itin else f"{orig} - {dest}"
                         else:
-                            fila = f'<div><strong>Ruta {cod}:</strong> <span>{tramo}</span></div>'
-                        filas_rutas_html.append(fila)
+                            t_part = f'<span style="font-size:{font_itin_pt}pt !important;">{html_escape(tramo or "AMBITO REGIONAL PUNO")}</span>'
+                            t_plain = tramo or "AMBITO REGIONAL PUNO"
 
-                if not filas_rutas_html and v.get("valor_ejemplo"):
-                    filas_rutas_html.append(f'<div>{html_escape(str(v.get("valor_ejemplo")))}</div>')
+                        filas_datos.append((c_part, t_part, t_plain, frec))
 
-                val_html = "".join(filas_rutas_html) if filas_rutas_html else "<div>SIN RUTAS ASIGNADAS</div>"
+                if not filas_datos and v.get("valor_ejemplo"):
+                    filas_datos.append(("Ruta 01:", f'<span>JULIACA</span> <span class="r-itin" style="color:#616161; font-size:{font_itin_pt}pt !important;">- PUTINA - ANANEA -</span> <span>LA RINCONADA</span>', "JULIACA - PUTINA - ANANEA - LA RINCONADA", "20 DIARIAS (LUN A SAB)"))
+
+                filas_rutas_html = []
+                total_f = len(filas_datos)
+                for f_idx, (c_p, t_p, t_plain, f_p) in enumerate(filas_datos):
+                    is_last = (f_idx == total_f - 1)
+                    td_border = "border-bottom: 0.8px solid #000000;" if is_last else "border-bottom: none;"
+                    frec_formatted = formatear_frecuencia_backend(f_p, escala_dias, font_size_base)
+
+                    t_div = render_celda_2_lineas(t_p, t_plain, col_tra_w, font_size_base, align_right=False)
+                    f_div = render_celda_2_lineas(frec_formatted, f_p, col_frec_w, font_size_base, align_right=True)
+                    row_html = (
+                        f'<tr style="{td_border}">'
+                        f'<td style="width:{col_cod_w}mm; vertical-align:top; font-weight:800; color:#000000; padding:{espacio_filas_mm:.1f}mm 0.8mm {espacio_filas_mm:.1f}mm 0; white-space:nowrap; overflow:hidden;">{c_p}</td>'
+                        f'<td style="width:{col_tra_w}mm; vertical-align:top; color:#000000; padding:{espacio_filas_mm:.1f}mm 0.8mm {espacio_filas_mm:.1f}mm 0.4mm;">{t_div}</td>'
+                        f'<td style="width:{col_frec_w}mm; vertical-align:top; font-weight:700; color:#000000; padding:{espacio_filas_mm:.1f}mm 0 {espacio_filas_mm:.1f}mm 0.4mm;">{f_div}</td>'
+                        f'</tr>'
+                    )
+                    filas_rutas_html.append(row_html)
+
+                table_content = "".join(filas_rutas_html) if filas_rutas_html else '<tr style="border-bottom: 0.8px solid #000000;"><td colspan="3" style="padding:0.8mm 0;">SIN RUTAS ASIGNADAS</td></tr>'
+                total_w = v.get("width_mm") or 68.0
+                val_html = (
+                    f'<table class="rutas-table-grid" style="width:100%; max-width:{total_w}mm; border-collapse:collapse; table-layout:fixed; font-size:{font_size}pt; color:#000000;">'
+                    f'<colgroup><col style="width:{col_cod_w}mm;"/><col style="width:{col_tra_w}mm;"/><col style="width:{col_frec_w}mm;"/></colgroup>'
+                    f'<tbody>{table_content}</tbody>'
+                    f'</table>'
+                )
+
+                # Acoplar resolución hija justo debajo de la línea de rutas sin espaciado y centrado
+                num_res_var = next((var for var in variables if (var.get("tag") == "{{NUM_RESOLUCION}}" or var.get("id") == "num_resolucion") and var.get("visible", True)), None)
+                if num_res_var and not es_fila_en_blanco:
+                    num_res_val = valores_map.get("{{NUM_RESOLUCION}}")
+                    if num_res_val is None and es_muestra_ejemplo:
+                        num_res_val = num_res_var.get("valor_ejemplo", "0867-2024")
+                    num_res_clean = str(num_res_val or "").strip()
+                    if num_res_clean and num_res_clean != "-":
+                        p_fix = num_res_var.get("prefix") if num_res_var.get("prefix") is not None else "R.D.R N° "
+                        s_fix = num_res_var.get("suffix") or ""
+                        if not s_fix or any(s in s_fix for s in ("DRTC", "GRP", "GR PUNO")):
+                            s_fix = f"-{determinar_siglas_resolucion(num_res_clean)}"
+                        fecha_val = (valores_map.get("{{FECHA_RES}}") or "").strip()
+                        tipo_val = (valores_map.get("{{TIPO_RES}}") or "").strip()
+                        s2 = f" ({fecha_val})" if (fecha_val and fecha_val != "-") else (num_res_var.get("suffix2") or "")
+                        s3 = f" ({tipo_val})" if (tipo_val and tipo_val != "-") else (num_res_var.get("suffix3") or "")
+
+                        nr_fs = num_res_var.get("font_size_pt") or 7.0
+                        nr_align = num_res_var.get("align")
+                        if not nr_align or nr_align == "left":
+                            nr_align = "center"
+                        nr_col = num_res_var.get("color") or "#000000"
+
+                        p_fw = num_res_var.get("prefix_font_weight") or num_res_var.get("font_weight", "bold")
+                        v_fw = num_res_var.get("font_weight", "bold")
+                        s_fw = num_res_var.get("suffix_font_weight") or ("bold" if v_fw == "bold" else "normal")
+                        s2_fw = num_res_var.get("suffix2_font_weight") or s_fw
+                        s3_fw = num_res_var.get("suffix3_font_weight") or num_res_var.get("font_weight", "bold")
+
+                        nr_parts = []
+                        if p_fix:
+                            nr_parts.append(f'<span style="font-weight:{p_fw};">{html_escape(p_fix)}</span>')
+                        nr_parts.append(f'<span style="font-weight:{v_fw};">{html_escape(num_res_clean)}</span>')
+                        if s_fix:
+                            nr_parts.append(f'<span style="font-weight:{s_fw};">{html_escape(s_fix)}</span>')
+                        if s2:
+                            nr_parts.append(f' <span style="font-weight:{s2_fw};">{html_escape(s2)}</span>')
+                        if s3:
+                            nr_parts.append(f' <span style="font-weight:{s3_fw};">{html_escape(s3)}</span>')
+
+                        nr_inner = "".join(nr_parts)
+                        val_html += (
+                            f'<div class="resolucion-hija-bajo-rutas" style="width:100%; max-width:{total_w}mm; margin:0 auto !important; padding:0.2mm 0 0 0 !important; text-align:{nr_align}; font-size:{nr_fs}pt; color:{nr_col}; line-height:1.15; display:block !important;">'
+                            f'{nr_inner}'
+                            f'</div>'
+                        )
                 wrap_style = "white-space: normal; line-height: 1.25;"
             else:
                 if es_fila_en_blanco and v.get("categoria") == "acto_reverso":
@@ -1545,18 +1696,40 @@ class TucCalibradorService:
             elif rotacion == 180:
                 vert_style = "transform: rotate(180deg);"
 
-            el_style = (
-                f"position: absolute; "
-                f"left: {x}mm; "
-                f"top: {y}mm; "
-                f"{width} "
-                f"font-size: {font_size}pt; "
-                f"color: {color}; "
-                f"text-align: {align}; "
-                f"{wrap_style} "
-                f"{vert_style}"
-            )
-            tag_html = f'<div class="tuc-var" style="{el_style}">{val_html}</div>'
+            if max_lineas == 2:
+                # Ocupa el espacio vertical de 2 filas y centra verticalmente si solo tiene 1 fila
+                height_str = f"height: {v['height_mm']}mm;" if v.get("height_mm") else f"height: calc(2 * {line_height} * 1em);"
+                el_style = (
+                    f"position: absolute; "
+                    f"left: {x}mm; "
+                    f"top: {y}mm; "
+                    f"{width} "
+                    f"{height_str} "
+                    f"font-size: {font_size}pt; "
+                    f"color: {color}; "
+                    f"text-align: {align}; "
+                    f"display: flex; flex-direction: column; justify-content: center; "
+                    f"{vert_style}"
+                )
+                inner_style = (
+                    f"white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; "
+                    f"-webkit-box-orient: vertical; overflow: hidden; line-height: {line_height}; "
+                    f"word-break: break-word; width: 100%; text-align: {align};"
+                )
+                tag_html = f'<div class="tuc-var tuc-var-two-lines" style="{el_style}"><div style="{inner_style}">{val_html}</div></div>'
+            else:
+                el_style = (
+                    f"position: absolute; "
+                    f"left: {x}mm; "
+                    f"top: {y}mm; "
+                    f"{width} "
+                    f"font-size: {font_size}pt; "
+                    f"color: {color}; "
+                    f"text-align: {align}; "
+                    f"{wrap_style} "
+                    f"{vert_style}"
+                )
+                tag_html = f'<div class="tuc-var" style="{el_style}">{val_html}</div>'
             elementos_html.append(tag_html)
             if seccion == "anverso":
                 elementos_anverso.append(tag_html)

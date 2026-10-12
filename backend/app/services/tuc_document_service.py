@@ -552,8 +552,29 @@ class TucDocumentService:
             }
             rutas_objs = await db.rutas.find(q_emp).to_list(100)
 
-        rutas_map = {}
+        # Separar rutas ACTIVAS e INACTIVAS
+        rutas_activas_objs = []
+        rutas_inactivas_codigos = set()
         for r_item in rutas_objs:
+            raw_c = r_item.get("codigoRuta") or r_item.get("codigo") or r_item.get("codigo_ruta") or ""
+            c_str = str(raw_c).strip()
+            est = str(r_item.get("estado") or "").strip().upper()
+            es_inactiva = (
+                est in ("INACTIVA", "CANCELADA", "BAJA", "SUSPENDIDA") or
+                r_item.get("esta_activa") is False or
+                r_item.get("estaActivo") is False
+            )
+            if es_inactiva:
+                if c_str:
+                    rutas_inactivas_codigos.add(c_str)
+                    if c_str.isdigit():
+                        rutas_inactivas_codigos.add(str(int(c_str)))
+                        rutas_inactivas_codigos.add(str(int(c_str)).zfill(2))
+            else:
+                rutas_activas_objs.append(r_item)
+
+        rutas_map = {}
+        for r_item in rutas_activas_objs:
             raw_c = r_item.get("codigoRuta") or r_item.get("codigo") or r_item.get("codigo_ruta") or ""
             codigo_item = str(raw_c).strip()
             if codigo_item:
@@ -562,27 +583,56 @@ class TucDocumentService:
                     rutas_map[str(int(codigo_item))] = r_item
                     rutas_map[str(int(codigo_item)).zfill(2)] = r_item
 
-        rutas_lineas = []
-        rutas_para_frontend = []
+        # Sanitizar códigos asignados al vehículo (limpiando paréntesis y notas secundarias)
+        cods_sanitizados = []
+        for c in cods_limpios:
+            c_str = str(c).strip()
+            if not c_str:
+                continue
+            m = re.match(r'^(\d+)', c_str)
+            if m:
+                cods_sanitizados.append(m.group(1).zfill(2))
+            else:
+                m2 = re.search(r'(\d+)', c_str)
+                if m2:
+                    cods_sanitizados.append(m2.group(1).zfill(2))
+                elif c_str.upper() not in ("NAN", "NONE", "-", ""):
+                    cods_sanitizados.append(c_str)
+        cods_sanitizados = list(dict.fromkeys(cods_sanitizados))
 
         # Determinar lista de códigos ordenados a procesar
-        if cods_limpios:
-            cods_a_procesar = sorted(cods_limpios)
+        if cods_sanitizados:
+            cods_a_procesar = sorted(cods_sanitizados, key=lambda x: (0, int(x)) if x.isdigit() else (1, x))
         elif rutas_map:
-            cods_a_procesar = sorted(list(set(rutas_map.keys())))
+            cods_a_procesar = sorted(list(set(rutas_map.keys())), key=lambda x: (0, int(x)) if x.isdigit() else (1, x))
         else:
             cods_a_procesar = []
+
+        rutas_lineas = []
+        rutas_para_frontend = []
 
         for cod in cods_a_procesar:
             if not cod:
                 continue
+
+            # EXCLUSIÓN OBLIGATORIA: Si la ruta está inactiva/cancelada, NO se incluye en la TUC
+            if (
+                cod in rutas_inactivas_codigos or
+                (cod.isdigit() and str(int(cod)) in rutas_inactivas_codigos) or
+                (cod.isdigit() and cod.zfill(2) in rutas_inactivas_codigos)
+            ):
+                continue
+
             r_obj = (
                 rutas_map.get(cod) or
                 rutas_map.get(cod.zfill(2) if cod.isdigit() else cod) or
                 rutas_map.get(str(int(cod)) if cod.isdigit() else cod)
             )
-            if not r_obj and len(rutas_objs) == 1 and len(cods_a_procesar) == 1:
-                r_obj = rutas_objs[0]
+            if not r_obj and len(rutas_activas_objs) == 1 and len(cods_a_procesar) == 1:
+                r_obj = rutas_activas_objs[0]
+
+            cod_display = cod.zfill(2) if cod.isdigit() else cod
+
             if r_obj:
                 origen = r_obj.get("origen")
                 origen_nom = origen.get("nombre") if isinstance(origen, dict) else str(origen or "")
@@ -618,9 +668,9 @@ class TucDocumentService:
                 tramo = " - ".join(partes_tramo)
 
                 frec_display = f" {frec}" if frec else ""
-                rutas_lineas.append(f"Ruta {cod}: {tramo}{frec_display}")
+                rutas_lineas.append(f"Ruta {cod_display}: {tramo}{frec_display}")
                 rutas_para_frontend.append({
-                    "codigo": cod,
+                    "codigo": cod_display,
                     "origen": origen_nom,
                     "itinerario": itin_str,
                     "destino": destino_nom,
@@ -628,15 +678,17 @@ class TucDocumentService:
                     "frecuencia": frec
                 })
             else:
-                rutas_lineas.append(f"Ruta {cod}")
-                rutas_para_frontend.append({
-                    "codigo": cod,
-                    "origen": "",
-                    "itinerario": "",
-                    "destino": "",
-                    "tramo": f"Ruta {cod}",
-                    "frecuencia": ""
-                })
+                # Código asignado sin detalle en BD (solo códigos plausibles, descartar basura)
+                if cod_display.isdigit() or len(cod_display) <= 4:
+                    rutas_lineas.append(f"Ruta {cod_display}")
+                    rutas_para_frontend.append({
+                        "codigo": cod_display,
+                        "origen": "",
+                        "itinerario": "",
+                        "destino": "",
+                        "tramo": f"Ruta {cod_display}",
+                        "frecuencia": ""
+                    })
 
         tabla_rutas_text = "\n".join(rutas_lineas) if rutas_lineas else "SIN RUTAS ASIGNADAS"
 
