@@ -111,11 +111,6 @@ async def create_resolucion(
         else:
             raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/test")
-async def test_resoluciones():
-    """Endpoint de prueba para resoluciones"""
-    return {"message": "Endpoint de resoluciones funcionando", "count": 0}
-
 @router.get("", response_model=List[ResolucionResponse])
 async def get_resoluciones(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
