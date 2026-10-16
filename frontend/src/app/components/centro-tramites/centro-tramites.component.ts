@@ -97,6 +97,9 @@ export class CentroTramites implements OnInit {
 
   // States for Compact Inline Sustitución
   placaSalienteTemp = signal<string>('');
+  vehiculoSalienteObj = signal<any | null>(null);
+  criterioSalienteInhabilitado = signal<string>('VENTA_PLAZO_60D');
+  plazoSustitucionDias = signal<number>(60);
   filtroSalienteText = signal<string>('');
   mostrarSugerenciasSaliente = signal<boolean>(false);
   datosTecnicosSaliente = signal<any>(null);
@@ -623,45 +626,66 @@ export class CentroTramites implements OnInit {
     const yaSustituidos = new Set(this.paresSustitucion().map(p => p.placa_saliente));
     let lista = this.vehiculosEnResolucion().filter(v => {
       const est = String(v.estado || '').toUpperCase();
-      const activo = v.esta_activo !== false;
-      const esApto = (est === 'HABILITADO' || !est) && activo && est !== 'SUSTITUIDO' && est !== 'BAJA' && est !== 'INHABILITADO';
-      return esApto && !yaSustituidos.has(v.placa);
+      const yaSustituidoEnEmpresa = est === 'SUSTITUIDO' || (v.motivo_baja && String(v.motivo_baja).toUpperCase().includes('SUSTITUIDO POR'));
+      // No permitir si ya fue sustituido en esta misma empresa (regla absoluta de no doble sustitución)
+      if (yaSustituidoEnEmpresa) return false;
+      // No permitir si ya está en la lista de pares configurados
+      if (yaSustituidos.has(v.placa)) return false;
+      // Se muestran tanto HABILITADOS como INHABILITADOS / BAJA (aptos para sustitución)
+      return true;
     });
     const txt = this.filtroSalienteText().trim().toUpperCase();
     if (txt) {
       lista = lista.filter(v => 
         (v.placa && v.placa.toUpperCase().includes(txt)) ||
         (v.marca && v.marca.toUpperCase().includes(txt)) ||
-        (v.modelo && v.modelo.toUpperCase().includes(txt))
+        (v.modelo && v.modelo.toUpperCase().includes(txt)) ||
+        (v.estado && v.estado.toUpperCase().includes(txt)) ||
+        (v.nro_resolucion_hija && v.nro_resolucion_hija.toUpperCase().includes(txt))
       );
     }
-    return lista.slice(0, 15);
+    // Ordenar: primero los HABILITADOS, luego los INHABILITADOS
+    lista.sort((a, b) => {
+      const aHab = (String(a.estado || '').toUpperCase() === 'HABILITADO' || !a.estado) ? 1 : 0;
+      const bHab = (String(b.estado || '').toUpperCase() === 'HABILITADO' || !b.estado) ? 1 : 0;
+      return bHab - aHab;
+    });
+    return lista.slice(0, 30);
   });
 
   vehiculosSalientesDisponibles = computed(() => {
     const yaSustituidos = new Set(this.paresSustitucion().map(p => p.placa_saliente));
     return this.vehiculosEnResolucion().filter(v => {
       const est = String(v.estado || '').toUpperCase();
-      const activo = v.esta_activo !== false;
-      return (est === 'HABILITADO' || !est) && activo && est !== 'SUSTITUIDO' && est !== 'BAJA' && est !== 'INHABILITADO' && !yaSustituidos.has(v.placa);
+      const yaSustituidoEnEmpresa = est === 'SUSTITUIDO' || (v.motivo_baja && String(v.motivo_baja).toUpperCase().includes('SUSTITUIDO POR'));
+      return !yaSustituidoEnEmpresa && !yaSustituidos.has(v.placa);
     });
   });
 
   vehiculoSalienteSeleccionado = computed(() => {
     const p = this.placaSalienteTemp();
     if (!p) return null;
-    const base = this.vehiculosEnResolucion().find(v => v.placa === p) || {};
+    const base = this.vehiculoSalienteObj() || 
+                 this.vehiculosEnResolucion().find(v => v.placa === p && (String(v.estado || '').toUpperCase() === 'HABILITADO' || !v.estado) && v.esta_activo !== false) || 
+                 this.vehiculosEnResolucion().find(v => v.placa === p) || {};
     const dt = this.datosTecnicosSaliente() || {};
     return {
       ...base,
       ...dt,
+      id: base.id || base._id,
+      _id: base._id || base.id,
       placa: p,
       marca: dt.marca || base.marca || '',
       modelo: dt.modelo || base.modelo || '',
       anio_fabricacion: dt.anio_fabricacion || base.anio_fabricacion || base.anio || null,
       categoria: dt.categoria || base.categoria || 'M2',
       asientos: dt.asientos || dt.numero_asientos || dt.numero_pasajeros || base.asientos || null,
-      peso_neto: dt.peso_neto || base.peso_neto || null
+      peso_neto: dt.peso_neto || base.peso_neto || null,
+      nro_resolucion_primigenia: base.nro_resolucion_primigenia || '',
+      nro_resolucion_hija: base.nro_resolucion_hija || '',
+      estado: base.estado || (base.esta_activo === false ? 'INHABILITADO' : 'HABILITADO'),
+      esta_activo: base.esta_activo,
+      motivo_baja: base.motivo_baja
     };
   });
 
@@ -1291,11 +1315,11 @@ export class CentroTramites implements OnInit {
   }
 
   cargarVehiculosResolucion(nroRes: string) {
-    this.flotaService.getFlotaPaginada({ nro_resolucion_primigenia: nroRes, solo_activos: true, limit: 100 }).subscribe({
+    this.flotaService.getFlotaPaginada({ nro_resolucion_primigenia: nroRes, solo_activos: false, limit: 1000 }).subscribe({
       next: (res) => {
         const list = res.data || [];
         this.vehiculosEnResolucion.set(list);
-        this.inicializarFlotaRenovacion(list);
+        this.inicializarFlotaRenovacion(list.filter(v => (String(v.estado || '').toUpperCase() === 'HABILITADO' || !v.estado) && v.esta_activo !== false));
       },
       error: (err) => {
         console.error('Error al cargar vehículos', err);
@@ -1325,6 +1349,7 @@ export class CentroTramites implements OnInit {
     this.modoCargaVehiculosRenovacion.set('PRECARGADA');
     this.duracionAniosRenovacion.set(4);
     this.placaSalienteTemp.set('');
+    this.vehiculoSalienteObj.set(null);
     this.filtroSalienteText.set('');
     this.datosTecnicosSaliente.set(null);
     this.placaEntranteTemp.set('');
@@ -1513,41 +1538,73 @@ export class CentroTramites implements OnInit {
       val = `${val.substring(0, 3)}-${val.substring(3)}`;
     }
 
-    const exactMatch = this.vehiculosEnResolucion().find(v => v.placa === val || v.placa.replace('-', '') === val.replace('-', ''));
-    if (exactMatch) {
-      this.seleccionarSaliente(exactMatch);
+    const matches = this.vehiculosEnResolucion().filter(v => v.placa === val || v.placa.replace('-', '') === val.replace('-', ''));
+    if (matches.length === 1) {
+      this.seleccionarSaliente(matches[0]);
+    } else if (matches.length > 1) {
+      // Priorizar el HABILITADO si hay múltiples
+      const hab = matches.find(v => (String(v.estado || '').toUpperCase() === 'HABILITADO' || !v.estado) && v.esta_activo !== false);
+      if (hab) {
+        this.seleccionarSaliente(hab);
+      }
     } else if (!val) {
       this.placaSalienteTemp.set('');
+      this.vehiculoSalienteObj.set(null);
       this.datosTecnicosSaliente.set(null);
     }
   }
 
+  onCriterioSalienteChange(event: Event) {
+    const val = (event.target as HTMLSelectElement).value;
+    this.criterioSalienteInhabilitado.set(val);
+  }
+
+  onPlazoDiasInput(event: Event) {
+    const val = parseInt((event.target as HTMLInputElement).value, 10);
+    this.plazoSustitucionDias.set(isNaN(val) ? 60 : val);
+  }
+
   seleccionarSaliente(vehiculo: any) {
+    if (!vehiculo) return;
     let placa = typeof vehiculo === 'string' ? vehiculo : (vehiculo.placa || '');
     if (/^[A-Z0-9]{6}$/.test(placa)) {
       placa = `${placa.substring(0, 3)}-${placa.substring(3)}`;
     }
-    const vObj = typeof vehiculo === 'object' ? vehiculo : this.vehiculosEnResolucion().find(v => v.placa === placa);
+    let vObj = typeof vehiculo === 'object' ? vehiculo : null;
+    if (!vObj) {
+      vObj = this.vehiculosEnResolucion().find(v => v.placa === placa && (String(v.estado || '').toUpperCase() === 'HABILITADO' || !v.estado) && v.esta_activo !== false)
+             || this.vehiculosEnResolucion().find(v => v.placa === placa);
+    }
     if (vObj) {
       const est = String(vObj.estado || '').toUpperCase();
-      const activo = vObj.esta_activo !== false;
-      if (['SUSTITUIDO', 'INHABILITADO', 'BAJA'].includes(est) || !activo) {
+      const yaSustituido = est === 'SUSTITUIDO' || (vObj.motivo_baja && String(vObj.motivo_baja).toUpperCase().includes('SUSTITUIDO POR'));
+      if (yaSustituido) {
         this.snackBar.open(
-          `⛔ La unidad ${placa} figura en estado "${est || 'INACTIVO'}". Ya fue sustituida o dada de baja; no puede ser sustituida dos veces.`,
+          `⛔ Bloqueo normativo absoluto: La unidad seleccionada (${placa} - Res. ${vObj.nro_resolucion_hija || vObj.nro_resolucion_primigenia || 'S/R'}) ya fue SUSTITUIDA previamente en esta empresa. Prohibida la doble sustitución de una misma unidad en la misma empresa.`,
           'Cerrar',
-          { duration: 5000 }
+          { duration: 6000 }
         );
         this.placaSalienteTemp.set('');
         this.filtroSalienteText.set('');
+        this.vehiculoSalienteObj.set(null);
         this.datosTecnicosSaliente.set(null);
         return;
       }
+
+      if (['INHABILITADO', 'BAJA'].includes(est) || vObj.esta_activo === false) {
+        this.snackBar.open(
+          `ℹ️ Unidad seleccionada en estado "${est || 'INHABILITADO'}" (Res. ${vObj.nro_resolucion_hija || vObj.nro_resolucion_primigenia || 'S/R'}). Apta para sustitución por venta con plazo de 60 días o regularización.`,
+          'Entendido',
+          { duration: 5000 }
+        );
+      }
     }
+    this.vehiculoSalienteObj.set(vObj);
     this.placaSalienteTemp.set(placa);
     this.filtroSalienteText.set(placa);
     this.mostrarSugerenciasSaliente.set(false);
     if (placa) {
-      this.buscarDatosVehiculoSaliente(placa, typeof vehiculo === 'object' ? vehiculo : null);
+      this.buscarDatosVehiculoSaliente(placa, vObj);
     }
   }
 
@@ -1600,9 +1657,10 @@ export class CentroTramites implements OnInit {
       this.mostrarSugerenciasSaliente.set(false);
       const txt = this.filtroSalienteText().trim().toUpperCase();
       if (txt && !this.placaSalienteTemp()) {
-        const match = this.vehiculosEnResolucion().find(v => v.placa === txt || v.placa.replace('-', '') === txt.replace('-', ''));
-        if (match) {
-          this.seleccionarSaliente(match);
+        const matches = this.vehiculosEnResolucion().filter(v => v.placa === txt || v.placa.replace('-', '') === txt.replace('-', ''));
+        if (matches.length > 0) {
+          const hab = matches.find(v => (String(v.estado || '').toUpperCase() === 'HABILITADO' || !v.estado) && v.esta_activo !== false) || matches[0];
+          this.seleccionarSaliente(hab);
         } else if (txt.length >= 6) {
           const rucEmp = this.empresaBuscada()?.ruc;
           if (rucEmp) {
@@ -1610,9 +1668,14 @@ export class CentroTramites implements OnInit {
               next: (res) => {
                 if (res.apto_saliente) {
                   this.seleccionarSaliente({
+                    id: res.misma_empresa_info?.id,
+                    _id: res.misma_empresa_info?.id,
                     placa: res.placa,
                     estado: 'HABILITADO',
                     esta_activo: true,
+                    nro_resolucion_primigenia: res.misma_empresa_info?.nro_resolucion_primigenia,
+                    nro_resolucion_hija: res.misma_empresa_info?.nro_resolucion_hija,
+                    numero_tuc: res.misma_empresa_info?.numero_tuc,
                     marca: res.datos_tecnicos?.marca,
                     modelo: res.datos_tecnicos?.modelo,
                     anio_fabricacion: res.datos_tecnicos?.anio_fabricacion,
@@ -1628,6 +1691,7 @@ export class CentroTramites implements OnInit {
                   );
                   this.placaSalienteTemp.set('');
                   this.filtroSalienteText.set('');
+                  this.vehiculoSalienteObj.set(null);
                   this.datosTecnicosSaliente.set(null);
                 }
               },
@@ -1635,6 +1699,7 @@ export class CentroTramites implements OnInit {
                 this.snackBar.open(`⛔ La placa ${txt} no fue encontrada en la flota habilitada de esta empresa.`, 'Cerrar', { duration: 4500 });
                 this.placaSalienteTemp.set('');
                 this.filtroSalienteText.set('');
+                this.vehiculoSalienteObj.set(null);
               }
             });
           }
@@ -2354,7 +2419,9 @@ export class CentroTramites implements OnInit {
       return;
     }
 
-    const salienteObj = this.vehiculoSalienteSeleccionado() || this.vehiculosEnResolucion().find(v => v.placa === saliente) || {};
+    const salienteObj = this.vehiculoSalienteSeleccionado() || this.vehiculoSalienteObj() || 
+                        this.vehiculosEnResolucion().find(v => v.placa === saliente && (String(v.estado || '').toUpperCase() === 'HABILITADO' || !v.estado) && v.esta_activo !== false) || 
+                        this.vehiculosEnResolucion().find(v => v.placa === saliente) || {};
     if (!salienteObj || !salienteObj.placa) {
       this.snackBar.open(`⛔ El vehículo saliente ${saliente} no pertenece a la flota registrada ni habilitada de esta empresa.`, 'Cerrar', { duration: 4500 });
       return;
@@ -2362,14 +2429,17 @@ export class CentroTramites implements OnInit {
 
     const estadoSal = String(salienteObj.estado || '').toUpperCase();
     const activoSal = salienteObj.esta_activo !== false;
-    if (['SUSTITUIDO', 'INHABILITADO', 'BAJA'].includes(estadoSal) || !activoSal) {
+    const yaSustituidoSal = estadoSal === 'SUSTITUIDO' || (salienteObj.motivo_baja && String(salienteObj.motivo_baja).toUpperCase().includes('SUSTITUIDO POR'));
+    if (yaSustituidoSal) {
       this.snackBar.open(
-        `⛔ El vehículo saliente ${saliente} se encuentra en estado "${estadoSal || 'INACTIVO'}". Ya fue sustituido o dado de baja previamente; un vehículo no puede ser sustituido dos veces.`,
+        `⛔ Bloqueo normativo absoluto: El vehículo saliente ${saliente} ya figura como SUSTITUIDO en esta empresa. Prohibida la doble sustitución de una misma unidad.`,
         'Cerrar',
-        { duration: 5000 }
+        { duration: 6000 }
       );
       return;
     }
+
+    const esInhab = ['INHABILITADO', 'BAJA'].includes(estadoSal) || !activoSal;
 
     // Control estricto de Doble Habilitación para el vehículo entrante:
     const otraEmp = this.habilitacionOtraEmpresa();
@@ -2400,7 +2470,13 @@ export class CentroTramites implements OnInit {
       ? [...salienteObj.rutas]
       : this.rutasOpciones().map(o => o.codigo);
     const nuevoPar = {
+      saliente_id: salienteObj._id || salienteObj.id || null,
       placa_saliente: saliente,
+      saliente_resolucion: salienteObj.nro_resolucion_hija || salienteObj.nro_resolucion_primigenia || null,
+      saliente_estado: salienteObj.estado || (esInhab ? 'INHABILITADO' : 'HABILITADO'),
+      es_saliente_inhabilitado: esInhab,
+      criterio_sustitucion: esInhab ? this.criterioSalienteInhabilitado() : 'SUSTITUCION_REGULAR',
+      plazo_sustitucion_dias: esInhab ? this.plazoSustitucionDias() : null,
       saliente_marca: salienteObj?.marca || 'S/M',
       saliente_modelo: salienteObj?.modelo || '',
       saliente_anio: salienteObj?.anio_fabricacion || salienteObj?.anio_modelo || salienteObj?.anio || null,
@@ -2434,6 +2510,7 @@ export class CentroTramites implements OnInit {
 
     // Limpiar selección temporal
     this.placaSalienteTemp.set('');
+    this.vehiculoSalienteObj.set(null);
     this.filtroSalienteText.set('');
     this.datosTecnicosSaliente.set(null);
     this.placaEntranteTemp.set('');
@@ -3861,6 +3938,10 @@ export class CentroTramites implements OnInit {
       vehiculosItems = this.paresSustitucion().map(p => ({
         placa: p.placa_entrante,
         placa_saliente: p.placa_saliente,
+        saliente_id: p.saliente_id || undefined,
+        vehiculo_saliente_id: p.saliente_id || undefined,
+        criterio_sustitucion: p.criterio_sustitucion || undefined,
+        plazo_sustitucion_dias: p.plazo_sustitucion_dias || undefined,
         tipo_operacion: 'SUSTITUCION',
         numero_tuc: p.numero_tuc || undefined,
         rutas: (p.rutas && p.rutas.length > 0) ? p.rutas : this.rutasOpciones().map(o => o.codigo),

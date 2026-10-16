@@ -464,29 +464,29 @@ export class TucService {
     }
   }
 
-  imprimirHtmlDirecto(placaOId: string): void {
-    const url = `${this.apiUrl}/render-html/${encodeURIComponent(placaOId)}?auto_print=false`;
+  imprimirHtmlDirecto(placaOId: string, cara: string = 'ambas'): void {
+    const url = `${this.apiUrl}/render-html/${encodeURIComponent(placaOId)}?auto_print=false&cara=${encodeURIComponent(cara)}`;
     this.http.get(url, { responseType: 'text' }).subscribe({
       next: (html) => {
         this.imprimirHtmlSilencioso(html);
       },
       error: (err) => {
         console.error('Error al obtener HTML para impresión silenciosa:', err);
-        const win = window.open(this.getUrlRenderHtml(placaOId), '_blank', 'width=850,height=1100');
+        const win = window.open(this.getUrlRenderHtml(placaOId) + `?cara=${encodeURIComponent(cara)}`, '_blank', 'width=850,height=1100');
         if (win) win.focus();
       }
     });
   }
 
-  imprimirHtmlConConfig(placaOId: string, config: PlantillaTucCalibradorConfig): void {
-    const url = `${this.apiUrl}/render-html-preview/${encodeURIComponent(placaOId)}`;
+  imprimirHtmlConConfig(placaOId: string, config: PlantillaTucCalibradorConfig, cara: string = 'ambas'): void {
+    const url = `${this.apiUrl}/render-html-preview/${encodeURIComponent(placaOId)}?cara=${encodeURIComponent(cara)}`;
     this.http.post(url, config, { responseType: 'text' }).subscribe({
       next: (html) => {
         this.imprimirHtmlSilencioso(html);
       },
       error: (err) => {
         console.error('Error al generar HTML de impresión con configuración:', err);
-        this.imprimirHtmlDirecto(placaOId);
+        this.imprimirHtmlDirecto(placaOId, cara);
       }
     });
   }
@@ -507,9 +507,9 @@ export class TucService {
     });
   }
 
-  renderHtmlCustom(placaOId: string, datosOverride: Record<string, any>, config?: PlantillaTucCalibradorConfig): Observable<string> {
+  renderHtmlCustom(placaOId: string, datosOverride: Record<string, any>, config?: PlantillaTucCalibradorConfig, cara: string = 'ambas'): Observable<string> {
     const url = `${this.apiUrl}/render-html-custom/${encodeURIComponent(placaOId)}`;
-    return this.http.post(url, { datos_override: datosOverride, config, auto_print: false }, { responseType: 'text' });
+    return this.http.post(url, { datos_override: datosOverride, config, auto_print: false, cara }, { responseType: 'text' });
   }
 
   descargarDocxCustom(placaOId: string, datosOverride: Record<string, any>): Observable<Blob> {

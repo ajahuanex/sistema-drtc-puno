@@ -1128,7 +1128,8 @@ class TucCalibradorService:
         placa_o_id: str,
         config_override: Optional[Dict[str, Any]] = None,
         auto_print: bool = True,
-        datos_override: Optional[Dict[str, Any]] = None
+        datos_override: Optional[Dict[str, Any]] = None,
+        cara: Optional[str] = "ambas"
     ) -> str:
         """
         Genera el documento HTML completo, autónomo e instantáneo (<0.05s)
@@ -1761,15 +1762,36 @@ class TucCalibradorService:
             elementos_html.append(lh_html_rev)
             elementos_reverso.append(lh_html_rev)
 
-        # Pliegue para tarjeta dual (solo en formato DUAL_PVC y UNA_HOJA)
-        if formato_papel == "A4" or modo_hojas == "DOS_HOJAS":
+        cara_norm = (cara or "ambas").strip().lower()
+        alto_print_mm = alto_mm
+
+        # Ajuste de dimensiones de hoja si se imprime solo 1 cara en DUAL_PVC
+        if cara_norm in ("anverso", "reverso") and formato_papel == "DUAL_PVC":
+            alto_print_mm = anverso_alto_mm
+            css_page = f"size: {ancho_mm}mm {anverso_alto_mm}mm;"
+
+        # Pliegue para tarjeta dual (solo en formato DUAL_PVC y UNA_HOJA con ambas caras)
+        if formato_papel == "A4" or modo_hojas == "DOS_HOJAS" or cara_norm != "ambas":
             linea_pliegue_html = ""
         else:
             linea_pliegue_html = f'<div class="linea-pliegue" style="position: absolute; left: 0; top: {anverso_alto_mm}mm; width: {ancho_mm}mm; border-top: 1px dashed rgba(180, 180, 180, 0.6);"></div>'
 
-        # Contenido del cuerpo según modo de hojas
-        if modo_hojas == "DOS_HOJAS":
+        # Contenido del cuerpo según modo de hojas y cara seleccionada
+        if cara_norm == "anverso":
             body_content = f"""
+  <div class="{tuc_card_class} hoja-anverso" style="width: {ancho_mm}mm; height: {alto_print_mm}mm; position: relative; overflow: hidden;">
+    {''.join(elementos_anverso)}
+  </div>"""
+        elif cara_norm == "reverso":
+            offset_rev_style = f"position: relative; top: -{anverso_alto_mm}mm;" if formato_papel == "DUAL_PVC" else ""
+            inner_rev_html = f'<div style="{offset_rev_style}">{"".join(elementos_reverso)}</div>' if offset_rev_style else "".join(elementos_reverso)
+            body_content = f"""
+  <div class="{tuc_card_class} hoja-reverso" style="width: {ancho_mm}mm; height: {alto_print_mm}mm; position: relative; overflow: hidden;">
+    {inner_rev_html}
+  </div>"""
+        else:
+            if modo_hojas == "DOS_HOJAS":
+                body_content = f"""
   <div class="{tuc_card_class} hoja-anverso">
     {''.join(elementos_anverso)}
   </div>
@@ -1777,8 +1799,8 @@ class TucCalibradorService:
   <div class="{tuc_card_class} hoja-reverso">
     {''.join(elementos_reverso)}
   </div>"""
-        else:
-            body_content = f"""
+            else:
+                body_content = f"""
   <div class="{tuc_card_class}">
     {linea_pliegue_html}
     {''.join(elementos_html)}
@@ -1800,7 +1822,7 @@ class TucCalibradorService:
         margin: 0 !important;
         padding: 0 !important;
         width: {ancho_mm}mm !important;
-        height: {alto_mm}mm !important;
+        height: {alto_print_mm}mm !important;
         background: #ffffff !important;
       }}
       .tuc-sheet {{
@@ -1831,7 +1853,7 @@ class TucCalibradorService:
     }}
     .tuc-sheet {{
       width: {ancho_mm}mm;
-      height: {alto_mm}mm;
+      height: {alto_print_mm}mm;
       position: relative;
       background: #ffffff;
       overflow: hidden;

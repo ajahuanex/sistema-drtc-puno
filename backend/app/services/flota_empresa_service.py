@@ -164,7 +164,9 @@ class FlotaEmpresaService:
         return VehiculoEmpresaResponse(**doc)
 
     async def _build_filtro(self, **kwargs) -> dict:
-        filtro = {"esta_activo": {"$ne": False}}
+        filtro = {}
+        if kwargs.get("solo_activos"):
+            filtro["esta_activo"] = {"$ne": False}
         if kwargs.get("ruc"):
             filtro["ruc"] = kwargs["ruc"]
         if kwargs.get("estado"):
@@ -1239,6 +1241,12 @@ class FlotaEmpresaService:
         tipo_acto = tipo_acto_map.get(req.tipo_tramite.upper(), "OTROS")
         doc_hija_id = str(uuid.uuid4())
 
+        fecha_res = _parse_safe_dt(req.fecha_emision_resolucion or req.nueva_fecha_emision, now)
+        fecha_exp = _parse_safe_dt(req.fecha_expediente, now)
+        exp_num = req.num_expediente or req.documento_origen or ""
+        origen_txt = f"OFICIO {req.documento_origen}" if req.es_de_oficio else f"EXP. {exp_num or 'S/N'}"
+        origen_texto = origen_txt
+
         # -------------------------------------------------------------
         # 3. PROCESAR CADA VEHÍCULO EN EL TRÁMITE (BAJAS, INCREMENTO, SUSTITUCION, DUPLICADO, CANJE)
         # -------------------------------------------------------------
@@ -1287,7 +1295,28 @@ class FlotaEmpresaService:
             origen_texto = f"OFICIO {req.documento_origen}" if req.es_de_oficio else f"EXP. {req.num_expediente or 'S/N'}"
                 
             if req.tipo_tramite == "BAJAS":
-                v_saliente = await self.collection.find_one({"ruc": ruc, "placa": placa_in, "esta_activo": {"$ne": False}})
+                v_saliente = None
+                saliente_id = getattr(item, "saliente_id", None) or getattr(item, "vehiculo_saliente_id", None)
+                if saliente_id:
+                    try:
+                        from bson import ObjectId
+                        if ObjectId.is_valid(str(saliente_id)):
+                            v_saliente = await self.collection.find_one({"_id": ObjectId(str(saliente_id)), "ruc": ruc})
+                    except Exception:
+                        pass
+                    if not v_saliente:
+                        v_saliente = await self.collection.find_one({"_id": str(saliente_id), "ruc": ruc})
+
+                if not v_saliente:
+                    v_saliente = await self.collection.find_one({
+                        "ruc": ruc,
+                        "placa": placa_in,
+                        "nro_resolucion_primigenia": req.nro_resolucion_primigenia,
+                        "esta_activo": {"$ne": False}
+                    })
+
+                if not v_saliente:
+                    v_saliente = await self.collection.find_one({"ruc": ruc, "placa": placa_in, "esta_activo": {"$ne": False}})
                 if v_saliente:
                     res_ref = nro_hija_val or req.nro_resolucion_primigenia
                     nueva_obs_sal = {
@@ -1517,20 +1546,68 @@ class FlotaEmpresaService:
                 })
 
                 # Dar de baja al vehículo saliente (Control estricto: debe pertenecer a la empresa y estar activo)
-                v_saliente = await self.collection.find_one({"ruc": ruc, "placa": placa_sal})
+                v_saliente = None
+                saliente_id = getattr(item, "saliente_id", None) or getattr(item, "vehiculo_saliente_id", None)
+                if saliente_id:
+                    try:
+                        from bson import ObjectId
+                        if ObjectId.is_valid(str(saliente_id)):
+                            v_saliente = await self.collection.find_one({"_id": ObjectId(str(saliente_id)), "ruc": ruc})
+                    except Exception:
+                        pass
+                    if not v_saliente:
+                        v_saliente = await self.collection.find_one({"_id": str(saliente_id), "ruc": ruc})
+
+                # Si no se pasó saliente_id o no se encontró por ID:
+                # 1. Buscar registro HABILITADO y ACTIVO bajo la resolución primigenia del trámite
+                if not v_saliente:
+                    v_saliente = await self.collection.find_one({
+                        "ruc": ruc,
+                        "placa": placa_sal,
+                        "nro_resolucion_primigenia": req.nro_resolucion_primigenia,
+                        "estado": {"$in": ["HABILITADO", "ACTIVO"]},
+                        "esta_activo": {"$ne": False}
+                    })
+
+                # 2. Buscar cualquier registro HABILITADO y ACTIVO de esta placa en la empresa
+                if not v_saliente:
+                    v_saliente = await self.collection.find_one({
+                        "ruc": ruc,
+                        "placa": placa_sal,
+                        "estado": {"$in": ["HABILITADO", "ACTIVO"]},
+                        "esta_activo": {"$ne": False}
+                    })
+
+                # 3. Si no existe ninguno HABILITADO, buscar el último registro histórico para informar el motivo real de rechazo
+                if not v_saliente:
+                    v_saliente = await self.collection.find_one(
+                        {"ruc": ruc, "placa": placa_sal},
+                        sort=[("fecha_actualizacion", -1), ("fecha_creacion", -1), ("_id", -1)]
+                    )
+
                 if not v_saliente:
                     raise ValueError(f"Operación Denegada: El vehículo saliente {placa_sal} no pertenece a la flota registrada de la empresa (RUC {ruc}).")
                 
                 estado_sal = str(v_saliente.get("estado", "")).upper()
                 activo_sal = v_saliente.get("esta_activo", True)
-                if estado_sal in ["SUSTITUIDO", "INHABILITADO", "BAJA"] or activo_sal is False:
+
+                # Control absoluto: Prohibida la doble sustitución de una misma unidad en la misma empresa
+                motivo_baja_prev = str(v_saliente.get("motivo_baja", "")).upper()
+                if estado_sal == "SUSTITUIDO" or "SUSTITUIDO POR" in motivo_baja_prev:
                     raise ValueError(
-                        f"Operación Denegada: El vehículo saliente {placa_sal} se encuentra en estado '{estado_sal}' (ya fue sustituido o dado de baja anteriormente). Un vehículo no puede ser sustituido 2 veces."
+                        f"Operación Denegada: Doble sustitución absoluta prohibida. El vehículo {placa_sal} ya fue SUSTITUIDO anteriormente en esta empresa. Un vehículo no puede ser sustituido dos veces."
                     )
+
+                # Si el vehículo está INHABILITADO o BAJA:
+                # Se autoriza la sustitución por venta con ampliación de plazo (ej. 60 días - Art. 68.3 D.S. 017-2009-MTC)
+                # o por baja no notificada desde otra empresa / regularización.
+                criterio_sal = getattr(item, "criterio_sustitucion", None) or "SUSTITUCION REGULAR"
+                plazo_dias = getattr(item, "plazo_sustitucion_dias", None) or 60
+                obs_criterio = f" [CRITERIO: {criterio_sal} - PLAZO: {plazo_dias} DÍAS]" if estado_sal in ["INHABILITADO", "BAJA"] else ""
 
                 nueva_obs_sal = {
                     "fecha": now,
-                    "texto": f"BAJA POR SUSTITUCION (REEMPLAZADO POR {placa_in}) SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                    "texto": f"BAJA POR SUSTITUCION (REEMPLAZADO POR {placa_in}){obs_criterio} SEGUN RESOLUCION {res_ref} / {origen_texto}",
                     "fuente": "tramite_sustitucion"
                 }
                 await self.collection.update_one(
@@ -1541,7 +1618,7 @@ class FlotaEmpresaService:
                             "esta_activo": False,
                             "fecha_actualizacion": now,
                             "fecha_baja": now,
-                            "motivo_baja": f"SUSTITUIDO POR {placa_in} SEGUN RESOLUCION {res_ref}"
+                            "motivo_baja": f"SUSTITUIDO POR {placa_in}{obs_criterio} SEGUN RESOLUCION {res_ref}"
                         },
                         "$push": {"observaciones_historial": nueva_obs_sal}
                     }
@@ -1947,11 +2024,6 @@ class FlotaEmpresaService:
         })
         prim_id = prim_doc.get("id") or str(prim_doc["_id"]) if prim_doc else None
 
-        fecha_res = _parse_safe_dt(req.fecha_emision_resolucion or req.nueva_fecha_emision, now)
-        fecha_exp = _parse_safe_dt(req.fecha_expediente, now)
-        exp_num = req.num_expediente or req.documento_origen or ""
-        origen_txt = f"OFICIO {req.documento_origen}" if req.es_de_oficio else f"EXP. {exp_num or 'S/N'}"
-
         doc_hija = {
             "id": doc_hija_id,
             "nro_resolucion": nro_hija_val,
@@ -2084,6 +2156,7 @@ class FlotaEmpresaService:
         habilitado_otra = False
         otra_info = None
         historial_bajas = []
+        registros_misma_empresa = []
 
         for r in registros:
             r_ruc = str(r.get("ruc", "")).strip()
@@ -2101,8 +2174,16 @@ class FlotaEmpresaService:
                 "estado": r_est,
                 "esta_activo": r_act,
                 "fecha_inicio_vigencia": str(r.get("fecha_inicio_vigencia") or r.get("fecha_emision_resolucion") or ""),
-                "fecha_vigencia_hasta": str(r.get("fecha_vigencia_hasta") or "")
+                "fecha_vigencia_hasta": str(r.get("fecha_vigencia_hasta") or ""),
+                "anio_fabricacion": r.get("anio_fabricacion"),
+                "categoria": r.get("categoria"),
+                "asientos": r.get("asientos"),
+                "marca": r.get("marca"),
+                "modelo": r.get("modelo")
             }
+
+            if ruc_actual and r_ruc == ruc_actual:
+                registros_misma_empresa.append(info_reg)
 
             if es_act:
                 if ruc_actual and r_ruc == ruc_actual:
@@ -2114,6 +2195,7 @@ class FlotaEmpresaService:
                         otra_info = info_reg
             elif r_est in ["SUSTITUIDO", "BAJA", "INHABILITADO"] or not r_act:
                 historial_bajas.append({
+                    "id": str(r.get("_id", "")),
                     "ruc": r_ruc,
                     "razon_social": r.get("razon_social", ""),
                     "estado": r_est,
@@ -2122,18 +2204,29 @@ class FlotaEmpresaService:
                 })
 
         # Evaluar aptitud para saliente en sustitución:
-        # Debe pertenecer y estar habilitado en la misma empresa (ruc_actual)
+        bajas_misma = [b for b in historial_bajas if b.get("ruc") == ruc_actual]
+        ya_sustituido_misma = any(
+            b.get("estado") == "SUSTITUIDO" or "SUSTITUIDO POR" in str(b.get("motivo_baja", "")).upper()
+            for b in bajas_misma
+        )
+
         apto_saliente = False
         motivo_no_saliente = None
+        es_saliente_inhabilitado = False
+
         if not ruc_actual:
             motivo_no_saliente = "No se especificó la empresa solicitante."
-        elif not habilitado_misma:
-            if historial_bajas and any(b["ruc"] == ruc_actual for b in historial_bajas):
-                motivo_no_saliente = f"El vehículo figura como DADO DE BAJA o INHABILITADO en esta empresa. No puede ser sustituido dos veces."
-            else:
-                motivo_no_saliente = f"El vehículo {p_hyphen} no pertenece a la flota habilitada de esta empresa (RUC {ruc_actual})."
-        else:
+        elif ya_sustituido_misma and not habilitado_misma:
+            motivo_no_saliente = f"Operación Denegada: La unidad {p_hyphen} ya fue SUSTITUIDA previamente en esta empresa. Prohibida la doble sustitución."
+        elif habilitado_misma:
             apto_saliente = True
+        elif bajas_misma:
+            # Unidad inhabilitada / dada de baja pero no sustituida previamente en esta empresa:
+            # Apta para sustitución por baja previa o comunicación de venta (Art. 68.3 D.S. 017-2009-MTC)
+            apto_saliente = True
+            es_saliente_inhabilitado = True
+        else:
+            motivo_no_saliente = f"El vehículo {p_hyphen} no pertenece a la flota registrada de esta empresa (RUC {ruc_actual})."
 
         # Evaluar aptitud para entrante en sustitución:
         # No debe estar activo en otra empresa ni en la misma empresa
@@ -2158,12 +2251,14 @@ class FlotaEmpresaService:
             "placa": p_hyphen,
             "habilitado_misma_empresa": habilitado_misma,
             "misma_empresa_info": misma_info,
+            "registros_misma_empresa": registros_misma_empresa,
             "habilitado_otra_empresa": habilitado_otra,
             "otra_empresa_info": otra_info,
             "doble_habilitacion_riesgo": habilitado_otra or habilitado_misma,
             "historial_bajas": historial_bajas,
             "datos_tecnicos": datos_tecnicos,
             "apto_saliente": apto_saliente,
+            "es_saliente_inhabilitado": es_saliente_inhabilitado,
             "motivo_no_saliente": motivo_no_saliente,
             "apto_entrante": apto_entrante,
             "motivo_no_entrante": motivo_no_entrante

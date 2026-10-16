@@ -520,16 +520,30 @@ export interface GenerarTucDialogData {
                     <span class="pill-status pill-ready">{{ hayModificaciones() ? 'Edición Activa' : 'Diseño Calibrador' }}</span>
                   </div>
 
+                  <!-- IMPRESIÓN COMPLETA (AMBAS CARAS) -->
                   <div class="card-action-row">
-                    <button mat-flat-button class="btn-primary-action" (click)="imprimirTarjeta()" matTooltip="Imprime directamente la tarjeta TUC con el diseño y datos actuales">
+                    <button mat-flat-button class="btn-primary-action" (click)="imprimirTarjeta('ambas')" matTooltip="Imprime la tarjeta completa (ambas caras según la plantilla)">
                       <mat-icon>print</mat-icon>
-                      <span>Imprimir Tarjeta Ahora</span>
+                      <span>Imprimir Tarjeta Completa (Ambas)</span>
                     </button>
                   </div>
+
+                  <!-- IMPRESIÓN POR SEPARADO: ANVERSO Y REVERSO -->
+                  <div class="print-split-row">
+                    <button mat-stroked-button class="btn-split-action btn-anverso" (click)="imprimirTarjeta('anverso')" matTooltip="Imprime ÚNICAMENTE la cara frontal (Anverso / Pág. 1)">
+                      <mat-icon>file_copy</mat-icon>
+                      <span>Imprimir Solo Anverso</span>
+                    </button>
+                    <button mat-stroked-button class="btn-split-action btn-reverso" (click)="imprimirTarjeta('reverso')" matTooltip="Imprime ÚNICAMENTE la cara posterior (Reverso / Pág. 2: Rutas y Resoluciones)">
+                      <mat-icon>find_in_page</mat-icon>
+                      <span>Imprimir Solo Reverso</span>
+                    </button>
+                  </div>
+
                   <div class="card-secondary-row">
-                    <button mat-stroked-button class="btn-secondary-action" (click)="imprimirHtmlInstantaneo()" matTooltip="Impresión HTML ultra rápida instantánea (<0.05s) en nueva ventana">
+                    <button mat-stroked-button class="btn-secondary-action" (click)="imprimirCaraVisible()" [matTooltip]="'Imprime rápidamente la vista actualmente seleccionada: ' + vistaTarjetaModo()">
                       <mat-icon>bolt</mat-icon>
-                      <span>Impresión Rápida (0.05s)</span>
+                      <span>Imprimir Cara Visible ({{ vistaTarjetaModo() === 'dual' ? 'Ambas' : (vistaTarjetaModo() | titlecase) }})</span>
                     </button>
                     <button mat-stroked-button class="btn-secondary-action btn-studio" (click)="abrirCalibradorStudio()" matTooltip="Abrir TUC Studio para calibrar milimétricamente las variables">
                       <mat-icon>tune</mat-icon>
@@ -989,21 +1003,28 @@ export interface GenerarTucDialogData {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
         background: #ffffff;
-        padding: 7px 12px;
+        padding: 8px 12px;
         border-radius: 8px;
         border: 1px solid #e2e8f0;
+        min-height: 44px;
 
         .preview-header-left {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
+          flex-wrap: wrap;
+          min-width: 0;
+          flex: 1 1 auto;
 
           .preview-tag-title {
             font-size: 11px;
             font-weight: 800;
             color: #0f172a;
             letter-spacing: 0.3px;
+            white-space: nowrap;
           }
 
           .badge-plantilla {
@@ -1014,7 +1035,7 @@ export interface GenerarTucDialogData {
             border: 1px solid #bae6fd;
             padding: 1px 6px;
             border-radius: 4px;
-            max-width: 170px;
+            max-width: 135px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -1028,13 +1049,16 @@ export interface GenerarTucDialogData {
             font-size: 10px;
             font-weight: 700;
             padding: 2px 6px;
+            white-space: nowrap;
           }
         }
 
         .preview-header-controls {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
+          flex-shrink: 0;
+          margin-left: auto;
 
           .cara-selector-group {
             display: inline-flex;
@@ -1683,6 +1707,63 @@ export interface GenerarTucDialogData {
           box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
           &:hover { background: linear-gradient(135deg, #0369a1 0%, #075985 100%); }
           mat-icon { font-size: 18px; width: 18px; height: 18px; margin-right: 2px; }
+        }
+
+        .print-split-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin: 8px 0;
+
+          @media (max-width: 480px) {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .btn-split-action {
+          width: 100%;
+          height: 35px;
+          font-size: 11.5px;
+          font-weight: 700;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          padding: 0 8px;
+          transition: all 0.15s ease;
+
+          mat-icon {
+            font-size: 15px;
+            width: 15px;
+            height: 15px;
+            margin-right: 2px;
+            flex-shrink: 0;
+          }
+
+          &.btn-anverso {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+
+            &:hover {
+              background: #dcfce7;
+              border-color: #86efac;
+              box-shadow: 0 2px 6px rgba(22, 163, 74, 0.18);
+            }
+          }
+
+          &.btn-reverso {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+
+            &:hover {
+              background: #dbeafe;
+              border-color: #93c5fd;
+              box-shadow: 0 2px 6px rgba(37, 99, 235, 0.18);
+            }
+          }
         }
 
         .btn-notif-print {
@@ -2664,32 +2745,42 @@ export class GenerarTucDialogComponent implements OnInit {
   }
 
   imprimirDesdeEditor(): void {
-    this.imprimirTarjeta();
+    this.imprimirTarjeta('ambas');
   }
 
-  imprimirTarjeta(): void {
-    this.imprimirHtmlInstantaneo();
+  imprimirCaraVisible(): void {
+    const modo = this.vistaTarjetaModo();
+    const cara: 'ambas' | 'anverso' | 'reverso' = modo === 'dual' ? 'ambas' : modo;
+    this.imprimirHtmlInstantaneo(cara);
   }
 
-  imprimirHtmlInstantaneo(): void {
+  imprimirTarjeta(cara: 'ambas' | 'anverso' | 'reverso' = 'ambas'): void {
+    this.imprimirHtmlInstantaneo(cara);
+  }
+
+  imprimirHtmlInstantaneo(cara: 'ambas' | 'anverso' | 'reverso' = 'ambas'): void {
     const term = this.data.vehiculo.placa || this.data.vehiculo.id;
     const cfg = this.configCalibrador();
+    const caraLabel = cara === 'anverso' ? 'Anverso (Pág. 1)' : cara === 'reverso' ? 'Reverso (Pág. 2)' : 'Tarjeta Completa';
+
     if (this.hayModificaciones()) {
-      this.tucService.renderHtmlCustom(term, this.datosEditados(), cfg || undefined).subscribe({
+      this.tucService.renderHtmlCustom(term, this.datosEditados(), cfg || undefined, cara).subscribe({
         next: (html) => {
           this.tucService.imprimirHtmlSilencioso(html);
+          this.snackBar.open(`✓ Impresión enviada: ${caraLabel}`, 'OK', { duration: 2500 });
         },
         error: () => {
-          if (cfg) this.tucService.imprimirHtmlConConfig(term, cfg);
-          else this.tucService.imprimirHtmlDirecto(term);
+          if (cfg) this.tucService.imprimirHtmlConConfig(term, cfg, cara);
+          else this.tucService.imprimirHtmlDirecto(term, cara);
         }
       });
     } else {
       if (cfg) {
-        this.tucService.imprimirHtmlConConfig(term, cfg);
+        this.tucService.imprimirHtmlConConfig(term, cfg, cara);
       } else {
-        this.tucService.imprimirHtmlDirecto(term);
+        this.tucService.imprimirHtmlDirecto(term, cara);
       }
+      this.snackBar.open(`✓ Impresión enviada: ${caraLabel}`, 'OK', { duration: 2500 });
     }
   }
 

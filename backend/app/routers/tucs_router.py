@@ -814,14 +814,24 @@ async def restablecer_calibrador_config():
         raise HTTPException(status_code=500, detail=f"Error al restablecer calibrador: {str(e)}")
 
 @router.get("/render-html/{placa_o_id}", summary="Generar página HTML ultra rápida (<0.05s) para impresión directa de TUC", response_class=HTMLResponse)
-async def render_html_tuc(placa_o_id: str, plantilla_id: Optional[str] = None, auto_print: bool = True):
+async def render_html_tuc(
+    placa_o_id: str,
+    plantilla_id: Optional[str] = None,
+    auto_print: bool = True,
+    cara: Optional[str] = Query("ambas", description="Cara a imprimir: 'ambas', 'anverso', o 'reverso'")
+):
     """
     Genera el HTML listo para imprimir o previsualizar con las coordenadas milimétricas calibradas.
     Permite invocar `window.print()` instantáneamente sin latencia de Word ni PDF.
     """
     try:
         cfg = await TucCalibradorService.obtener_configuracion(plantilla_id=plantilla_id) if plantilla_id else None
-        html = await TucCalibradorService.generar_html_impresion(placa_o_id, config_override=cfg, auto_print=auto_print)
+        html = await TucCalibradorService.generar_html_impresion(
+            placa_o_id,
+            config_override=cfg,
+            auto_print=auto_print,
+            cara=cara
+        )
         return HTMLResponse(content=html)
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
@@ -829,12 +839,20 @@ async def render_html_tuc(placa_o_id: str, plantilla_id: Optional[str] = None, a
         raise HTTPException(status_code=500, detail=f"Error al generar HTML de TUC: {str(e)}")
 
 @router.post("/render-html-preview/{placa_o_id}", summary="Generar HTML con configuración en vivo en memoria", response_class=HTMLResponse)
-async def render_html_preview_tuc(placa_o_id: str, config: Dict[str, Any]):
+async def render_html_preview_tuc(
+    placa_o_id: str,
+    config: Dict[str, Any],
+    cara: Optional[str] = Query("ambas", description="Cara a imprimir: 'ambas', 'anverso', o 'reverso'")
+):
     """
     Genera el HTML en tiempo real aplicando un borrador de configuración sin guardarlo previamente.
     """
     try:
-        html = await TucCalibradorService.generar_html_impresion(placa_o_id, config_override=config)
+        html = await TucCalibradorService.generar_html_impresion(
+            placa_o_id,
+            config_override=config,
+            cara=cara
+        )
         return HTMLResponse(content=html)
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
@@ -845,6 +863,7 @@ class TucRenderCustomRequest(BaseModel):
     config: Optional[Dict[str, Any]] = None
     datos_override: Optional[Dict[str, Any]] = None
     auto_print: Optional[bool] = False
+    cara: Optional[str] = "ambas"
 
 @router.post("/render-html-custom/{placa_o_id}", summary="Generar HTML con datos editados personalizados", response_class=HTMLResponse)
 async def render_html_custom_tuc(placa_o_id: str, req: TucRenderCustomRequest):
@@ -857,7 +876,8 @@ async def render_html_custom_tuc(placa_o_id: str, req: TucRenderCustomRequest):
             placa_o_id,
             config_override=cfg,
             auto_print=bool(req.auto_print),
-            datos_override=req.datos_override
+            datos_override=req.datos_override,
+            cara=req.cara or "ambas"
         )
         return HTMLResponse(content=html)
     except ValueError as ve:

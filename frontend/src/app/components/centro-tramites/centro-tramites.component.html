@@ -1823,10 +1823,28 @@
                               
                               @if (mostrarSugerenciasSaliente() && vehiculosSalientesFiltrados().length > 0) {
                                 <div class="plate-suggestions-dropdown">
-                                  @for (v of vehiculosSalientesFiltrados(); track v.placa) {
+                                  @for (v of vehiculosSalientesFiltrados(); track (v.id || v._id || $index)) {
                                     <div class="suggestion-item" (mousedown)="seleccionarSaliente(v)">
-                                      <strong class="sug-plate">{{v.placa}}</strong>
-                                      <span class="sug-desc">Año: {{v.anio_fabricacion || 'S/A'}} • Cat: {{v.categoria || 'M2'}} • {{v.asientos ? v.asientos + ' as.' : ''}}</span>
+                                      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                        <strong class="sug-plate">{{v.placa}}</strong>
+                                        <span style="font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px;"
+                                              [style.background]="(v.estado === 'HABILITADO' || !v.estado) ? '#ecfdf5' : '#fef3c7'"
+                                              [style.color]="(v.estado === 'HABILITADO' || !v.estado) ? '#047857' : '#b45309'">
+                                          {{v.estado || 'HABILITADO'}}
+                                          @if (v.estado === 'INHABILITADO' || v.estado === 'BAJA' || v.esta_activo === false) {
+                                            <span>(Apto)</span>
+                                          }
+                                        </span>
+                                      </div>
+                                      <span class="sug-desc">
+                                        @if (v.nro_resolucion_hija || v.nro_resolucion_primigenia) {
+                                          Res: <strong>{{v.nro_resolucion_hija || v.nro_resolucion_primigenia}}</strong> • 
+                                        }
+                                        Año: {{v.anio_fabricacion || 'S/A'}} • Cat: {{v.categoria || 'M2'}} • {{v.asientos ? v.asientos + ' as.' : ''}}
+                                        @if (v.motivo_baja) {
+                                          • <em style="color: #b45309;">{{v.motivo_baja}}</em>
+                                        }
+                                      </span>
                                     </div>
                                   }
                                 </div>
@@ -1903,6 +1921,9 @@
                                   <span class="material-symbols-outlined" style="font-size: 13px;">no_crash</span>
                                   <span>
                                     <strong>{{vehiculoSalienteSeleccionado()?.placa}}</strong> • 
+                                    @if (vehiculoSalienteSeleccionado()?.nro_resolucion_hija || vehiculoSalienteSeleccionado()?.nro_resolucion_primigenia) {
+                                      Res: <strong>{{vehiculoSalienteSeleccionado()?.nro_resolucion_hija || vehiculoSalienteSeleccionado()?.nro_resolucion_primigenia}}</strong> • 
+                                    }
                                     Año: <strong>{{vehiculoSalienteSeleccionado()?.anio_fabricacion || 'S/A'}}</strong> • 
                                     Cat: <strong>{{vehiculoSalienteSeleccionado()?.categoria || 'M2'}}</strong> • 
                                     <strong>{{vehiculoSalienteSeleccionado()?.asientos ? vehiculoSalienteSeleccionado()?.asientos + ' as.' : 'S/Asientos'}}</strong>
@@ -1927,6 +1948,38 @@
                                 </div>
                               }
                             </div>
+
+                            <!-- Configuración de Criterio si el Saliente es Inhabilitado / Baja (Art. 68.3 D.S. 017-2009-MTC) -->
+                            @if (vehiculoSalienteSeleccionado() && (vehiculoSalienteSeleccionado()?.estado === 'INHABILITADO' || vehiculoSalienteSeleccionado()?.estado === 'BAJA' || vehiculoSalienteSeleccionado()?.esta_activo === false)) {
+                              <div class="alert-otra-empresa" style="background: #fffbeb; border-color: #fde68a;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                  <span class="material-symbols-outlined" style="color: #d97706; font-size: 18px;">info</span>
+                                  <span style="color: #92400e; font-weight: 600; font-size: 0.8rem;">
+                                    Unidad saliente en baja/inhabilitada — Sustitución según Art. 68.3 D.S. 017-2009-MTC:
+                                  </span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.35rem;">
+                                  <label style="font-size: 0.76rem; color: #78350f; font-weight: 600;">Criterio normativo:</label>
+                                  <select [value]="criterioSalienteInhabilitado()" 
+                                          (change)="onCriterioSalienteChange($event)"
+                                          style="font-size: 0.76rem; padding: 3px 8px; border-radius: 4px; border: 1px solid #d97706; background: white; color: #78350f; font-weight: 500;">
+                                    <option value="VENTA_PLAZO_60D">Comunicó venta y solicita ampliación de tiempo (60 días para sustituir)</option>
+                                    <option value="BAJA_OTRA_EMPRESA_NO_NOTIFICADA">Baja desde otra empresa / Regularización (no fue notificada la baja)</option>
+                                    <option value="BAJA_PREVENTIVA_MTC">Baja preventiva comunicada al MTC</option>
+                                    <option value="SOLICITUD_PARTE">Sustitución por retiro vehicular a solicitud de parte</option>
+                                  </select>
+                                  <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                    <label style="font-size: 0.76rem; color: #78350f; font-weight: 600;">Plazo:</label>
+                                    <input type="number" 
+                                           [value]="plazoSustitucionDias()" 
+                                           (input)="onPlazoDiasInput($event)"
+                                           min="1" max="180" 
+                                           style="width: 50px; font-size: 0.76rem; padding: 2px 4px; border: 1px solid #d97706; border-radius: 4px; font-weight: 700; text-align: center; color: #78350f; background: white;" />
+                                    <span style="font-size: 0.76rem; color: #78350f;">días</span>
+                                  </div>
+                                </div>
+                              </div>
+                            }
 
                             <!-- Alerta si el vehículo entrante ya está habilitado en otra empresa -->
                             @if (habilitacionOtraEmpresa()) {
@@ -2027,13 +2080,23 @@
                                 </tr>
                               </thead>
                               <tbody>
-                                @for (p of paresSustitucion(); track p.placa_saliente; let idx = $index) {
+                                @for (p of paresSustitucion(); track (p.saliente_id || p.placa_saliente); let idx = $index) {
                                   <tr>
                                     <!-- Vehículo Saliente (Baja): Placa + Año, Cat, Asientos (Sin descripción de marca/modelo) -->
                                     <td>
                                       <div class="pair-unit-box">
-                                        <strong class="plate-badge plate-amber">{{p.placa_saliente}}</strong>
+                                        <div style="display: flex; align-items: center; gap: 4px;">
+                                          <strong class="plate-badge plate-amber">{{p.placa_saliente}}</strong>
+                                          @if (p.es_saliente_inhabilitado) {
+                                            <span style="font-size: 0.65rem; background: #fef3c7; color: #b45309; padding: 1px 5px; border-radius: 4px; font-weight: 700; border: 1px solid #fde68a;" [matTooltip]="(p.criterio_sustitucion || 'Ampliación') + ' (' + (p.plazo_sustitucion_dias || 60) + ' días)'">
+                                              INHABILITADO ({{p.plazo_sustitucion_dias || 60}}d)
+                                            </span>
+                                          }
+                                        </div>
                                         <span class="pair-mini-specs">
+                                          @if (p.saliente_resolucion) {
+                                            Res: <strong>{{p.saliente_resolucion}}</strong> • 
+                                          }
                                           {{p.saliente_anio || 'S/A'}} • {{p.saliente_categoria || 'M2'}} • {{p.saliente_asientos ? p.saliente_asientos + ' as.' : 'S/Asientos'}}
                                         </span>
                                       </div>
@@ -3174,14 +3237,24 @@
                           Pares a sustituir ({{paresSustitucion().length}}):
                         </p>
                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                          @for (p of paresSustitucion(); track p.placa_saliente) {
+                          @for (p of paresSustitucion(); track (p.saliente_id || p.placa_saliente)) {
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; flex-wrap: wrap; gap: 0.5rem;">
                               <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
                                 <div>
-                                  <span style="font-family: monospace; font-weight: 700; color: #b45309; background: #fffbeb; padding: 2px 6px; border-radius: 4px; border: 1px solid #fde68a;">
-                                    {{p.placa_saliente}}
-                                  </span>
+                                  <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-family: monospace; font-weight: 700; color: #b45309; background: #fffbeb; padding: 2px 6px; border-radius: 4px; border: 1px solid #fde68a;">
+                                      {{p.placa_saliente}}
+                                    </span>
+                                    @if (p.es_saliente_inhabilitado) {
+                                      <span style="font-size: 0.65rem; color: #b45309; background: #fef3c7; padding: 1px 5px; border-radius: 4px; font-weight: 700; border: 1px solid #fde68a;">
+                                        INHABILITADO ({{p.plazo_sustitucion_dias || 60}}d)
+                                      </span>
+                                    }
+                                  </div>
                                   <span style="font-size: 0.75rem; color: #64748b; margin-left: 0.3rem;">
+                                    @if (p.saliente_resolucion) {
+                                      Res: <strong>{{p.saliente_resolucion}}</strong> • 
+                                    }
                                     Año: {{p.saliente_anio || 'S/A'}} • Cat: {{p.saliente_categoria || 'M2'}} • {{p.saliente_asientos ? p.saliente_asientos + ' as.' : ''}}
                                   </span>
                                 </div>
