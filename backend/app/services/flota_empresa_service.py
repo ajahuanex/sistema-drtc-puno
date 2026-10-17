@@ -251,7 +251,10 @@ class FlotaEmpresaService:
     async def get_flota_by_ruc(self, ruc_or_razon: str, solo_activos: bool = False) -> List[VehiculoEmpresaResponse]:
         """Obtener toda la flota de una empresa buscando por RUC o por Razón Social."""
         val = ruc_or_razon.strip()
-        filtro = {"esta_activo": {"$ne": False}}
+        filtro = {}
+        if solo_activos:
+            filtro["esta_activo"] = {"$ne": False}
+            filtro["es_cronologico"] = {"$ne": True}
         if val.isdigit() and len(val) >= 8:
             filtro["ruc"] = val
         else:
@@ -280,9 +283,6 @@ class FlotaEmpresaService:
             if matching_rucs:
                 or_conds.append({"ruc": {"$in": matching_rucs}})
             filtro["$or"] = or_conds
-            
-        if solo_activos:
-            filtro["es_cronologico"] = {"$ne": True}
             
         cursor = self.collection.find(filtro).sort([
             ("nro_resolucion_primigenia", 1),
@@ -326,9 +326,9 @@ class FlotaEmpresaService:
 
     async def get_estadisticas_by_ruc(self, ruc: str) -> Dict[str, Any]:
         """Estadísticas de flota por empresa incluyendo estados y contador de trámites/renovaciones."""
-        filtro = {"ruc": ruc, "esta_activo": {"$ne": False}, "es_cronologico": {"$ne": True}}
+        filtro_base = {"ruc": ruc, "es_cronologico": {"$ne": True}}
         pipeline_estado = [
-            {"$match": filtro},
+            {"$match": filtro_base},
             {"$group": {"_id": "$estado", "count": {"$sum": 1}}}
         ]
         by_estado = {}
@@ -337,7 +337,7 @@ class FlotaEmpresaService:
 
         # Conteo por trámite (RENOVACION, SUSTITUCION, INCREMENTO, etc.)
         pipeline_tramite = [
-            {"$match": filtro},
+            {"$match": filtro_base},
             {"$group": {"_id": "$tramite", "count": {"$sum": 1}}}
         ]
         by_tramite = {}
@@ -347,7 +347,7 @@ class FlotaEmpresaService:
 
         # Conteo complementario por tipo_resolucion_hija (R, S, I, etc.)
         pipeline_tipo = [
-            {"$match": filtro},
+            {"$match": filtro_base},
             {"$group": {"_id": "$tipo_resolucion_hija", "count": {"$sum": 1}}}
         ]
         by_tipo = {}
@@ -355,21 +355,24 @@ class FlotaEmpresaService:
             if doc.get("_id"):
                 by_tipo[str(doc["_id"]).upper()] = doc["count"]
 
-        total = await self.collection.count_documents({"ruc": ruc, "esta_activo": {"$ne": False}})
+        total = await self.collection.count_documents(filtro_base)
         total_habilitados = (
             by_estado.get("HABILITADO", 0) +
             by_estado.get("ACTIVO", 0) +
             by_estado.get("VIGENTE", 0)
         )
+        total_sustituidos = by_estado.get("SUSTITUIDO", 0)
         total_inhabilitados = (
             by_estado.get("INHABILITADO", 0) +
+            total_sustituidos +
             by_estado.get("OBSERVADO", 0) +
             by_estado.get("BAJA", 0) +
+            by_estado.get("CANCELADO", 0) +
             by_estado.get("INACTIVO", 0)
         )
 
         total_renovaciones = by_tramite.get("RENOVACION", 0) or by_tipo.get("R", 0)
-        total_sustituciones = by_tramite.get("SUSTITUCION", 0) or by_tipo.get("S", 0)
+        total_sustituciones = by_tramite.get("SUSTITUCION", 0) or by_tipo.get("S", 0) or total_sustituidos
         total_incrementos = by_tramite.get("INCREMENTO", 0) or by_tipo.get("I", 0)
 
         return {
@@ -381,6 +384,8 @@ class FlotaEmpresaService:
             "total_habilitados": total_habilitados,
             "inhabilitados": total_inhabilitados,
             "total_inhabilitados": total_inhabilitados,
+            "sustituidos": total_sustituidos,
+            "total_sustituidos": total_sustituidos,
             "observados": by_estado.get("OBSERVADO", 0),
             "cancelados": by_estado.get("CANCELADO", 0),
             "suspendidos": by_estado.get("SUSPENDIDO", 0),
@@ -1458,6 +1463,9 @@ class FlotaEmpresaService:
                 "estado": "HABILITADO",
                 "rutas": rutas_item,
                 "numero_tuc": nro_tuc_val,
+                "sustituye_a": (getattr(item, "placa_saliente", None) or "").strip().upper() if req.tipo_tramite == "SUSTITUCION" else None,
+                "fecha_sustitucion": now if req.tipo_tramite == "SUSTITUCION" else None,
+                "resolucion_sustitucion": (nro_hija_veh or res_ref) if req.tipo_tramite == "SUSTITUCION" else None,
                 
                 # 23 Datos Técnicos autocompletados
                 "marca": datos_tech.get("marca"),
@@ -1598,6 +1606,24 @@ class FlotaEmpresaService:
                         f"Operación Denegada: Doble sustitución absoluta prohibida. El vehículo {placa_sal} ya fue SUSTITUIDO anteriormente en esta empresa. Un vehículo no puede ser sustituido dos veces."
                     )
 
+                # Control normativo de Modernización del Parque Automotor (D.S. 017-2009-MTC):
+                # El vehículo entrante debe ser de un año mejor (más reciente) que el vehículo saliente
+                anio_sal_raw = v_saliente.get("anio_fabricacion") or v_saliente.get("anio_modelo")
+                anio_ent_raw = datos_tech.get("anio_fabricacion") or datos_tech.get("anio_modelo")
+                if anio_sal_raw and anio_ent_raw:
+                    try:
+                        a_sal = int(anio_sal_raw)
+                        a_ent = int(anio_ent_raw)
+                        if a_ent <= a_sal:
+                            raise ValueError(
+                                f"Operación Denegada: Renovación y modernización obligatoria de flota (D.S. 017-2009-MTC). "
+                                f"El vehículo entrante {placa_in} (año {a_ent}) debe ser de un año mejor (más reciente) "
+                                f"que el vehículo saliente {placa_sal} (año {a_sal})."
+                            )
+                    except (ValueError, TypeError) as conv_err:
+                        if "Operación Denegada" in str(conv_err):
+                            raise
+
                 # Si el vehículo está INHABILITADO o BAJA:
                 # Se autoriza la sustitución por venta con ampliación de plazo (ej. 60 días - Art. 68.3 D.S. 017-2009-MTC)
                 # o por baja no notificada desde otra empresa / regularización.
@@ -1616,6 +1642,10 @@ class FlotaEmpresaService:
                         "$set": {
                             "estado": "SUSTITUIDO",
                             "esta_activo": False,
+                            "es_historico": True,
+                            "sustituido_por": placa_in,
+                            "fecha_sustitucion": now,
+                            "resolucion_sustitucion": res_ref,
                             "fecha_actualizacion": now,
                             "fecha_baja": now,
                             "motivo_baja": f"SUSTITUIDO POR {placa_in}{obs_criterio} SEGUN RESOLUCION {res_ref}"
@@ -1623,6 +1653,21 @@ class FlotaEmpresaService:
                         "$push": {"observaciones_historial": nueva_obs_sal}
                     }
                 )
+                try:
+                    await self.db["historial_vehicular"].insert_one({
+                        "vehiculoId": str(v_saliente["_id"]),
+                        "placa": placa_sal,
+                        "tipoEvento": "CAMBIO_ESTADO",
+                        "fechaEvento": now,
+                        "descripcion": f"Vehículo sustituido en la empresa '{razon_social}' por la unidad {placa_in} mediante Resolución {res_ref}",
+                        "empresaId": ruc,
+                        "resolucionId": res_ref,
+                        "observaciones": f"SUSTITUIDO POR {placa_in} (Res. {res_ref})",
+                        "datosAnteriores": {"estado": estado_sal, "esta_activo": True},
+                        "datosNuevos": {"estado": "SUSTITUIDO", "esta_activo": False, "sustituido_por": placa_in, "es_historico": True}
+                    })
+                except Exception as hist_err:
+                    logger.warning(f"No se pudo registrar historial vehicular para saliente {placa_sal}: {hist_err}")
                 # Inhabilitar TUC anterior por sustitución vehicular
                 await self.db.tucs.update_many(
                     {
@@ -2307,13 +2352,50 @@ class FlotaEmpresaService:
         elif requiere_baja_misma:
             entrante_msg = res_ent["motivo_no_entrante"]
 
-        puede_proceder = saliente_ok and (entrante_ok or requiere_baja_otra or requiere_baja_misma)
+        # 3. Validación de Modernización: El vehículo entrante debe ser de un año mejor (más reciente)
+        dt_sal = res_sal.get("datos_tecnicos") or {}
+        mi_sal = res_sal.get("misma_empresa_info") or {}
+        anio_sal_val = dt_sal.get("anio_fabricacion") or dt_sal.get("anio_modelo") or mi_sal.get("anio_fabricacion")
+
+        dt_ent = res_ent.get("datos_tecnicos") or {}
+        mi_ent = res_ent.get("misma_empresa_info") or {}
+        anio_ent_val = dt_ent.get("anio_fabricacion") or dt_ent.get("anio_modelo") or mi_ent.get("anio_fabricacion")
+
+        anio_valido = True
+        motivo_anio = None
+        a_sal = None
+        a_ent = None
+        if anio_sal_val and anio_ent_val:
+            try:
+                a_sal = int(anio_sal_val)
+                a_ent = int(anio_ent_val)
+                if a_ent <= a_sal:
+                    anio_valido = False
+                    motivo_anio = (
+                        f"Regla de Modernización de Flota: El vehículo entrante (año {a_ent}) debe ser de un año "
+                        f"mejor (más reciente) que el vehículo sustituido (año {a_sal})."
+                    )
+            except (ValueError, TypeError):
+                pass
+
+        if not anio_valido:
+            entrante_ok = False
+            entrante_msg = motivo_anio
+
+        puede_proceder = saliente_ok and (entrante_ok or requiere_baja_otra or requiere_baja_misma) and anio_valido
 
         return {
-            "valido": saliente_ok and entrante_ok,
+            "valido": saliente_ok and entrante_ok and anio_valido,
             "puede_proceder": puede_proceder,
             "requiere_baja_otra_empresa": requiere_baja_otra,
             "requiere_baja_misma_empresa": requiere_baja_misma,
+            "comparacion_anios": {
+                "anio_saliente": a_sal,
+                "anio_entrante": a_ent,
+                "valido": anio_valido,
+                "diferencia": (a_ent - a_sal) if (a_sal is not None and a_ent is not None) else None,
+                "mensaje": motivo_anio
+            },
             "saliente": {
                 "placa": sal_hyphen,
                 "valido": saliente_ok,

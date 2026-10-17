@@ -279,6 +279,17 @@ export class SustitucionModalComponent {
     if (this.form.valid) {
       const value = this.form.value;
       value.placa_entrante = value.placa_entrante.toUpperCase().trim();
+
+      const vSaliente = this.data.vehiculosDisponibles?.find(v => v.placa === value.placa_saliente);
+      const anioSal = vSaliente?.anio_fabricacion ? parseInt(String(vSaliente.anio_fabricacion), 10) : 0;
+      const anioEnt = value.anio_fabricacion ? parseInt(String(value.anio_fabricacion), 10) : 0;
+
+      if (anioSal > 0 && anioEnt > 0 && anioEnt <= anioSal) {
+        this.errorBusqueda = true;
+        this.mensajeBusqueda = `⛔ Regla de Modernización: La unidad entrante (${anioEnt}) debe ser de un año mejor (más reciente) que la saliente (${anioSal}).`;
+        return;
+      }
+
       this.dialogRef.close(value);
     }
   }

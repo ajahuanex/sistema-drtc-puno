@@ -551,10 +551,19 @@ const ESTADOS_RUC: Record<string, string> = {
                                       </div>
                                       <div class="flota-chips-grid">
                                         @for (veh of getVehiculosInhabilitados(prim); track veh.placa) {
-                                          <div class="vehiculo-mini-item veh-inhabilitado">
-                                            <span class="veh-placa-inhab">{{ veh.placa }}</span>
+                                          <div class="vehiculo-mini-item veh-inhabilitado" [class.veh-sustituido]="veh.estado === 'SUSTITUIDO' || !!veh.sustituido_por">
+                                            <span class="veh-placa-inhab" [class.placa-sustituida]="veh.estado === 'SUSTITUIDO' || !!veh.sustituido_por">{{ veh.placa }}</span>
                                             <span class="veh-meta">{{ veh.marca || '' }} {{ veh.modelo || '' }} {{ veh.anio_fabricacion ? '(' + veh.anio_fabricacion + ')' : '' }}</span>
-                                            <span class="veh-inhab-badge">{{ veh.estado || 'INHABILITADO' }}</span>
+                                            <span class="veh-inhab-badge" [class.badge-sustituido]="veh.estado === 'SUSTITUIDO' || !!veh.sustituido_por">{{ veh.estado || 'INHABILITADO' }}</span>
+                                            @if (veh.sustituido_por) {
+                                              <span class="veh-sust-subtext" [matTooltip]="'Esta unidad fue sustituida por ' + veh.sustituido_por">
+                                                ↳ Sustituido por: <strong>{{ veh.sustituido_por }}</strong>
+                                              </span>
+                                            } @else if (veh.motivo_baja) {
+                                              <span class="veh-sust-subtext" [matTooltip]="veh.motivo_baja">
+                                                {{ veh.motivo_baja }}
+                                              </span>
+                                            }
                                           </div>
                                         }
                                       </div>
@@ -1444,6 +1453,32 @@ const ESTADOS_RUC: Record<string, string> = {
           padding: 1px 5px;
           border-radius: 4px;
           text-transform: uppercase;
+        }
+      }
+
+      &.veh-sustituido {
+        background: #faf5ff !important;
+        border: 1px dashed #c084fc !important;
+        opacity: 0.95 !important;
+
+        .placa-sustituida {
+          background: #ede9fe !important;
+          color: #6b21a8 !important;
+          text-decoration: none !important;
+        }
+
+        .badge-sustituido {
+          color: #6b21a8 !important;
+          background: #f3e8ff !important;
+          border: 1px solid #d8b4fe !important;
+        }
+
+        .veh-sust-subtext {
+          font-size: 0.72rem;
+          color: #7c3aed;
+          font-weight: 600;
+          display: block;
+          margin-top: 2px;
         }
       }
 

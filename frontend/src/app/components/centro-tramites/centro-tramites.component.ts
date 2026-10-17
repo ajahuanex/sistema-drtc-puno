@@ -34,6 +34,9 @@ import { BajaExternaFormComponent } from '../bajas-externas/baja-externa-form/ba
 import { RenovacionTucModalComponent } from './renovacion-tuc-modal.component';
 import { EditarTramiteModalComponent } from './editar-tramite-modal.component';
 import { TramiteAdministrativoService, TramiteAdministrativoPayload } from '../../services/tramite-administrativo.service';
+import { FlujoSustitucionComponent } from './flujos/flujo-sustitucion/flujo-sustitucion.component';
+import { FlujoIncrementoComponent } from './flujos/flujo-incremento/flujo-incremento.component';
+import { FlujoRenovacionComponent } from './flujos/flujo-renovacion/flujo-renovacion.component';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -57,7 +60,10 @@ import { environment } from '../../../environments/environment';
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    FlujoSustitucionComponent,
+    FlujoIncrementoComponent,
+    FlujoRenovacionComponent
   ],
   templateUrl: './centro-tramites.component.html',
   styleUrls: ['./centro-tramites.component.scss']
@@ -686,6 +692,43 @@ export class CentroTramites implements OnInit {
       estado: base.estado || (base.esta_activo === false ? 'INHABILITADO' : 'HABILITADO'),
       esta_activo: base.esta_activo,
       motivo_baja: base.motivo_baja
+    };
+  });
+
+  comparacionAniosSustitucion = computed(() => {
+    const sal = this.vehiculoSalienteSeleccionado();
+    const ent = this.datosTecnicosEntrante();
+    if (!sal || !ent) return null;
+
+    const rawSal = sal.anio_fabricacion || sal.anio_modelo || sal.anio;
+    const rawEnt = ent.anio_fabricacion || ent.anio_modelo || ent.ano_fabricacion || ent.anio;
+
+    const anioSal = rawSal ? parseInt(String(rawSal), 10) : 0;
+    const anioEnt = rawEnt ? parseInt(String(rawEnt), 10) : 0;
+
+    if (!anioSal || !anioEnt || isNaN(anioSal) || isNaN(anioEnt)) {
+      return {
+        evaluado: false,
+        anioSaliente: anioSal || null,
+        anioEntrante: anioEnt || null,
+        esMejor: true,
+        diferencia: 0,
+        mensaje: 'Se requiere año de fabricación de ambas unidades para validar la modernización de flota.'
+      };
+    }
+
+    const diferencia = anioEnt - anioSal;
+    const esMejor = anioEnt > anioSal;
+
+    return {
+      evaluado: true,
+      anioSaliente: anioSal,
+      anioEntrante: anioEnt,
+      esMejor,
+      diferencia,
+      mensaje: esMejor
+        ? `✓ Cumple con la regla de modernización: la unidad entrante (${anioEnt}) es ${diferencia} año(s) más reciente que la saliente (${anioSal}).`
+        : `⛔ No cumple con la regla de modernización de flota: La unidad entrante (${anioEnt}) debe ser de un año mejor (más reciente) que la unidad saliente (${anioSal}).`
     };
   });
 
@@ -2466,6 +2509,24 @@ export class CentroTramites implements OnInit {
     const esMismaEmpresaEntrante = !!mismaEmp || (!!entranteMisma && (entranteMisma.estado === 'HABILITADO' || entranteMisma.esta_activo !== false));
 
     const dt = this.datosTecnicosEntrante() || {};
+
+    // Validación obligatoria de Modernización de Flota (D.S. 017-2009-MTC)
+    const rawAnioSal = salienteObj?.anio_fabricacion || salienteObj?.anio_modelo || salienteObj?.anio || null;
+    const rawAnioEnt = dt.anio_fabricacion || dt.anio_modelo || dt.ano_fabricacion || dt.anio || null;
+    const anioSal = rawAnioSal ? parseInt(String(rawAnioSal), 10) : 0;
+    const anioEnt = rawAnioEnt ? parseInt(String(rawAnioEnt), 10) : 0;
+
+    if (anioSal > 0 && anioEnt > 0 && anioEnt <= anioSal) {
+      this.snackBar.open(
+        `⛔ Bloqueo normativo (Modernización de Flota): La unidad entrante (${entrante}, año ${anioEnt}) debe ser de un año mejor (más reciente) que la unidad saliente (${saliente}, año ${anioSal}). No se permite ingresar unidades del mismo año o más antiguas.`,
+        'CERRAR',
+        { duration: 7000 }
+      );
+      return;
+    }
+
+    const diferenciaAnios = (anioSal > 0 && anioEnt > 0) ? (anioEnt - anioSal) : null;
+
     const rutasPar = (salienteObj?.rutas && salienteObj.rutas.length > 0)
       ? [...salienteObj.rutas]
       : this.rutasOpciones().map(o => o.codigo);
@@ -2492,6 +2553,7 @@ export class CentroTramites implements OnInit {
       asientos: dt.asientos || dt.numero_asientos || dt.numero_pasajeros || null,
       peso_neto: dt.peso_neto || null,
       numero_tuc: dt.numero_tuc || '',
+      diferencia_anios: diferenciaAnios,
       rutas: rutasPar,
       datos_completos: dt,
       dar_de_baja_otra_empresa: otraEmp ? this.darDeBajaOtraEmpresa() : false,

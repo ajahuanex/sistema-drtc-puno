@@ -73,6 +73,12 @@ export interface VehiculoEmpresa {
   fecha_registro?: string;
   fecha_actualizacion?: string;
   esta_activo: boolean;
+  motivo_baja?: string;
+  sustituido_por?: string;
+  sustituye_a?: string;
+  fecha_sustitucion?: string;
+  resolucion_sustitucion?: string;
+  es_historico?: boolean;
 
   // Compatibilidad dual con serializaciones camelCase
   nroResolucionPrimigenia?: string;

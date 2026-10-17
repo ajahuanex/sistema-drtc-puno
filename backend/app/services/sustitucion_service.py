@@ -103,15 +103,21 @@ class SustitucionService:
             "usuario": user_dni
         })
         
+        now_s = datetime.utcnow()
         await self.flota_collection.update_one(
             {"_id": vehiculo_baja["_id"]},
             {"$set": {
                 "estado": "SUSTITUIDO",
                 "esta_activo": False,
+                "es_historico": True,
+                "sustituido_por": request.placa_alta,
+                "fecha_sustitucion": now_s,
+                "resolucion_sustitucion": nro_res,
+                "fecha_baja": now_s,
                 "motivo_baja": f"Sustituido por {request.placa_alta} mediante Res. {nro_res}",
                 "observaciones": obs_baja.strip(" |"),
                 "observaciones_historial": historial_baja,
-                "fecha_actualizacion": datetime.utcnow()
+                "fecha_actualizacion": now_s
             }}
         )
         
@@ -127,13 +133,16 @@ class SustitucionService:
             "estado": "HABILITADO",
             "nro_resolucion_primigenia": resolucion_primigenia,
             "nro_resolucion_hija": nro_res,
+            "sustituye_a": request.placa_baja,
+            "fecha_sustitucion": now_s,
+            "resolucion_sustitucion": nro_res,
             "rutas_asignadas": request.rutas_heredadas,
             "observaciones": obs_alta,
-            "fecha_cronologica": datetime.utcnow(),
+            "fecha_cronologica": now_s,
             "esta_activo": True,
             "es_cronologico": False,
             "observaciones_historial": [{
-                "fecha": datetime.utcnow(),
+                "fecha": now_s,
                 "texto": f"Alta por sustitución de {request.placa_baja}",
                 "usuario": user_dni
             }]

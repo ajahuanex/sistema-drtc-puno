@@ -221,10 +221,10 @@ export class EmpresaService {
   }
 
   /**
-   * Permite al administrador configurar el horario diario (ej. '07:00') y activación del cron automático SUNAT.
+   * Permite al administrador configurar la frecuencia mensual (horario '03:00', día del mes) y activación del cron automático SUNAT.
    */
-  configurarHorarioCronSunat(horario: string, activo: boolean = true): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/cron-sunat/config`, { horario, activo }, {
+  configurarHorarioCronSunat(horario: string, activo: boolean = true, dia_mes: number = 1): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/cron-sunat/config`, { horario, activo, dia_mes }, {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => this.handleError('configurarHorarioCronSunat', error))

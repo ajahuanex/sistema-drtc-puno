@@ -150,6 +150,13 @@ class VehiculoEmpresaUpdate(BaseModel):
     link_tuc: Optional[str] = None
     link_notificacion: Optional[str] = None
     detalles: Optional[str] = None
+    motivo_baja: Optional[str] = None
+    sustituido_por: Optional[str] = None
+    sustituye_a: Optional[str] = None
+    fecha_sustitucion: Optional[Any] = None
+    resolucion_sustitucion: Optional[str] = None
+    es_historico: Optional[bool] = None
+    fecha_baja: Optional[Any] = None
 
 
 class AgregarObservacionRequest(BaseModel):
@@ -220,6 +227,13 @@ class VehiculoEmpresaResponse(BaseModel):
     fecha_registro: Optional[Any] = None
     fecha_actualizacion: Optional[Any] = None
     esta_activo: bool = True
+    motivo_baja: Optional[str] = None
+    sustituido_por: Optional[str] = None
+    sustituye_a: Optional[str] = None
+    fecha_sustitucion: Optional[Any] = None
+    resolucion_sustitucion: Optional[str] = None
+    es_historico: Optional[bool] = None
+    fecha_baja: Optional[Any] = None
 
     @classmethod
     def from_mongo(cls, doc: dict) -> "VehiculoEmpresaResponse":

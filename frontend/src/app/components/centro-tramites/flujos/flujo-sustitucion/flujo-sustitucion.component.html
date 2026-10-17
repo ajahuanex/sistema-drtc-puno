@@ -1,0 +1,491 @@
+<div style="display: flex; flex-direction: column; gap: 1rem;">
+  
+  <!-- CARD 0: RUTAS AUTORIZADAS DE LA CONCESIÓN -->
+  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.15rem; background: #ffffff;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <div style="background: #e0f2fe; color: #0284c7; padding: 0.45rem; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0;">
+          <mat-icon style="font-size: 20px; width: 20px; height: 20px;">alt_route</mat-icon>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.45rem;">
+            <h4 style="font-weight: 700; color: #1e293b; margin: 0; font-size: 0.92rem;">Rutas Autorizadas de la Concesión</h4>
+            <span style="background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; border: 1px solid #bfdbfe;">
+              {{rutasEmpresaActual().length}} ruta(s)
+            </span>
+          </div>
+          <span style="font-size: 0.73rem; color: #64748b;">Rutas operativas asignadas al vehículo saliente y a transferir al vehículo entrante</span>
+        </div>
+      </div>
+    </div>
+    @if (rutasEmpresaActual().length > 0) {
+      <div style="padding: 0.6rem 1.15rem 0.85rem; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        @for (r of rutasEmpresaActual(); track r.codigoRuta || r.codigo || $index) {
+          <div style="display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px 8px; font-size: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <span style="font-family: monospace; font-weight: 700; background: #eff6ff; color: #1d4ed8; padding: 1px 5px; border-radius: 4px;">
+              Ruta {{r.codigoRuta || r.codigo || '01'}}
+            </span>
+            <span style="font-weight: 600; color: #334155;">
+              {{formatearLugar(r.origen)}} ➔ {{formatearLugar(r.destino)}}
+            </span>
+            @if (r.itinerario) {
+              <span style="color: #94a3b8; font-size: 0.7rem;">(Vía: {{formatearItinerario(r.itinerario)}})</span>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Barra Horizontal Compacta de Sustitución -->
+  <div class="sustitucion-compact-bar">
+    <div class="compact-inputs-row">
+      
+      <!-- 1. Buscador Vehículo Saliente (Baja) -->
+      <div class="input-with-label">
+        <div class="mini-label">
+          <span class="dot-indicator dot-amber"></span>
+          <span>Saliente:</span>
+        </div>
+        <div class="search-input-wrap">
+          <span class="material-symbols-outlined prefix-icon text-amber">no_crash</span>
+          <input 
+            type="text" 
+            class="compact-plate-input" 
+            placeholder="PLACA" 
+            [value]="filtroSalienteText()"
+            (input)="onSalienteInput($event)"
+            (focus)="mostrarSugerenciasSaliente.set(true)"
+            (blur)="onSalienteBlur()"
+            maxlength="8"
+            [matTooltip]="'Buscar entre los vehículos habilitados de esta resolución'" />
+          @if (buscandoPlacaSaliente()) {
+            <mat-spinner diameter="16" class="suffix-spinner"></mat-spinner>
+          }
+          
+          @if (mostrarSugerenciasSaliente() && vehiculosSalientesFiltrados().length > 0) {
+            <div class="plate-suggestions-dropdown">
+              @for (v of vehiculosSalientesFiltrados(); track (v.id || v._id || $index)) {
+                <div class="suggestion-item" (mousedown)="seleccionarSaliente(v)">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <strong class="sug-plate">{{v.placa}}</strong>
+                    <span style="font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px;"
+                          [style.background]="(v.estado === 'HABILITADO' || !v.estado) ? '#ecfdf5' : '#fef3c7'"
+                          [style.color]="(v.estado === 'HABILITADO' || !v.estado) ? '#047857' : '#b45309'">
+                      {{v.estado || 'HABILITADO'}}
+                      @if (v.estado === 'INHABILITADO' || v.estado === 'BAJA' || v.esta_activo === false) {
+                        <span>(Apto)</span>
+                      }
+                    </span>
+                  </div>
+                  <span class="sug-desc">
+                    @if (v.nro_resolucion_hija || v.nro_resolucion_primigenia) {
+                      Res: <strong>{{v.nro_resolucion_hija || v.nro_resolucion_primigenia}}</strong> • 
+                    }
+                    Año: {{v.anio_fabricacion || 'S/A'}} • Cat: {{v.categoria || 'M2'}} • {{v.asientos ? v.asientos + ' as.' : ''}}
+                    @if (v.motivo_baja) {
+                      • <em style="color: #b45309;">{{v.motivo_baja}}</em>
+                    }
+                  </span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Flecha de transición -->
+      <mat-icon class="arrow-sep">arrow_forward</mat-icon>
+
+      <!-- 2. Buscador Vehículo Entrante (Alta) -->
+      <div class="input-with-label">
+        <div class="mini-label">
+          <span class="dot-indicator dot-emerald"></span>
+          <span>Entrante:</span>
+        </div>
+        <div class="search-input-wrap">
+          <span class="material-symbols-outlined prefix-icon text-emerald">directions_bus</span>
+          <input 
+            type="text" 
+            class="compact-plate-input" 
+            placeholder="PLACA" 
+            [value]="placaEntranteTemp()"
+            (input)="onPlacaEntranteInput($event)"
+            (blur)="buscarDatosVehiculoEntrante()"
+            (keydown.enter)="buscarDatosVehiculoEntrante()"
+            maxlength="8"
+            [matTooltip]="'Buscar placa en toda la BD regional / SUNARP'" />
+          @if (buscandoPlacaEntrante()) {
+            <mat-spinner diameter="16" class="suffix-spinner"></mat-spinner>
+          }
+        </div>
+      </div>
+
+      <!-- 3. Icono Datos Técnicos (Llave de mecánico 'build') -->
+      <button type="button" 
+              mat-icon-button 
+              class="btn-icon-tech" 
+              [matTooltip]="'Llenar / editar especificaciones técnicas del vehículo entrante (Ficha Técnica)'"
+              (click)="abrirModalDatosTecnicosEntrante()">
+        <mat-icon style="color: #2563eb;">build</mat-icon>
+        @if (datosTecnicosEntrante()?.categoria || datosTecnicosEntrante()?.anio_fabricacion) {
+          <span class="mini-badge-ok">✓</span>
+        }
+      </button>
+
+      <!-- 4. Icono Notificar Baja Externa al MTC -->
+      <button type="button" 
+              mat-icon-button 
+              class="btn-icon-baja-ext" 
+              [matTooltip]="'Registrar Baja Externa para notificar al MTC (Oficio/Evidencia)'"
+              (click)="abrirModalBajaExterna()">
+        <mat-icon style="color: #ea580c;">forward_to_inbox</mat-icon>
+      </button>
+
+      <!-- 5. Botón Vincular Par -->
+      <button type="button" 
+              mat-flat-button 
+              color="primary" 
+              class="btn-vincular-compact"
+              [disabled]="!placaSalienteTemp() || !placaEntranteTemp() || (comparacionAniosSustitucion()?.evaluado && !comparacionAniosSustitucion()?.esMejor)"
+              (click)="agregarParSustitucion()">
+        <mat-icon style="font-size: 18px; width: 18px; height: 18px;">add_link</mat-icon>
+        <span>Vincular</span>
+      </button>
+    </div>
+
+    <!-- Fichas informativas compactas (Solo datos técnicos esenciales de vehiculos_data) -->
+    @if (placaSalienteTemp() || placaEntranteTemp() || habilitacionOtraEmpresa()) {
+      <div class="compact-info-chips">
+        <div class="chips-row">
+          @if (vehiculoSalienteSeleccionado()) {
+            <div class="chip-item chip-saliente">
+              <span class="material-symbols-outlined" style="font-size: 13px;">no_crash</span>
+              <span>
+                <strong>{{vehiculoSalienteSeleccionado()?.placa}}</strong> • 
+                @if (vehiculoSalienteSeleccionado()?.nro_resolucion_hija || vehiculoSalienteSeleccionado()?.nro_resolucion_primigenia) {
+                  Res: <strong>{{vehiculoSalienteSeleccionado()?.nro_resolucion_hija || vehiculoSalienteSeleccionado()?.nro_resolucion_primigenia}}</strong> • 
+                }
+                Año: <strong>{{vehiculoSalienteSeleccionado()?.anio_fabricacion || 'S/A'}}</strong> • 
+                Cat: <strong>{{vehiculoSalienteSeleccionado()?.categoria || 'M2'}}</strong> • 
+                <strong>{{vehiculoSalienteSeleccionado()?.asientos ? vehiculoSalienteSeleccionado()?.asientos + ' as.' : 'S/Asientos'}}</strong>
+                @if (vehiculoSalienteSeleccionado()?.peso_neto) {
+                  • <strong>{{vehiculoSalienteSeleccionado()?.peso_neto}} tn</strong>
+                }
+              </span>
+            </div>
+          }
+          @if (placaEntranteTemp()) {
+            <div class="chip-item chip-entrante">
+              <span class="material-symbols-outlined" style="font-size: 13px;">directions_bus</span>
+              <span>
+                <strong>{{placaEntranteTemp()}}</strong> • 
+                Año: <strong>{{datosTecnicosEntrante()?.anio_fabricacion || 'S/A'}}</strong> • 
+                Cat: <strong>{{datosTecnicosEntrante()?.categoria || 'M2'}}</strong> • 
+                <strong>{{datosTecnicosEntrante()?.asientos ? datosTecnicosEntrante()?.asientos + ' as.' : 'S/Asientos'}}</strong>
+                @if (datosTecnicosEntrante()?.peso_neto) {
+                  • <strong>{{datosTecnicosEntrante()?.peso_neto}} tn</strong>
+                }
+              </span>
+            </div>
+          }
+        </div>
+
+        <!-- Validación Visual de la Regla de Modernización de Flota (D.S. 017-2009-MTC) -->
+        @if (comparacionAniosSustitucion(); as comp) {
+          @if (comp.evaluado) {
+            <div class="comparativa-anios-box" [class.valido]="comp.esMejor" [class.invalido]="!comp.esMejor">
+              <div class="comparativa-anios-content">
+                <span class="material-symbols-outlined icon-comp">
+                  {{ comp.esMejor ? 'check_circle' : 'gpp_bad' }}
+                </span>
+                <div class="comparativa-anios-text">
+                  <div class="comp-title">
+                    <strong>Regla de Modernización (D.S. 017-2009-MTC)</strong>:
+                    <span class="comp-badge" [class.badge-ok]="comp.esMejor" [class.badge-error]="!comp.esMejor">
+                      Saliente: {{ comp.anioSaliente }} ➔ Entrante: {{ comp.anioEntrante }}
+                      @if (comp.esMejor) {
+                        (+{{ comp.diferencia }} {{ comp.diferencia === 1 ? 'año' : 'años' }} más reciente)
+                      } @else {
+                        ({{ comp.diferencia === 0 ? 'Mismo año de fabricación' : comp.diferencia + ' años más antiguo' }})
+                      }
+                    </span>
+                  </div>
+                  <p class="comp-msg">{{ comp.mensaje }}</p>
+                </div>
+              </div>
+            </div>
+          }
+        }
+
+        <!-- Configuración de Criterio si el Saliente es Inhabilitado / Baja (Art. 68.3 D.S. 017-2009-MTC) -->
+        @if (vehiculoSalienteSeleccionado() && (vehiculoSalienteSeleccionado()?.estado === 'INHABILITADO' || vehiculoSalienteSeleccionado()?.estado === 'BAJA' || vehiculoSalienteSeleccionado()?.esta_activo === false)) {
+          <div class="alert-otra-empresa" style="background: #fffbeb; border-color: #fde68a;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span class="material-symbols-outlined" style="color: #d97706; font-size: 18px;">info</span>
+              <span style="color: #92400e; font-weight: 600; font-size: 0.8rem;">
+                Unidad saliente en baja/inhabilitada — Sustitución según Art. 68.3 D.S. 017-2009-MTC:
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.35rem;">
+              <label style="font-size: 0.76rem; color: #78350f; font-weight: 600;">Criterio normativo:</label>
+              <select [value]="criterioSalienteInhabilitado()" 
+                      (change)="onCriterioSalienteChange($event)"
+                      style="font-size: 0.76rem; padding: 3px 8px; border-radius: 4px; border: 1px solid #d97706; background: white; color: #78350f; font-weight: 500;">
+                <option value="VENTA_PLAZO_60D">Comunicó venta y solicita ampliación de tiempo (60 días para sustituir)</option>
+                <option value="BAJA_OTRA_EMPRESA_NO_NOTIFICADA">Baja desde otra empresa / Regularización (no fue notificada la baja)</option>
+                <option value="BAJA_PREVENTIVA_MTC">Baja preventiva comunicada al MTC</option>
+                <option value="SOLICITUD_PARTE">Sustitución por retiro vehicular a solicitud de parte</option>
+              </select>
+              <div style="display: flex; align-items: center; gap: 0.3rem;">
+                <label style="font-size: 0.76rem; color: #78350f; font-weight: 600;">Plazo:</label>
+                <input type="number" 
+                       [value]="plazoSustitucionDias()" 
+                       (input)="onPlazoDiasInput($event)"
+                       min="1" max="180" 
+                       style="width: 50px; font-size: 0.76rem; padding: 2px 4px; border: 1px solid #d97706; border-radius: 4px; font-weight: 700; text-align: center; color: #78350f; background: white;" />
+                <span style="font-size: 0.76rem; color: #78350f;">días</span>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Alerta si el vehículo entrante ya está habilitado en otra empresa -->
+        @if (habilitacionOtraEmpresa()) {
+          <div class="alert-otra-empresa">
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <span class="material-symbols-outlined" style="color: #ea580c; font-size: 18px;">warning</span>
+              <span>
+                La placa <strong>{{placaEntranteTemp()}}</strong> está HABILITADA en: 
+                <strong>{{habilitacionOtraEmpresa()?.razon_social}}</strong> (RUC: {{habilitacionOtraEmpresa()?.ruc}})
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-left: auto;">
+              <button type="button" mat-stroked-button (click)="abrirModalBajaExterna()" class="btn-quick-baja-ext">
+                <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #ea580c;">forward_to_inbox</mat-icon>
+                <span>Notificar al MTC</span>
+              </button>
+              <mat-checkbox 
+                [checked]="darDeBajaOtraEmpresa()" 
+                (change)="darDeBajaOtraEmpresa.set($event.checked)"
+                color="warn"
+                class="chk-baja">
+                <span style="font-size: 0.78rem; font-weight: 600; color: #b45309;">
+                  Dar de baja en la otra empresa (Art. 68.1)
+                </span>
+              </mat-checkbox>
+            </div>
+          </div>
+        }
+
+        <!-- Alerta si el vehículo entrante ya está habilitado en esta misma empresa -->
+        @if (habilitacionMismaEmpresa()) {
+          <div class="alert-otra-empresa" style="background: #fffbeb; border-color: #fde68a;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <span class="material-symbols-outlined" style="color: #d97706; font-size: 18px;">info</span>
+              <span style="color: #92400e;">
+                La placa entrante <strong>{{placaEntranteTemp()}}</strong> ya figura HABILITADA en esta empresa 
+                (Res: <strong>{{habilitacionMismaEmpresa()?.nro_resolucion_hija || habilitacionMismaEmpresa()?.nro_resolucion_primigenia || 'Vigente'}}</strong>, TUC: {{habilitacionMismaEmpresa()?.numero_tuc || 'S/TUC'}})
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-left: auto;">
+              <mat-checkbox 
+                [checked]="darDeBajaMismaEmpresa()" 
+                (change)="darDeBajaMismaEmpresa.set($event.checked)"
+                color="warn"
+                class="chk-baja">
+                <span style="font-size: 0.78rem; font-weight: 600; color: #b45309;">
+                  Dar de baja habilitación anterior (Regularizar)
+                </span>
+              </mat-checkbox>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Tabla de Pares Configurados -->
+  <div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
+      <h4 style="font-weight: 700; color: #1e293b; margin: 0; font-size: 0.9rem;">
+        Pares de Sustitución Listos para Procesar ({{pares().length}})
+      </h4>
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        @if (pares().length > 1) {
+          <button mat-stroked-button 
+                  type="button"
+                  (click)="generarTucsMasivosSustitucion()"
+                  style="font-size: 0.74rem; height: 26px; line-height: 26px; padding: 0 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; font-weight: 600;">
+            <mat-icon style="font-size: 15px; width: 15px; height: 15px; color: #2563eb;">badge</mat-icon>
+            <span>Asignar TUCs Secuenciales</span>
+          </button>
+        }
+        <span style="font-size: 0.75rem; color: #64748b;">
+          Habilitados en resolución: <strong>{{vehiculosEnResolucion().length}}</strong> vehs.
+        </span>
+      </div>
+    </div>
+
+    @if (pares().length === 0) {
+      <div style="background: white; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1.5rem; text-align: center;">
+        <mat-icon style="font-size: 32px; width: 32px; height: 32px; color: #94a3b8; margin-bottom: 0.35rem;">sync_alt</mat-icon>
+        <p style="color: #64748b; font-weight: 500; margin: 0; font-size: 0.85rem;">No se han configurado sustituciones aún.</p>
+        <p style="color: #94a3b8; font-size: 0.78rem; margin: 0.2rem 0 0 0;">Ingrese las placas arriba y haga clic en Vincular.</p>
+      </div>
+    } @else {
+      <div style="overflow-x: auto;">
+        <table class="custom-table" style="width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; white-space: nowrap;">
+          <thead>
+            <tr>
+              <th>Vehículo Saliente (Baja)</th>
+              <th style="width: 24px; text-align: center;"></th>
+              <th>Vehículo Entrante (Alta)</th>
+              <th style="min-width: 140px;">Rutas Asignadas (Entrante)</th>
+              <th style="width: 155px;">Designación TUC</th>
+              <th style="width: 65px; text-align: center;" matTooltip="Dar de baja en la otra empresa">Baja Ext.</th>
+              <th style="width: 65px; text-align: center;" matTooltip="Notificación preventiva ante el MTC">Notif. MTC</th>
+              <th style="width: 80px; text-align: center;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of pares(); track (p.saliente_id || p.placa_saliente); let idx = $index) {
+              <tr>
+                <!-- Vehículo Saliente (Baja): Placa + Specs -->
+                <td>
+                  <div class="pair-unit-box">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <strong class="plate-badge plate-amber">{{p.placa_saliente}}</strong>
+                      @if (p.es_saliente_inhabilitado) {
+                        <span style="font-size: 0.65rem; background: #fef3c7; color: #b45309; padding: 1px 5px; border-radius: 4px; font-weight: 700; border: 1px solid #fde68a;" [matTooltip]="(p.criterio_sustitucion || 'Ampliación') + ' (' + (p.plazo_sustitucion_dias || 60) + ' días)'">
+                          INHABILITADO ({{p.plazo_sustitucion_dias || 60}}d)
+                        </span>
+                      }
+                    </div>
+                    <span class="pair-mini-specs">
+                      @if (p.saliente_resolucion) {
+                        Res: <strong>{{p.saliente_resolucion}}</strong> • 
+                      }
+                      {{p.saliente_anio || 'S/A'}} • {{p.saliente_categoria || 'M2'}} • {{p.saliente_asientos ? p.saliente_asientos + ' as.' : 'S/Asientos'}}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Flecha de transición -->
+                <td style="text-align: center;">
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <mat-icon style="color: #94a3b8; font-size: 16px; width: 16px; height: 16px;">arrow_forward</mat-icon>
+                    @if (p.diferencia_anios !== undefined && p.diferencia_anios !== null) {
+                      <span style="font-size: 0.65rem; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 1px 4px; border-radius: 4px;" [matTooltip]="'Cumple modernización: ' + p.diferencia_anios + ' año(s) más reciente'">
+                        +{{p.diferencia_anios}}a
+                      </span>
+                    }
+                  </div>
+                </td>
+
+                <!-- Vehículo Entrante (Alta): Placa + Specs -->
+                <td>
+                  <div class="pair-unit-box">
+                    <strong class="plate-badge plate-emerald">{{p.placa_entrante}}</strong>
+                    <span class="pair-mini-specs">
+                      {{p.anio_fabricacion || 'S/A'}} • {{p.categoria || 'M2'}} • {{p.asientos ? p.asientos + ' as.' : 'S/Asientos'}}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Rutas Asignadas para el Entrante -->
+                <td>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+                    @for (r of rutasOpciones(); track r.codigo) {
+                      <button type="button"
+                              (click)="toggleRutaParSustitucion(idx, r.codigo)"
+                              [style.background]="(p.rutas || []).includes(r.codigo) ? '#eff6ff' : '#f8fafc'"
+                              [style.color]="(p.rutas || []).includes(r.codigo) ? '#1d4ed8' : '#94a3b8'"
+                              [style.borderColor]="(p.rutas || []).includes(r.codigo) ? '#93c5fd' : '#e2e8f0'"
+                              [style.fontWeight]="(p.rutas || []).includes(r.codigo) ? '700' : '500'"
+                              style="font-family: monospace; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; border: 1px solid; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; transition: all 0.15s;"
+                              [matTooltip]="r.label + ' (Clic para asignar/quitar al vehículo entrante)'">
+                        <span>{{r.codigo}}</span>
+                        @if ((p.rutas || []).includes(r.codigo)) {
+                          <mat-icon style="font-size: 11px; width: 11px; height: 11px;">check</mat-icon>
+                        }
+                      </button>
+                    }
+                    @if (rutasOpciones().length > 1) {
+                      <button type="button"
+                              (click)="asignarTodasRutasParSustitucion(idx)"
+                              style="font-size: 0.65rem; color: #2563eb; background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0 2px;">
+                        Todas
+                      </button>
+                    }
+                  </div>
+                </td>
+
+                <!-- Designación TUC Entrante -->
+                <td>
+                  <div style="display: inline-flex; align-items: center; gap: 4px;">
+                    <input 
+                      type="text" 
+                      [value]="p.numero_tuc || ''" 
+                      (input)="actualizarTucParSustitucion(idx, $event)"
+                      placeholder="Pendiente TUC" 
+                      style="width: 105px; font-family: monospace; font-size: 0.76rem; font-weight: 600; padding: 3px 6px; border: 1px solid #cbd5e1; border-radius: 4px; color: #1e293b; background: white;"
+                      title="Designación / Número de TUC para la unidad entrante">
+                    <button 
+                      type="button" 
+                      mat-icon-button 
+                      class="compact-icon-btn-sm"
+                      (click)="generarTucParSustitucion(idx)"
+                      matTooltip="Generar correlativo TUC para este vehículo entrante"
+                      style="width: 24px; height: 24px; line-height: 24px; color: #2563eb;">
+                      <mat-icon style="font-size: 16px;">autorenew</mat-icon>
+                    </button>
+                  </div>
+                </td>
+
+                <!-- Baja en otra empresa: SOLO ICONO -->
+                <td style="text-align: center;">
+                  @if (p.dar_de_baja_otra_empresa) {
+                    <span class="solo-icon-baja" [matTooltip]="'Requiere dar de baja en: ' + (p.otra_empresa_info || 'Empresa externa')">
+                      <mat-icon style="font-size: 20px; width: 20px; height: 20px; color: #ea580c;">domain_disabled</mat-icon>
+                    </span>
+                  } @else {
+                    <span style="color: #cbd5e1; font-weight: 300;">-</span>
+                  }
+                </td>
+
+                <!-- Notificador externo MTC: SOLO ICONO -->
+                <td style="text-align: center;">
+                  @if (p.baja_externa_registrada) {
+                    <button mat-icon-button 
+                            (click)="abrirModalBajaExterna(idx)" 
+                            matTooltip="✓ Notificación MTC registrada (Clic para ver/editar)">
+                      <mat-icon style="font-size: 20px; width: 20px; height: 20px; color: #059669;">mark_email_read</mat-icon>
+                    </button>
+                  } @else {
+                    <button mat-icon-button 
+                            (click)="abrirModalBajaExterna(idx)" 
+                            matTooltip="Registrar Notificación MTC (Oficio/Evidencia)">
+                      <mat-icon style="font-size: 20px; width: 20px; height: 20px; color: #ea580c;">forward_to_inbox</mat-icon>
+                    </button>
+                  }
+                </td>
+
+                <!-- Acciones: Ficha Técnica (Llave) y Quitar par -->
+                <td style="text-align: center; white-space: nowrap;">
+                  <button mat-icon-button color="primary" (click)="abrirModalDatosTecnicosEntrante(idx)" matTooltip="Editar especificaciones técnicas (Ficha Técnica)">
+                    <mat-icon style="font-size: 18px; width: 18px; height: 18px;">build</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="eliminarParSustitucion(idx)" matTooltip="Quitar par">
+                    <mat-icon style="font-size: 18px; width: 18px; height: 18px;">delete</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+</div>

@@ -183,11 +183,11 @@ async def lifespan(app):
             except Exception as idx_err:
                 logger.warning(f"⚠️ Error creando índices de colecciones: {idx_err}")
 
-        # Iniciar cron automático diario de validación SUNAT
+        # Iniciar cron automático mensual de validación SUNAT (1 vez al mes)
         try:
-            from app.services.sunat_sync_service import loop_cron_sunat_diario
-            sunat_cron_task = asyncio.create_task(loop_cron_sunat_diario())
-            logger.info("✅ [LIFESPAN] Tarea de validación SUNAT diaria iniciada en segundo plano")
+            from app.services.sunat_sync_service import loop_cron_sunat_mensual
+            sunat_cron_task = asyncio.create_task(loop_cron_sunat_mensual())
+            logger.info("✅ [LIFESPAN] Tarea de validación SUNAT mensual iniciada en segundo plano")
         except Exception as cron_err:
             logger.warning(f"⚠️ Error iniciando cron SUNAT: {cron_err}")
     except Exception as e:

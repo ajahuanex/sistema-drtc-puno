@@ -759,7 +759,7 @@ async def get_expediente_operativo_empresa(
     # 1. Consultar colecciones
     primigenias_docs = await db["resoluciones_primigenias"].find({"ruc_empresa": ruc, "esta_activo": True}).to_list(1000)
     hijas_docs = await db["resoluciones_hijas"].find({"ruc_empresa": ruc, "esta_activo": True}).to_list(2000)
-    flota_docs = await db["flota_empresa"].find({"ruc": ruc, "esta_activo": True}).to_list(2000)
+    flota_docs = await db["flota_empresa"].find({"ruc": ruc}).to_list(2000)
     rutas_docs = await db["rutas"].find({
         "$or": [
             {"empresa.ruc": ruc},
@@ -844,14 +844,15 @@ async def get_expediente_operativo_empresa(
         }
         primigenias_map[nro_res]["rutas"].append(r_item)
 
-    # 4. Asociar flota vehicular
+    # 4. Asociar flota vehicular (tanto activa como histórica/sustituida/inhabilitada)
     flota_activa_total = 0
     for f in flota_docs:
         placa = str(f.get("placa", "")).strip().upper()
         if not placa or placa == "-":
             continue
         estado_veh = str(f.get("estado", "HABILITADO")).upper()
-        es_hab = estado_veh in ["ACTIVO", "HABILITADO", "VIGENTE"]
+        activo_bool = f.get("esta_activo", True) is not False
+        es_hab = estado_veh in ["ACTIVO", "HABILITADO", "VIGENTE"] and activo_bool
         if es_hab:
             flota_activa_total += 1
             
@@ -860,12 +861,17 @@ async def get_expediente_operativo_empresa(
             "id": str(f.get("_id")),
             "placa": placa,
             "estado": estado_veh,
+            "esta_activo": activo_bool,
             "es_habilitado": es_hab,
             "categoria": f.get("categoria"),
             "marca": f.get("marca"),
             "modelo": f.get("modelo"),
             "anio_fabricacion": f.get("anio_fabricacion"),
-            "nro_tuc": f.get("nro_tuc")
+            "nro_tuc": f.get("nro_tuc") or f.get("numero_tuc"),
+            "motivo_baja": f.get("motivo_baja"),
+            "sustituido_por": f.get("sustituido_por"),
+            "sustituye_a": f.get("sustituye_a"),
+            "fecha_sustitucion": f.get("fecha_sustitucion").isoformat() if isinstance(f.get("fecha_sustitucion"), datetime) else f.get("fecha_sustitucion")
         }
         if nro_prim in primigenias_map:
             primigenias_map[nro_prim]["flota"].append(f_item)
@@ -1892,22 +1898,23 @@ async def configurar_cron_sunat(
     current_user: Optional[UsuarioInDB] = Depends(get_current_user_optional)
 ):
     """
-    Permite al administrador configurar el horario diario (ej. '07:00') y activación del cron automático SUNAT.
+    Permite al administrador configurar la frecuencia mensual (día del mes, horario '03:00') y activación del cron automático SUNAT.
     """
     if current_user:
         rol = (current_user.rolId or "").lower()
         if rol not in ["admin", "oti", "administrador"]:
             raise HTTPException(
                 status_code=403,
-                detail="Solo los administradores pueden cambiar la configuración del horario de SUNAT."
+                detail="Solo los administradores pueden cambiar la configuración de la sincronización de SUNAT."
             )
 
     from app.services.sunat_sync_service import actualizar_configuracion_cron
     horario = config.get("horario") or config.get("horario_programado")
+    dia_mes = config.get("dia_mes")
     activo = config.get("activo")
-    nuevo_estado = actualizar_configuracion_cron(horario_str=horario, activo=activo)
+    nuevo_estado = actualizar_configuracion_cron(horario_str=horario, dia_mes=dia_mes, activo=activo)
     return {
-        "mensaje": f"Configuración de sincronización SUNAT actualizada exitosamente a las {nuevo_estado.get('horario_programado')}",
+        "mensaje": f"Configuración de sincronización SUNAT actualizada exitosamente (Frecuencia Mensual: Día {nuevo_estado.get('dia_mes', 1)} a las {nuevo_estado.get('horario_programado')})",
         "estado": nuevo_estado
     }
 

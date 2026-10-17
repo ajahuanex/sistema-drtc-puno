@@ -104,6 +104,8 @@ export interface SunatCronStatus {
   activo: boolean;
   en_ejecucion: boolean;
   horario_programado: string;
+  frecuencia?: string;
+  dia_mes?: number;
   timezone?: string;
   proxima_ejecucion?: string | null;
   ultimo_inicio?: string | null;
@@ -234,12 +236,17 @@ export interface VehiculoPrimigeniaItem {
   id: string;
   placa: string;
   estado: string;
+  esta_activo?: boolean;
   es_habilitado?: boolean;
   categoria?: string;
   marca?: string;
   modelo?: string;
   anio_fabricacion?: number;
   nro_tuc?: string;
+  motivo_baja?: string;
+  sustituido_por?: string;
+  sustituye_a?: string;
+  fecha_sustitucion?: string;
 }
 
 export interface ModificatoriaHijaItem {

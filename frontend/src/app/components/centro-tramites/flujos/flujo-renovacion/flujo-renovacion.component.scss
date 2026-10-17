@@ -1,0 +1,65 @@
+/* TABLA PERSONALIZADA */
+.custom-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.82rem;
+
+  thead {
+    background: #f8fafc;
+    th {
+      padding: 0.65rem 0.85rem;
+      font-weight: 700;
+      color: #475569;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+      font-size: 0.74rem;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #f1f5f9;
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: #f8fafc;
+      }
+
+      td {
+        padding: 0.65rem 0.85rem;
+        color: #334155;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+      }
+    }
+  }
+}
+
+.renovacion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.compact-icon-btn {
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.compact-icon-btn-sm {
+  width: 24px !important;
+  height: 24px !important;
+  line-height: 24px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}

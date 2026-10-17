@@ -1,0 +1,534 @@
+<div style="display: flex; flex-direction: column; gap: 0.85rem;">
+
+  <!-- CARD 0: RUTAS AUTORIZADAS DE LA EMPRESA / CONCESIÓN -->
+  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.15rem; background: #ffffff;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <div style="background: #e0f2fe; color: #0284c7; padding: 0.45rem; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0;">
+          <mat-icon style="font-size: 20px; width: 20px; height: 20px;">alt_route</mat-icon>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.45rem;">
+            <h4 style="font-weight: 700; color: #1e293b; margin: 0; font-size: 0.92rem;">Rutas Autorizadas de la Empresa / Concesión</h4>
+            <span style="background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; border: 1px solid #bfdbfe;">
+              {{rutasEmpresaActual().length}} ruta(s)
+            </span>
+          </div>
+          <span style="font-size: 0.73rem; color: #64748b;">Rutas bajo las cuales se prestará el servicio con las nuevas unidades incorporadas</span>
+        </div>
+      </div>
+    </div>
+    @if (rutasEmpresaActual().length > 0) {
+      <div style="padding: 0.6rem 1.15rem 0.85rem; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        @for (r of rutasEmpresaActual(); track r.codigoRuta || r.codigo || $index) {
+          <div style="display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px 8px; font-size: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <span style="font-family: monospace; font-weight: 700; background: #eff6ff; color: #1d4ed8; padding: 1px 5px; border-radius: 4px;">
+              Ruta {{r.codigoRuta || r.codigo || '01'}}
+            </span>
+            <span style="font-weight: 600; color: #334155;">
+              {{formatearLugar(r.origen)}} ➔ {{formatearLugar(r.destino)}}
+            </span>
+            @if (r.itinerario) {
+              <span style="color: #94a3b8; font-size: 0.7rem;">(Vía: {{formatearItinerario(r.itinerario)}})</span>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- CARD 1: VEHÍCULOS A INCORPORAR (FICHA TÉCNICA Y ESPECIFICACIONES vehiculos_data) -->
+  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+      <div>
+        <h4 style="font-weight: 600; color: #1e293b; margin: 0;">Vehículos a Incorporar</h4>
+        <span style="font-size: 0.8rem; color: #64748b;">Nuevas unidades a sumar a la autorización (Asignación de Rutas y Designación TUC)</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        @if (vehiculos().length > 1) {
+          <button mat-stroked-button 
+                  type="button"
+                  (click)="generarTucsMasivosIncremento()"
+                  style="font-size: 0.75rem; height: 32px; line-height: 32px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; font-weight: 600;">
+            <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #2563eb;">badge</mat-icon>
+            <span>Asignar TUCs Secuenciales</span>
+          </button>
+        }
+        <button mat-flat-button color="primary" style="border-radius: 8px; height: 32px; line-height: 32px; font-size: 0.78rem;" (click)="abrirModalVehiculo()">
+          <mat-icon style="font-size: 16px; width: 16px; height: 16px;">add</mat-icon> Agregar Vehículo
+        </button>
+      </div>
+    </div>
+    
+    @if (vehiculos().length === 0) {
+      <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 2rem; text-align: center;">
+        <mat-icon style="font-size: 40px; width: 40px; height: 40px; color: #94a3b8; margin-bottom: 0.5rem;">no_crash</mat-icon>
+        <p style="color: #64748b; font-weight: 500; margin: 0;">No hay vehículos agregados. Haga clic en "Agregar Vehículo".</p>
+      </div>
+    } @else {
+      <div style="overflow-x: auto;">
+        <table class="custom-table" style="width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; white-space: nowrap;">
+          <thead>
+            <tr>
+              <th style="width: 120px;">Placa Entrante</th>
+              <th style="width: 160px;">Marca / Modelo</th>
+              <th style="width: 100px;">Año / Cat.</th>
+              <th>Motor / Serie</th>
+              <th style="min-width: 140px;">Rutas Asignadas</th>
+              <th style="width: 155px;">Designación TUC</th>
+              <th style="width: 130px; text-align: center;">Ficha Técnica</th>
+              <th style="width: 85px; text-align: center;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of vehiculos(); track v.placa; let i = $index) {
+              <tr>
+                <td>
+                  <strong style="font-family: monospace; font-size: 0.95rem; padding: 3px 8px; border-radius: 4px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #059669; display: inline-block;">
+                    {{v.placa}}
+                  </strong>
+                </td>
+                <td style="color: #334155; font-size: 0.85rem;">
+                  <div style="font-weight: 600;">{{v.marca || '-'}}</div>
+                  <div style="font-size: 0.74rem; color: #64748b;">{{v.modelo || '-'}}</div>
+                </td>
+                <td style="color: #334155; font-size: 0.82rem;">
+                  <div>{{v.anio_fabricacion || '-'}}</div>
+                  <span style="font-size: 0.7rem; background: #f1f5f9; color: #475569; padding: 1px 4px; border-radius: 3px; font-weight: 600;">
+                    {{v.categoria || 'M2'}}
+                  </span>
+                </td>
+                <td style="color: #475569; font-size: 0.76rem; font-family: monospace;">
+                  <div>Motor: {{v.numero_motor || 'S/N'}}</div>
+                  <div style="color: #64748b;">Serie: {{v.vin || v.numero_serie || 'S/N'}}</div>
+                </td>
+                <!-- Celda de Rutas Asignadas Interactiva -->
+                <td>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+                    @for (r of rutasOpciones(); track r.codigo) {
+                      <button type="button"
+                              (click)="toggleRutaVehiculoNuevo(i, r.codigo)"
+                              [style.background]="(v.rutas || []).includes(r.codigo) ? '#eff6ff' : '#f8fafc'"
+                              [style.color]="(v.rutas || []).includes(r.codigo) ? '#1d4ed8' : '#94a3b8'"
+                              [style.borderColor]="(v.rutas || []).includes(r.codigo) ? '#93c5fd' : '#e2e8f0'"
+                              [style.fontWeight]="(v.rutas || []).includes(r.codigo) ? '700' : '500'"
+                              style="font-family: monospace; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; border: 1px solid; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; transition: all 0.15s;"
+                              [matTooltip]="r.label + ' (Clic para asignar/quitar)'">
+                        <span>{{r.codigo}}</span>
+                        @if ((v.rutas || []).includes(r.codigo)) {
+                          <mat-icon style="font-size: 11px; width: 11px; height: 11px;">check</mat-icon>
+                        }
+                      </button>
+                    }
+                    @if (rutasOpciones().length > 1) {
+                      <button type="button"
+                              (click)="asignarTodasRutasVehiculoNuevo(i)"
+                              style="font-size: 0.65rem; color: #2563eb; background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0 2px;">
+                        Todas
+                      </button>
+                    }
+                  </div>
+                </td>
+                <!-- Celda de Designación TUC -->
+                <td>
+                  <div style="display: inline-flex; align-items: center; gap: 4px;">
+                    <input 
+                      type="text" 
+                      [value]="v.numero_tuc || ''" 
+                      (input)="actualizarTucVehiculoNuevo(i, $event)"
+                      placeholder="Pendiente TUC" 
+                      style="width: 105px; font-family: monospace; font-size: 0.76rem; font-weight: 600; padding: 3px 6px; border: 1px solid #cbd5e1; border-radius: 4px; color: #1e293b; background: white;"
+                      title="Designación / Número de TUC">
+                    <button 
+                      type="button" 
+                      mat-icon-button 
+                      class="compact-icon-btn-sm"
+                      (click)="generarTucVehiculoNuevo(i)"
+                      matTooltip="Generar correlativo TUC para esta placa"
+                      style="width: 24px; height: 24px; line-height: 24px; color: #2563eb;">
+                      <mat-icon style="font-size: 16px;">autorenew</mat-icon>
+                    </button>
+                  </div>
+                </td>
+                <!-- Celda Ficha Técnica -->
+                <td style="text-align: center;">
+                  <span [style.background]="(v.porcentaje_completitud >= 90) ? '#ecfdf5' : '#fffbeb'"
+                        [style.color]="(v.porcentaje_completitud >= 90) ? '#059669' : '#b45309'"
+                        [style.borderColor]="(v.porcentaje_completitud >= 90) ? '#a7f3d0' : '#fde68a'"
+                        style="font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 5px; border: 1px solid; display: inline-flex; align-items: center; gap: 3px; font-family: monospace;"
+                        [matTooltip]="'Nivel de completitud técnica en BD vehiculos_data: ' + (v.porcentaje_completitud || 0) + '%'">
+                    <mat-icon style="font-size: 13px; width: 13px; height: 13px;">{{ (v.porcentaje_completitud >= 90) ? 'check_circle' : 'pending' }}</mat-icon>
+                    <span>{{ v.porcentaje_completitud || 0 }}%</span>
+                  </span>
+                </td>
+                <!-- Acciones -->
+                <td style="text-align: center;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 2px;">
+                    <button mat-icon-button (click)="abrirModalVehiculo(v, i)" matTooltip="Editar Ficha Técnica (vehiculos_data)" style="color: #2563eb;">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="eliminarVehiculoNuevo(i)" matTooltip="Quitar vehículo">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- CARD 2: RÉGIMEN DE BAJAS Y DESAFECTACIONES PREVIAS (ART. 68.1 D.S. N° 017-2009-MTC) -->
+  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.75rem 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-top: 0.75rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <mat-icon style="color: #ea580c; font-size: 18px; width: 18px; height: 18px;">domain_disabled</mat-icon>
+        <h4 style="font-weight: 700; color: #1e293b; margin: 0; font-size: 0.86rem;">
+          Régimen de Bajas y Desafectaciones Previas (Art. 68.1 D.S. N° 017-2009-MTC)
+        </h4>
+        <span style="font-size: 0.72rem; color: #64748b;">• Desafectación en DRTC Puno o notificación a entidad externa</span>
+      </div>
+    </div>
+
+    @if (vehiculos().length === 0) {
+      <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 1rem; text-align: center;">
+        <p style="color: #64748b; font-size: 0.8rem; margin: 0;">
+          Agregue primero vehículos en la tabla superior para configurar aquí su procedencia o régimen de baja previa (Art. 68.1).
+        </p>
+      </div>
+    } @else {
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        @for (v of vehiculos(); track v.placa; let idx = $index) {
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+
+            <!-- Fila 1: Placa + Specs + Segmented Pill Selector -->
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <span style="font-family: monospace; font-size: 0.84rem; font-weight: 800; background: #ecfdf5; color: #047857; padding: 1px 6px; border-radius: 4px; border: 1px solid #a7f3d0;">
+                  {{v.placa}}
+                </span>
+                <strong style="color: #1e293b; font-size: 0.8rem;">{{v.marca || '-'}} {{v.modelo || ''}}</strong>
+                <span style="color: #64748b; font-size: 0.71rem;">({{v.anio_fabricacion || 'S/A'}} • {{v.categoria || 'M2'}})</span>
+                @if (v.es_misma_empresa) {
+                  <span style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 0.67rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
+                    <mat-icon style="font-size: 13px; width: 13px; height: 13px;">warning</mat-icon> Ya habilitada en esta empresa
+                  </span>
+                }
+              </div>
+
+              <!-- Segmented Pill Selector -->
+              @if (v.es_misma_empresa) {
+                <div style="display: inline-flex; align-items: center; gap: 4px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 6px; padding: 2px 8px;">
+                  <mat-icon style="font-size: 13px; width: 13px; height: 13px; color: #b45309;">lock</mat-icon>
+                  <span style="font-size: 0.7rem; font-weight: 700; color: #92400e;">Habilitación Previa Interna</span>
+                </div>
+              } @else {
+                <div style="display: inline-flex; background: #f1f5f9; padding: 2px; border-radius: 6px; border: 1px solid #e2e8f0; gap: 2px;">
+                  <button type="button" 
+                          (click)="setBajaTipoVehiculoNuevo(idx, 'NINGUNA')"
+                          [style.background]="(!v.baja_tipo || v.baja_tipo === 'NINGUNA') ? 'white' : 'transparent'"
+                          [style.color]="(!v.baja_tipo || v.baja_tipo === 'NINGUNA') ? '#1e293b' : '#64748b'"
+                          [style.fontWeight]="(!v.baja_tipo || v.baja_tipo === 'NINGUNA') ? '700' : '500'"
+                          [style.boxShadow]="(!v.baja_tipo || v.baja_tipo === 'NINGUNA') ? '0 1px 2px rgba(0,0,0,0.06)' : 'none'"
+                          style="border: none; border-radius: 4px; padding: 2px 7px; font-size: 0.71rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.15s;">
+                    <span class="dot-indicator" [style.background]="(!v.baja_tipo || v.baja_tipo === 'NINGUNA') ? '#3b82f6' : '#cbd5e1'" style="width: 5px; height: 5px; border-radius: 50%;"></span>
+                    1. Sin baja previa
+                  </button>
+
+                  <button type="button" 
+                          (click)="setBajaTipoVehiculoNuevo(idx, 'INTERNA')"
+                          [style.background]="v.baja_tipo === 'INTERNA' ? '#fff7ed' : 'transparent'"
+                          [style.color]="v.baja_tipo === 'INTERNA' ? '#ea580c' : '#64748b'"
+                          [style.fontWeight]="v.baja_tipo === 'INTERNA' ? '700' : '500'"
+                          [style.boxShadow]="v.baja_tipo === 'INTERNA' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none'"
+                          style="border: none; border-radius: 4px; padding: 2px 7px; font-size: 0.71rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.15s;">
+                    <span class="dot-indicator" [style.background]="v.baja_tipo === 'INTERNA' ? '#ea580c' : '#cbd5e1'" style="width: 5px; height: 5px; border-radius: 50%;"></span>
+                    2. Baja Regional DRTC
+                  </button>
+
+                  <button type="button" 
+                          (click)="setBajaTipoVehiculoNuevo(idx, 'EXTERNA')"
+                          [style.background]="v.baja_tipo === 'EXTERNA' ? '#f0fdf4' : 'transparent'"
+                          [style.color]="v.baja_tipo === 'EXTERNA' ? '#15803d' : '#64748b'"
+                          [style.fontWeight]="v.baja_tipo === 'EXTERNA' ? '700' : '500'"
+                          [style.boxShadow]="v.baja_tipo === 'EXTERNA' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none'"
+                          style="border: none; border-radius: 4px; padding: 2px 7px; font-size: 0.71rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.15s;">
+                    <span class="dot-indicator" [style.background]="v.baja_tipo === 'EXTERNA' ? '#16a34a' : '#cbd5e1'" style="width: 5px; height: 5px; border-radius: 50%;"></span>
+                    3. Baja Externa MTC
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Fila 2: Información Contextual según el Régimen -->
+
+            @if (v.es_misma_empresa) {
+              <!-- CASO 0: UNIDAD YA HABILITADA EN ESTA MISMA EMPRESA -->
+              <div style="background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 7px; padding: 6px 10px; display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; font-size: 0.73rem;">
+                    <mat-icon style="color: #d97706; font-size: 17px; width: 17px; height: 17px;">domain_verification</mat-icon>
+                    <strong style="color: #92400e;">Unidad con Habilitación Vigente en esta Empresa:</strong>
+                    <span style="font-family: monospace; background: white; border: 1px solid #fcd34d; color: #b45309; padding: 0 5px; border-radius: 3px; font-weight: 700; font-size: 0.69rem;">
+                      Res: {{ v.misma_empresa_resolucion || 'Vigente' }}
+                    </span>
+                    <span style="color: #d97706;">|</span>
+                    <span style="font-family: monospace; background: white; border: 1px solid #fcd34d; color: #b45309; padding: 0 5px; border-radius: 3px; font-weight: 700; font-size: 0.69rem;">
+                      TUC: {{ v.misma_empresa_tuc || 'S/TUC' }}
+                    </span>
+                    <span style="background: #dcfce7; color: #15803d; font-size: 0.67rem; font-weight: 700; padding: 1px 6px; border-radius: 3px;">
+                      ✓ {{ v.misma_empresa_estado || 'HABILITADO' }}
+                    </span>
+                  </div>
+                  <span style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-size: 0.66rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
+                    <mat-icon style="font-size: 11px; width: 11px; height: 11px;">block</mat-icon> DOBLE HABILITACIÓN PROHIBIDA
+                  </span>
+                </div>
+
+                <div style="border-top: 1px dashed #fcd34d; padding-top: 4px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                    <mat-checkbox 
+                      [checked]="v.dar_de_baja_misma_empresa"
+                      (change)="toggleBajaMismaEmpresa(idx, $event.checked)"
+                      color="warn"
+                      style="transform: scale(0.85); transform-origin: left center;">
+                      <span style="font-size: 0.74rem; font-weight: 700; color: #92400e;">
+                        Disponer la baja de la habilitación anterior en esta empresa (invalidar TUC previa {{ v.misma_empresa_tuc || '' }}) para habilitar bajo la nueva resolución
+                      </span>
+                    </mat-checkbox>
+                    <button type="button" mat-button style="font-size: 0.67rem; height: 20px; line-height: 20px; padding: 0 6px; color: #dc2626;" (click)="eliminarVehiculoNuevo(idx)">
+                      <mat-icon style="font-size: 13px; width: 13px; height: 13px; margin-right: 2px;">delete</mat-icon> Retirar de lista
+                    </button>
+                  </div>
+
+                  @if (!v.dar_de_baja_misma_empresa) {
+                    <div style="font-size: 0.71rem; color: #991b1b; font-weight: 600; display: flex; align-items: center; gap: 5px; margin-top: 3px; padding: 4px 8px; background: #fee2e2; border: 1px solid #f87171; border-radius: 4px;">
+                      <mat-icon style="font-size: 15px; width: 15px; height: 15px; color: #dc2626;">warning</mat-icon>
+                      <span>⛔ <strong>Bloqueo normativo:</strong> Un vehículo no puede tener doble habilitación en la empresa. Debe autorizar la baja previa o retirar el vehículo del trámite para poder avanzar.</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+
+              <!-- CASO 1: Sin baja previa -->
+              @if (!v.baja_tipo || v.baja_tipo === 'NINGUNA') {
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; padding: 3px 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.72rem;">
+                  <div style="display: flex; align-items: center; gap: 0.4rem; color: #475569;">
+                    @if (v.otra_empresa_estado === 'INHABILITADO') {
+                      <mat-icon style="font-size: 14px; width: 14px; height: 14px; color: #64748b;">info</mat-icon>
+                      <span>
+                        Antecedente regional: Figuraba en <strong>{{ v.otra_empresa_razon }}</strong> como <strong style="color: #b91c1c;">INHABILITADO</strong> (Res. {{ v.otra_empresa_resolucion }}). 
+                        <em>Ya desafectado previamente, no requiere nueva baja en DRTC Puno.</em>
+                      </span>
+                    } @else {
+                      <mat-icon style="font-size: 14px; width: 14px; height: 14px; color: #16a34a;">check_circle</mat-icon>
+                      <span>Unidad sin afectación previa en DRTC Puno (Primera habilitación o incorporación directa según Art. 68.2 RNAT).</span>
+                    }
+                  </div>
+
+                  <button type="button" 
+                          mat-button 
+                          style="font-size: 0.67rem; height: 20px; line-height: 20px; padding: 0 5px; color: #0284c7;"
+                          (click)="setBajaTipoVehiculoNuevo(idx, 'EXTERNA')">
+                    <mat-icon style="font-size: 12px; width: 12px; height: 12px; margin-right: 2px;">forward_to_inbox</mat-icon>
+                    ¿Tiene habilitación externa MTC?
+                  </button>
+                </div>
+              }
+
+              <!-- CASO 2: Baja Regional DRTC Puno -->
+              @if (v.baja_tipo === 'INTERNA') {
+                <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 4px 8px; display: flex; flex-direction: column; gap: 3px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; font-size: 0.72rem;">
+                      <mat-icon style="color: #ea580c; font-size: 15px; width: 15px; height: 15px;">business</mat-icon>
+                      <strong style="color: #9a3412;">{{ v.otra_empresa_razon || 'Empresa Anterior DRTC' }}</strong>
+                      <span style="font-family: monospace; background: white; border: 1px solid #fdba74; color: #c2410c; padding: 0 4px; border-radius: 3px; font-weight: 700; font-size: 0.67rem;">
+                        RUC: {{ v.otra_empresa_ruc || 'S/RUC' }}
+                      </span>
+                      <span style="color: #cbd5e1;">|</span>
+                      <span>Res: <strong style="color: #9a3412;">{{ v.otra_empresa_resolucion || 'Concesión' }}</strong></span>
+                      <span style="color: #cbd5e1;">|</span>
+                      <span style="font-weight: 700; padding: 0 5px; border-radius: 3px; font-size: 0.67rem; display: inline-flex; align-items: center; gap: 2px;"
+                            [style.background]="(v.otra_empresa_estado === 'HABILITADO' || !v.otra_empresa_estado) ? '#dcfce7' : '#fee2e2'"
+                            [style.color]="(v.otra_empresa_estado === 'HABILITADO' || !v.otra_empresa_estado) ? '#15803d' : '#b91c1c'">
+                        {{ (v.otra_empresa_estado === 'HABILITADO' || !v.otra_empresa_estado) ? '✓ HABILITADO' : '✕ INHABILITADO' }}
+                      </span>
+                      @if (v.otra_empresa_tuc) {
+                        <span style="color: #64748b; font-size: 0.69rem;">• TUC: {{ v.otra_empresa_tuc }}</span>
+                      }
+                    </div>
+
+                    <button mat-button type="button" 
+                            style="font-size: 0.67rem; height: 18px; line-height: 18px; padding: 0 4px; color: #ea580c;" 
+                            (click)="verificarBajaOtraEmpresaParaVehiculo(v.placa, idx)"
+                            [disabled]="v.buscando_baja_interna">
+                      <mat-icon style="font-size: 12px; width: 12px; height: 12px; margin-right: 2px;">sync</mat-icon> Re-verificar
+                    </button>
+                  </div>
+
+                  <!-- Checkbox o Advertencia si está inhabilitado + Opción Notificación MTC -->
+                  <div style="border-top: 1px dashed #fed7aa; padding-top: 2px; margin-top: 1px;">
+                    @if (v.otra_empresa_estado === 'INHABILITADO') {
+                      <div style="font-size: 0.7rem; color: #b91c1c; display: flex; align-items: center; justify-content: space-between; gap: 4px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                          <mat-icon style="font-size: 13px; width: 13px; height: 13px;">warning</mat-icon>
+                          <span><strong>Nota:</strong> Esta unidad ya figura INHABILITADA en la empresa anterior; no tiene sentido darle baja nuevamente en DRTC Puno.</span>
+                        </div>
+                        <button type="button" mat-button style="font-size: 0.67rem; height: 18px; line-height: 18px; padding: 0 4px; color: #0284c7;" (click)="setBajaTipoVehiculoNuevo(idx, 'EXTERNA')">
+                          Pasar a Baja Externa MTC ➔
+                        </button>
+                      </div>
+                    } @else {
+                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                        <mat-checkbox 
+                          [checked]="v.dar_de_baja_otra_empresa"
+                          (change)="toggleBajaInternaVehiculoNuevo(idx, $event.checked)"
+                          color="warn"
+                          style="transform: scale(0.85); transform-origin: left center;">
+                          <span style="font-size: 0.73rem; font-weight: 700; color: #9a3412;">
+                            Disponer desafectación e inhabilitación formal en la empresa anterior e invalidar sus TUCs (Art. 68.1 RNAT)
+                          </span>
+                        </mat-checkbox>
+
+                        <button type="button" 
+                                mat-button 
+                                style="font-size: 0.67rem; height: 18px; line-height: 18px; padding: 0 4px; color: #0369a1;" 
+                                (click)="toggleIncluirBajaExterna(idx)">
+                          <mat-icon style="font-size: 12px; width: 12px; height: 12px; margin-right: 2px;">forward_to_inbox</mat-icon>
+                          {{ v.incluir_baja_externa ? 'Ocultar Notificación MTC' : '+ Notificar también al MTC / Otra región' }}
+                        </button>
+                      </div>
+
+                      <!-- Si también requiere notificación externa -->
+                      @if (v.incluir_baja_externa) {
+                        <div style="margin-top: 3px; padding-top: 3px; border-top: 1px dashed #fdba74;">
+                          <div style="display: grid; grid-template-columns: 120px 1.4fr 1.2fr 140px; gap: 0.35rem; margin-bottom: 3px;">
+                            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                              <mat-label>RUC Origen Ext.</mat-label>
+                              <input matInput [value]="v.baja_externa?.ruc_empresa_origen || ''" (input)="actualizarBajaExternaVehiculo(idx, 'ruc_empresa_origen', $any($event.target).value)" placeholder="20XXXXXXXXX" maxlength="11">
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                              <mat-label>Razón Social Empresa Ext. *</mat-label>
+                              <input matInput [value]="v.baja_externa?.empresa_origen || ''" (input)="actualizarBajaExternaVehiculo(idx, 'empresa_origen', $any($event.target).value)" placeholder="EMPRESA EXTERNA O TITULAR" style="text-transform: uppercase;">
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                              <mat-label>N° Res. / Registro MTC *</mat-label>
+                              <input matInput [value]="v.baja_externa?.resolucion_baja || ''" (input)="actualizarBajaExternaVehiculo(idx, 'resolucion_baja', $any($event.target).value)" placeholder="R.D. / Registro MTC" style="text-transform: uppercase; font-weight: 600;">
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                              <mat-label>Ámbito</mat-label>
+                              <mat-select [value]="v.baja_externa?.ambito || 'NACIONAL_MTC'" (selectionChange)="actualizarBajaExternaVehiculo(idx, 'ambito', $event.value)">
+                                <mat-option value="NACIONAL_MTC">Nacional (MTC)</mat-option>
+                                <mat-option value="OTRA_REGION">Otra Región (DRTC)</mat-option>
+                                <mat-option value="PROVINCIAL">Provincial</mat-option>
+                              </mat-select>
+                            </mat-form-field>
+                          </div>
+
+                          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; background: white; border: 1px dashed #fdba74; border-radius: 4px; padding: 2px 6px;">
+                            <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.69rem; color: #9a3412;">
+                              <mat-icon style="font-size: 13px; width: 13px; height: 13px; color: #ea580c;">forward_to_inbox</mat-icon>
+                              <span><strong>Notificación Externa:</strong> Se cursará oficio al MTC/otra región para que den de baja en su padrón.</span>
+                            </div>
+                            <input type="file" #fileInputEvidenciaInt (change)="onEvidenciaBajaExternaSelected(idx, $event)" accept=".pdf,image/*" style="display: none;">
+                            @if (!v.baja_externa?.evidencia_nombre) {
+                              <button type="button" 
+                                      mat-stroked-button 
+                                      style="color: #ea580c; border-color: #fdba74; font-size: 0.67rem; height: 22px; line-height: 22px; padding: 0 6px; background: white;"
+                                      (click)="fileInputEvidenciaInt.click()">
+                                <mat-icon style="font-size: 12px; width: 12px; height: 12px; margin-right: 2px;">upload_file</mat-icon>
+                                Adjuntar PDF / Foto MTC
+                              </button>
+                            } @else {
+                              <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                <span style="font-size: 0.68rem; font-weight: 700; color: #1e293b; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                  {{ v.baja_externa?.evidencia_nombre }}
+                                </span>
+                                <button type="button" mat-button style="font-size: 0.67rem; height: 18px; line-height: 18px; padding: 0 4px; color: #2563eb;" (click)="verEvidenciaBajaExterna(idx)">
+                                  Ver
+                                </button>
+                                <button type="button" mat-icon-button style="width: 18px; height: 18px; line-height: 18px; color: #ef4444;" (click)="quitarEvidenciaBajaExterna(idx)">
+                                  <mat-icon style="font-size: 12px; width: 12px; height: 12px;">close</mat-icon>
+                                </button>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- CASO 3: Baja Externa MTC / Otra Región -->
+              @if (v.baja_tipo === 'EXTERNA') {
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: grid; grid-template-columns: 120px 1.4fr 1.2fr 140px; gap: 0.35rem;">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>RUC Origen Ext.</mat-label>
+                      <input matInput [value]="v.baja_externa?.ruc_empresa_origen || ''" (input)="actualizarBajaExternaVehiculo(idx, 'ruc_empresa_origen', $any($event.target).value)" placeholder="20XXXXXXXXX" maxlength="11">
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Razón Social Empresa Ext. *</mat-label>
+                      <input matInput [value]="v.baja_externa?.empresa_origen || ''" (input)="actualizarBajaExternaVehiculo(idx, 'empresa_origen', $any($event.target).value)" placeholder="EMPRESA EXTERNA O TITULAR" style="text-transform: uppercase;">
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>N° Res. / Registro MTC *</mat-label>
+                      <input matInput [value]="v.baja_externa?.resolucion_baja || ''" (input)="actualizarBajaExternaVehiculo(idx, 'resolucion_baja', $any($event.target).value)" placeholder="R.D. / Registro MTC" style="text-transform: uppercase; font-weight: 600;">
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Ámbito</mat-label>
+                      <mat-select [value]="v.baja_externa?.ambito || 'NACIONAL_MTC'" (selectionChange)="actualizarBajaExternaVehiculo(idx, 'ambito', $event.value)">
+                        <mat-option value="NACIONAL_MTC">Nacional (MTC)</mat-option>
+                        <mat-option value="OTRA_REGION">Otra Región (DRTC)</mat-option>
+                        <mat-option value="PROVINCIAL">Provincial</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+
+                  <!-- Fila de carga de evidencia y aviso de notificación -->
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; background: white; border: 1px dashed #86efac; border-radius: 4px; padding: 2px 6px;">
+                    <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.69rem; color: #166534;">
+                      <mat-icon style="font-size: 13px; width: 13px; height: 13px; color: #16a34a;">forward_to_inbox</mat-icon>
+                      <span><strong>Evidencia MTC:</strong> Se notificará formalmente al MTC u otra región para que le den de baja (sin fecha).</span>
+                    </div>
+
+                    <input type="file" #fileInputEvidenciaExt (change)="onEvidenciaBajaExternaSelected(idx, $event)" accept=".pdf,image/*" style="display: none;">
+
+                    @if (!v.baja_externa?.evidencia_nombre) {
+                      <button type="button" 
+                              mat-stroked-button 
+                              style="color: #16a34a; border-color: #86efac; font-size: 0.67rem; height: 22px; line-height: 22px; padding: 0 6px; background: white;"
+                              (click)="fileInputEvidenciaExt.click()">
+                        <mat-icon style="font-size: 12px; width: 12px; height: 12px; margin-right: 2px;">upload_file</mat-icon>
+                        Adjuntar PDF / Foto MTC
+                      </button>
+                    } @else {
+                      <div style="display: flex; align-items: center; gap: 0.3rem;">
+                        <span style="font-size: 0.68rem; font-weight: 700; color: #1e293b; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          {{ v.baja_externa?.evidencia_nombre }}
+                        </span>
+                        <button type="button" mat-button style="font-size: 0.67rem; height: 18px; line-height: 18px; padding: 0 4px; color: #2563eb;" (click)="verEvidenciaBajaExterna(idx)">
+                          Ver
+                        </button>
+                        <button type="button" mat-icon-button style="width: 18px; height: 18px; line-height: 18px; color: #ef4444;" (click)="quitarEvidenciaBajaExterna(idx)">
+                          <mat-icon style="font-size: 12px; width: 12px; height: 12px;">close</mat-icon>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            }
+
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+</div>

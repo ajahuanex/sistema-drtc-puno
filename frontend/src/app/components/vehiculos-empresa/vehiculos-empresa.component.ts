@@ -450,6 +450,7 @@ export interface ColumnasState {
                     <option value="">Estado: Todos</option>
                     <option value="HABILITADO">Habilitado</option>
                     <option value="INHABILITADO">Inhabilitado</option>
+                    <option value="SUSTITUIDO">Sustituido (Histórico)</option>
                     <option value="OBSERVADO">Observado</option>
                     <option value="CANCELADO">Cancelado</option>
                     <option value="SUSPENDIDO">Suspendido</option>
@@ -722,6 +723,15 @@ export interface ColumnasState {
                                   <span [class]="'status-pill status-' + item.estado.toLowerCase()">
                                     {{ item.estado }}
                                   </span>
+                                  @if (item.sustituido_por) {
+                                    <span style="display:block; font-size:10px; color:#7c3aed; font-weight:600; margin-top:2px;">
+                                      ↳ Sust. por: {{ item.sustituido_por }}
+                                    </span>
+                                  } @else if (item.motivo_baja) {
+                                    <span style="display:block; font-size:10px; color:#64748b; font-weight:500; margin-top:2px;">
+                                      {{ item.motivo_baja }}
+                                    </span>
+                                  }
                                 } @else {
                                   <span class="sin-datos">-</span>
                                 }
@@ -998,6 +1008,11 @@ export interface ColumnasState {
                             <td>
                               @if (item.estado) {
                                 <span [class]="'status-pill status-' + item.estado.toLowerCase()">{{ item.estado }}</span>
+                                @if (item.sustituido_por) {
+                                  <span style="display:block; font-size:10px; color:#7c3aed; font-weight:600; margin-top:2px;">
+                                    ↳ Sust. por: {{ item.sustituido_por }}
+                                  </span>
+                                }
                               } @else {
                                 <span class="sin-datos">—</span>
                               }

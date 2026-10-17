@@ -37,7 +37,7 @@ import { SunatCronStatus } from '../../models/empresa.model';
         <div class="header-titles">
           <h2 class="dialog-title">Gestión de Consulta y Validación SUNAT</h2>
           <p class="dialog-subtitle">
-            Monitoreo del horario programado diario y sincronización manual de empresas
+            Validación automática mensual (1 vez al mes) y sincronización manual a demanda
           </p>
         </div>
         <button mat-icon-button class="btn-close" (click)="cerrar()" matTooltip="Cerrar ventana">
@@ -46,29 +46,29 @@ import { SunatCronStatus } from '../../models/empresa.model';
       </div>
 
       <div class="dialog-body">
-        <!-- Sección 1: Programación Diaria Automática -->
+        <!-- Sección 1: Programación Mensual Automática -->
         <div class="card-section cron-schedule-card">
           <div class="section-top">
             <div class="section-title-wrap">
-              <span class="material-symbols-outlined section-icon text-indigo">schedule</span>
+              <span class="material-symbols-outlined section-icon text-indigo">calendar_month</span>
               <div>
-                <h3 class="section-title">Horario Automático Diario</h3>
-                <p class="section-desc">Hora oficial fijada para la validación automática matutina</p>
+                <h3 class="section-title">Programación Automática Mensual</h3>
+                <p class="section-desc">Frecuencia: 1 vez al mes (Día {{ status()?.dia_mes || 1 }} a las {{ status()?.horario_programado || '03:00' }} AM)</p>
               </div>
             </div>
             <div class="status-badge" [class.badge-active]="status()?.activo" [class.badge-inactive]="!status()?.activo">
               <span class="status-indicator-dot"></span>
-              <span>{{ status()?.activo ? 'CRON ACTIVO' : 'CRON PAUSADO' }}</span>
+              <span>{{ status()?.activo ? 'CRON MENSUAL ACTIVO' : 'CRON PAUSADO' }}</span>
             </div>
           </div>
 
           <div class="schedule-details-grid">
             <div class="detail-box">
-              <span class="detail-label">Hora Diaria Programada</span>
+              <span class="detail-label">Frecuencia y Horario Fijado</span>
               <div class="time-highlight">
                 <span class="material-symbols-outlined clock-icon">alarm</span>
-                <span class="time-text">{{ status()?.horario_programado || '07:00' }} AM</span>
-                <span class="tz-badge">Hora Perú (UTC-5)</span>
+                <span class="time-text">Día {{ status()?.dia_mes || 1 }} • {{ status()?.horario_programado || '03:00' }} AM</span>
+                <span class="tz-badge">1 vez al mes</span>
               </div>
             </div>
 
@@ -85,8 +85,18 @@ import { SunatCronStatus } from '../../models/empresa.model';
           <!-- Ajuste de horario (Solo administradores) -->
           @if (esAdmin()) {
             <div class="edit-schedule-bar">
-              <span class="edit-label">Modificar hora programada:</span>
+              <span class="edit-label">Modificar día y hora mensual:</span>
               <div class="input-action-group">
+                <label style="font-size: 0.8rem; color: #475569; font-weight: 600;">Día:</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="28"
+                  style="width: 52px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700; text-align: center; font-size: 0.88rem;"
+                  [(ngModel)]="nuevoDia"
+                  [disabled]="isGuardandoHora() || isEnEjecucion()"
+                  title="Día del mes (1-28)"
+                />
                 <input
                   type="time"
                   class="time-input-field"
@@ -104,7 +114,7 @@ import { SunatCronStatus } from '../../models/empresa.model';
                   } @else {
                     <span class="material-symbols-outlined">save</span>
                   }
-                  <span>Fijar Horario</span>
+                  <span>Fijar Mensual</span>
                 </button>
               </div>
             </div>
@@ -185,7 +195,7 @@ import { SunatCronStatus } from '../../models/empresa.model';
             <div>
               <h3 class="section-title">Sincronización Manual Inmediata</h3>
               <p class="section-desc">
-                Ejecuta la consulta con SUNAT en este instante sin esperar el horario de las {{ status()?.horario_programado || '07:00' }} AM
+                Ejecuta la consulta con SUNAT en este instante a demanda sin esperar la fecha mensual programada
               </p>
             </div>
           </div>
@@ -201,8 +211,8 @@ import { SunatCronStatus } from '../../models/empresa.model';
                   [disabled]="isEnEjecucion() || isStartingSync()"
                 />
                 <div class="radio-content">
-                  <strong class="option-title">Validar pendientes y desactualizadas (> 24 horas)</strong>
-                  <span class="option-subtitle">Recomendado. Rápido y consulta solo aquellas empresas que requieren refresco.</span>
+                  <strong class="option-title">Validar pendientes y desactualizadas (> 30 días / 1 mes)</strong>
+                  <span class="option-subtitle">Recomendado. Consulta solo aquellas empresas que requieren refresco mensual o sin validar.</span>
                 </div>
               </label>
 
@@ -782,7 +792,8 @@ export class DialogSunatSyncComponent implements OnInit, OnDestroy {
 
   status = signal<SunatCronStatus | null>(null);
   forzarTodas = false;
-  nuevaHora = '07:00';
+  nuevoDia = 1;
+  nuevaHora = '03:00';
   isGuardandoHora = signal(false);
   isStartingSync = signal(false);
 
@@ -812,6 +823,9 @@ export class DialogSunatSyncComponent implements OnInit, OnDestroy {
         if (st && st.horario_programado && !this.isGuardandoHora()) {
           this.nuevaHora = st.horario_programado;
         }
+        if (st && st.dia_mes && !this.isGuardandoHora()) {
+          this.nuevoDia = st.dia_mes;
+        }
       },
       error: (err) => {
         if (mostrarError) {
@@ -824,11 +838,12 @@ export class DialogSunatSyncComponent implements OnInit, OnDestroy {
   guardarNuevoHorario(): void {
     if (!this.nuevaHora) return;
     this.isGuardandoHora.set(true);
-    this.empresaService.configurarHorarioCronSunat(this.nuevaHora, true).subscribe({
+    const dia = this.nuevoDia || 1;
+    this.empresaService.configurarHorarioCronSunat(this.nuevaHora, true, dia).subscribe({
       next: (resp) => {
         this.isGuardandoHora.set(false);
         this.snackBar.open(
-          `✅ Horario programado actualizado a las ${this.nuevaHora} AM diaria`,
+          `✅ Programación mensual actualizada: Día ${dia} de cada mes a las ${this.nuevaHora} AM`,
           'OK',
           { duration: 4000 }
         );
@@ -840,7 +855,7 @@ export class DialogSunatSyncComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.isGuardandoHora.set(false);
-        this.snackBar.open('❌ Error al actualizar el horario programado', 'Cerrar', { duration: 4000 });
+        this.snackBar.open('❌ Error al actualizar la programación mensual', 'Cerrar', { duration: 4000 });
       }
     });
   }
