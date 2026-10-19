@@ -483,6 +483,8 @@ DEFAULT_VARIABLES: List[Dict[str, Any]] = [
         "visible": True,
         "max_lineas": 0,
         "frec_bold": True,
+        "escala_codigo_ruta": 1.0,
+        "escala_frecuencia": 1.0,
         "valor_ejemplo": "Ruta 01: JULIACA - PUTINA - QUILCAPUNO - ANANEA - C.P. LA RINCONADA - C.P. CERRO LUNAR 20 DIARIAS"
     },
     {
@@ -1416,23 +1418,29 @@ class TucCalibradorService:
                 font_size_base = float(v.get("font_size") or 6.0)
                 escala_dias = float(v.get("escala_dias_frec") or 0.80)
                 escala_itin = float(v.get("escala_itinerario") or 0.85)
+                escala_cod = float(v.get("escala_codigo_ruta") or 1.0)
+                escala_frec = float(v.get("escala_frecuencia") or 1.0)
                 font_itin_pt = round(font_size_base * max(0.4, min(1.2, escala_itin)), 1)
+                font_cod_pt = round(font_size_base * max(0.4, min(1.5, escala_cod)), 1)
+                font_frec_pt = round(font_size_base * max(0.4, min(1.5, escala_frec)), 1)
                 espacio_filas_mm = float(v.get("espacio_filas_rutas_mm") if v.get("espacio_filas_rutas_mm") is not None else 0.2)
                 frec_es_bold = v.get("frec_bold") is not False
                 frec_peso_txt = "700" if frec_es_bold else "400"
                 frec_peso_dias = "600" if frec_es_bold else "400"
 
-                def formatear_frecuencia_backend(frec_str: str, escala: float, fs_base: float = 6.0) -> str:
+                def formatear_frecuencia_backend(frec_str: str, escala: float, fs_base: float = 6.0, escala_f: float = 1.0) -> str:
                     clean = str(frec_str or "").strip()
                     open_paren_idx = clean.find("(")
                     esc = max(0.4, min(1.0, float(escala or 0.80)))
                     font_dias_pt = round(fs_base * esc, 1)
+                    esc_frec = max(0.4, min(1.5, float(escala_f or 1.0)))
+                    font_frec_txt_pt = round(fs_base * esc_frec, 1)
                     if open_paren_idx != -1:
                         t_prin = html_escape(re.sub(r'\s+', ' ', clean[:open_paren_idx]).strip())
                         t_dias = html_escape(re.sub(r'\s+', ' ', clean[open_paren_idx:]).strip())
                         return (
                             f'<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;">'
-                            f'<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:{frec_peso_txt};color:#000000;line-height:1.0;">{t_prin}</div>'
+                            f'<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-size:{font_frec_txt_pt}pt !important;font-weight:{frec_peso_txt};color:#000000;line-height:1.0;">{t_prin}</div>'
                             f'<div class="frec-dias" style="display:block;margin-top:0px;font-size:{font_dias_pt}pt !important;font-weight:{frec_peso_dias};opacity:0.92;color:#000000;text-align:right;line-height:1.0;white-space:normal;word-break:break-word;">{t_dias}</div>'
                             f'</div>'
                         )
@@ -1443,11 +1451,11 @@ class TucCalibradorService:
                             t_dias = html_escape(" ".join(partes[1:]))
                             return (
                                 f'<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;">'
-                                f'<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:{frec_peso_txt};color:#000000;line-height:1.0;">{t_prin}</div>'
+                                f'<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-size:{font_frec_txt_pt}pt !important;font-weight:{frec_peso_txt};color:#000000;line-height:1.0;">{t_prin}</div>'
                                 f'<div class="frec-dias" style="display:block;margin-top:0px;font-size:{font_dias_pt}pt !important;font-weight:{frec_peso_dias};opacity:0.92;color:#000000;text-align:right;line-height:1.0;white-space:normal;word-break:break-word;">{t_dias}</div>'
                                 f'</div>'
                             )
-                    return f'<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;"><div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:{frec_peso_txt};color:#000000;line-height:1.0;">{html_escape(clean)}</div></div>'
+                    return f'<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.0;"><div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-size:{font_frec_txt_pt}pt !important;font-weight:{frec_peso_txt};color:#000000;line-height:1.0;">{html_escape(clean)}</div></div>'
 
                 def render_celda_2_lineas(contenido_html: str, texto_plano: str, col_mm: float, fs_base: float, align_right: bool = False) -> str:
                     clean = str(texto_plano or "").strip()
@@ -1513,13 +1521,13 @@ class TucCalibradorService:
                 for f_idx, (c_p, t_p, t_plain, f_p) in enumerate(filas_datos):
                     is_last = (f_idx == total_f - 1)
                     td_border = "border-bottom: 0.8px solid #000000;" if is_last else "border-bottom: none;"
-                    frec_formatted = formatear_frecuencia_backend(f_p, escala_dias, font_size_base)
+                    frec_formatted = formatear_frecuencia_backend(f_p, escala_dias, font_size_base, escala_frec)
 
                     t_div = render_celda_2_lineas(t_p, t_plain, col_tra_w, font_size_base, align_right=False)
                     f_div = render_celda_2_lineas(frec_formatted, f_p, col_frec_w, font_size_base, align_right=True)
                     row_html = (
                         f'<tr style="{td_border}">'
-                        f'<td style="width:{col_cod_w}mm; vertical-align:top; font-weight:800; color:#000000; padding:{espacio_filas_mm:.1f}mm 0.8mm {espacio_filas_mm:.1f}mm 0; white-space:nowrap; overflow:hidden;">{c_p}</td>'
+                        f'<td style="width:{col_cod_w}mm; vertical-align:top; font-size:{font_cod_pt}pt !important; font-weight:800; color:#000000; padding:{espacio_filas_mm:.1f}mm 0.8mm {espacio_filas_mm:.1f}mm 0; white-space:nowrap; overflow:hidden;">{c_p}</td>'
                         f'<td style="width:{col_tra_w}mm; vertical-align:top; color:#000000; padding:{espacio_filas_mm:.1f}mm 0.8mm {espacio_filas_mm:.1f}mm 0.4mm;">{t_div}</td>'
                         f'<td style="width:{col_frec_w}mm; vertical-align:top; font-weight:700; color:#000000; padding:{espacio_filas_mm:.1f}mm 0 {espacio_filas_mm:.1f}mm 0.4mm;">{f_div}</td>'
                         f'</tr>'

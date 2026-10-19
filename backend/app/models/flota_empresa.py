@@ -292,6 +292,7 @@ class TramiteMasivoRequest(BaseModel):
     tipo_tramite: str = Field(..., description="INCREMENTO, SUSTITUCION, RENOVACION, DUPLICADO, CANJE, MODIFICACION, CANCELACION, BAJAS")
     
     # Datos de origen del trámite
+    tipo_origen: Optional[str] = Field("EXPEDIENTE", description="EXPEDIENTE, EXPEDIENTE_OFICIO, OFICIO, MEMORANDUM")
     es_de_oficio: bool = Field(default=False, description="Indica si el trámite se inició de oficio")
     documento_origen: Optional[str] = Field(None, description="Documento que dio origen al trámite (si es de oficio)")
     num_expediente: Optional[str] = None

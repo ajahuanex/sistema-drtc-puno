@@ -104,41 +104,79 @@ def normalizar_expediente(exp_raw: str) -> str:
 def obtener_sufijo_y_tipo(tipo_raw: str) -> Tuple[str, TipoActoModificatorio]:
     """Obtener TipoActoModificatorio enum."""
     t = _clean_str(tipo_raw).upper()
-    if "SUSTITUCION" in t:
+    if "RENOV" in t:
+        return "", TipoActoModificatorio.RENOVACION
+    if "SUSTITUC" in t:
         return "", TipoActoModificatorio.SUSTITUCION_VEHICULAR
-    if "INCREMENTO" in t:
+    if "INCREMENT" in t:
         return "", TipoActoModificatorio.INCREMENTO_FLOTA
+    if "DUPLIC" in t or t == "D":
+        return "", TipoActoModificatorio.DUPLICADO
+    if "CANJE" in t or t == "C":
+        return "", TipoActoModificatorio.CANJE
+    if "JUDICIAL" in t or "JUZGADO" in t or "CAUTELAR" in t:
+        return "", TipoActoModificatorio.MANDATO_JUDICIAL
     if "FE DE ERRATAS" in t or "ERRATAS" in t:
         return "", TipoActoModificatorio.FE_DE_ERRATAS
-    if "MODIFICACION" in t:
+    if "MODIFICACION" in t or "RUTA" in t:
         return "", TipoActoModificatorio.MODIFICACION_RUTA
     if "BAJA" in t or "CANCELACION" in t:
         return "", TipoActoModificatorio.CANCELACION_PARCIAL
+    if "REPRESENTANTE" in t:
+        return "", TipoActoModificatorio.CAMBIO_REPRESENTANTE
+    if "GENERAL" in t or "MIXTO" in t:
+        return "", TipoActoModificatorio.TRAMITE_GENERAL
     return "", TipoActoModificatorio.OTROS
 
 
 def normalizar_nro_hija(nro_raw: str, tipo_raw: str = "", placa_raw: str = "") -> str:
     """
     Normalizar número de resolución hija a R-0123-2026 (sin sufijo como (S) o (I)).
-    Si no hay número de resolución (ej: Duplicados / Canjes), se usa la placa del vehículo.
+    Para Duplicados (-D) o Canjes (-C), preserva el sufijo identicatorio.
+    Si no hay número de resolución (ej: Duplicados / Canjes), se usa D-PLACA o C-PLACA o la placa del vehículo.
     """
     s = _clean_str(nro_raw).upper()
-    if not s:
-        placa = _clean_str(placa_raw).upper()
+    t = _clean_str(tipo_raw).upper()
+    placa = _clean_str(placa_raw).upper()
+
+    es_dup = "DUPLIC" in t or "-D" in s
+    es_canje = "CANJE" in t or "-C" in s
+
+    if not s or s in ("-D", "-C", "D", "C", "-"):
         if placa:
+            if es_dup:
+                return f"D-{placa}"
+            if es_canje:
+                return f"C-{placa}"
             return placa
         return ""
 
     if s.startswith("R-"):
         s = s[2:]
 
+    # Si es expediente (ej. E-5167-2021-D o E-3061-2026)
+    if s.startswith("E-"):
+        if es_dup and not s.endswith("-D"):
+            return f"{s}-D"
+        if es_canje and not s.endswith("-C"):
+            return f"{s}-C"
+        return s
+
     # Remover sufijos entre paréntesis previos si los tiene (ej: (S), (I), (FE))
     s = re.sub(r"\([A-Z0-9]+\)$", "", s).strip()
 
-    # Remover sufijos con guion previos (ej: -S, -I, -FE, -M, -C, -O)
-    s = re.sub(r"-(S|I|FE|M|C|O)$", "", s).strip()
+    # Remover sufijos con guion previos (ej: -S, -I, -FE, -M, -O, -B)
+    s = re.sub(r"-(S|I|FE|M|O|B)$", "", s).strip()
 
-    return f"R-{s}"
+    # Remover sufijos -D o -C si están pegados para formatear el número base
+    s = re.sub(r"-(D|C)$", "", s).strip()
+
+    res = f"R-{s}"
+    if es_dup:
+        return f"{res}-D"
+    if es_canje:
+        return f"{res}-C"
+    return res
 
 
 class ResolucionHijaExcelService:

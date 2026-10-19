@@ -15,6 +15,7 @@ class TipoTramiteAdministrativo(str, Enum):
     MODIFICACION_FRECUENCIA = "MODIFICACION_FRECUENCIA"
     FE_DE_ERRATAS = "FE_DE_ERRATAS"
     REACTIVACION_JUDICIAL = "REACTIVACION_JUDICIAL"
+    TRAMITE_GENERAL = "TRAMITE_GENERAL"
 
 class TramiteAdministrativoCreate(CamelModel):
     ruc_empresa: str = Field(..., description="RUC de la empresa titular (11 dígitos)")

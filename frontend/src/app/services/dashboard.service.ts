@@ -138,6 +138,27 @@ export interface DashboardEstadisticas {
   totalRenovaciones?: number;
   totalSustituciones: number;
   totalIncrementos: number;
+  totalModificacionesRuta?: number;
+  totalDuplicados?: number;
+  totalCanjes?: number;
+  totalFeErratas?: number;
+  totalActosJudiciales?: number;
+  totalCancelacionesBajas?: number;
+  totalTramiteGeneral?: number;
+  totalOtrosTramites?: number;
+  desgloseTramites?: {
+    renovaciones?: number;
+    sustituciones?: number;
+    incrementos?: number;
+    modificacionesRuta?: number;
+    duplicados?: number;
+    canjes?: number;
+    feDeErratas?: number;
+    actosJudiciales?: number;
+    cancelacionesBajas?: number;
+    tramiteGeneral?: number;
+    otros?: number;
+  };
   totalTramitesFlota?: number;
   topEmpresasTramites?: EmpresaTramiteItem[];
   totalFlotaHabilitada: number;

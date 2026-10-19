@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, ViewChild, ElementRef, OnInit } fr
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
+import * as XLSX from 'xlsx';
 import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -90,6 +91,49 @@ export class CentroTramites implements OnInit {
   advertenciaResolucion = signal<{ mensaje: string; detalle?: string } | null>(null);
   verificandoResolucion = signal<boolean>(false);
   advertenciaRenovacionResolucion = signal<{ mensaje: string; detalle?: string } | null>(null);
+
+  // Tipo de documento de origen seleccionado (dinámico)
+  tipoOrigenDoc = signal<string>('EXPEDIENTE');
+
+  labelNumeroDocumento = computed(() => {
+    const t = this.tipoOrigenDoc();
+    if (t === 'EXPEDIENTE_OFICIO') return 'N° Oficio de Inicio / Exp. de Oficio';
+    if (t === 'OFICIO') return 'N° de Oficio (Ej. 123 u O-0123-2026)';
+    if (t === 'MEMORANDUM') return 'N° de Memorándum (Ej. 123 o M-0123-2026)';
+    return 'N° de Expediente (Ej. 123 o E-0123-2026)';
+  });
+
+  placeholderNumeroDocumento = computed(() => {
+    const t = this.tipoOrigenDoc();
+    if (t === 'EXPEDIENTE_OFICIO') return 'EO-0123-2026';
+    if (t === 'OFICIO') return 'O-0123-2026';
+    if (t === 'MEMORANDUM') return 'M-0123-2026';
+    return 'E-0123-2026';
+  });
+
+  hintNumeroDocumento = computed(() => {
+    const t = this.tipoOrigenDoc();
+    if (t === 'EXPEDIENTE_OFICIO') return 'Formato EO-0000-AAAA (Iniciado de oficio por DRTC)';
+    if (t === 'OFICIO') return 'Formato O-0000-AAAA (Oficio simple de comunicación/trámite)';
+    if (t === 'MEMORANDUM') return 'Formato M-0000-AAAA (Memorándum interno)';
+    return 'Formato E-0000-AAAA (Opcional en trámites históricos o de oficio)';
+  });
+
+  obtenerPrefijoTipo(tipo?: string | null): string {
+    const t = tipo || this.datosOrigenForm?.get('tipo_origen')?.value || 'EXPEDIENTE';
+    if (t === 'EXPEDIENTE_OFICIO') return 'EO';
+    if (t === 'OFICIO') return 'O';
+    if (t === 'MEMORANDUM') return 'M';
+    return 'E';
+  }
+
+  obtenerEtiquetaTipoOrigen(tipo?: string | null): string {
+    const t = tipo || this.datosOrigenForm?.get('tipo_origen')?.value || 'EXPEDIENTE';
+    if (t === 'EXPEDIENTE_OFICIO') return 'Expediente de Oficio';
+    if (t === 'OFICIO') return 'Oficio';
+    if (t === 'MEMORANDUM') return 'Memorándum';
+    return 'Expediente';
+  }
 
   // States for Drawer / Wizard
   isDrawerOpen = signal<boolean>(false);
@@ -429,7 +473,14 @@ export class CentroTramites implements OnInit {
     total: 0,
     renovaciones: 0,
     sustituciones: 0,
-    incrementos: 0
+    incrementos: 0,
+    modificaciones: 0,
+    feDeErratas: 0,
+    actosJudiciales: 0,
+    duplicados: 0,
+    canjes: 0,
+    bajasCancelaciones: 0,
+    tramiteGeneral: 0
   });
 
   // Column configuration
@@ -520,7 +571,8 @@ export class CentroTramites implements OnInit {
     { id: 'MODIFICACION_RUTA', nombre: 'Modificación de Ruta', icono: 'alt_route', desc: 'Variación de itinerario' },
     { id: 'MODIFICACION_FRECUENCIA', nombre: 'Modif. Frecuencia', icono: 'schedule', desc: 'Ajuste de salidas diarias' },
     { id: 'FE_DE_ERRATAS', nombre: 'Fe de Erratas', icono: 'spellcheck', desc: 'Rectificación resolutiva' },
-    { id: 'REACTIVACION_JUDICIAL', nombre: 'Reactivación / Mandato Judicial', icono: 'gavel', desc: 'Rehabilitación por Mandato Judicial o R.D.' }
+    { id: 'REACTIVACION_JUDICIAL', nombre: 'Reactivación / Mandato Judicial', icono: 'gavel', desc: 'Rehabilitación por Mandato Judicial o R.D.' },
+    { id: 'TRAMITE_GENERAL', nombre: 'Trámite General / Mixto', icono: 'hub', desc: 'Múltiples actos simultáneos (modificación, baja, etc.)' }
   ];
 
   tiposTramite = [
@@ -545,7 +597,7 @@ export class CentroTramites implements OnInit {
 
   esTramiteConcesion = computed(() => {
     const t = this.tramiteSeleccionado();
-    return t === 'MODIFICACION_RUTA' || t === 'MODIFICACION_FRECUENCIA' || t === 'FE_DE_ERRATAS';
+    return t === 'MODIFICACION_RUTA' || t === 'MODIFICACION_FRECUENCIA' || t === 'FE_DE_ERRATAS' || t === 'TRAMITE_GENERAL';
   });
 
   // Forms
@@ -598,6 +650,19 @@ export class CentroTramites implements OnInit {
     tipo_reactivacion: ['MANDATO_JUDICIAL'],
     mandato_judicial_nro: [''],
     juzgado_origen: ['']
+  });
+
+  tramiteGeneralForm = this.fb.group({
+    incluye_modificacion_ruta: [false],
+    incluye_bajas: [false],
+    incluye_disposicion: [true],
+    codigo_ruta: [''],
+    nuevo_itinerario: [''],
+    nueva_frecuencia: [''],
+    motivo_baja: ['BAJA VEHICULAR POR RESOLUCIÓN MIXTA'],
+    asunto_resumen: ['Trámite General / Mixto con múltiples actos administrativos'],
+    disposicion_resolutiva: [''],
+    sustento_observaciones: ['']
   });
 
   // COMPUTED SIGNALS PARA FILTROS Y DATOS
@@ -798,7 +863,12 @@ export class CentroTramites implements OnInit {
       }
     });
 
-    // Monitoreo reactivo de expediente y resolución para prevención de duplicados
+    // Monitoreo reactivo de tipo de origen, expediente y resolución para prevención de duplicados
+    this.datosOrigenForm.get('tipo_origen')?.valueChanges
+      .subscribe(val => {
+        if (val) this.tipoOrigenDoc.set(val);
+      });
+
     this.datosOrigenForm.get('numero_origen')?.valueChanges
       .pipe(debounceTime(350), distinctUntilChanged())
       .subscribe(() => {
@@ -851,12 +921,26 @@ export class CentroTramites implements OnInit {
         const renovaciones = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('RENOVACION')).length;
         const sustituciones = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('SUSTITUCION') || (r.vehiculos_salientes && r.vehiculos_salientes.length > 0)).length;
         const incrementos = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('INCREMENTO')).length;
+        const modificaciones = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('MODIFICACION') || (r.tipo_acto || '').toUpperCase().includes('RUTA')).length;
+        const feDeErratas = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('ERRATA')).length;
+        const actosJudiciales = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('JUDICIAL') || (r.tipo_acto || '').toUpperCase().includes('JUZGADO') || (r.tipo_acto || '').toUpperCase().includes('CAUTELAR')).length;
+        const duplicados = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('DUPLIC')).length;
+        const canjes = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('CANJE')).length;
+        const bajasCancelaciones = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('CANCEL') || (r.tipo_acto || '').toUpperCase().includes('BAJA')).length;
+        const tramiteGeneral = lista.filter(r => (r.tipo_acto || '').toUpperCase().includes('GENERAL') || (r.tipo_acto || '').toUpperCase().includes('MIXTO')).length;
 
         this.estadisticas.set({
           total,
           renovaciones,
           sustituciones,
-          incrementos
+          incrementos,
+          modificaciones,
+          feDeErratas,
+          actosJudiciales,
+          duplicados,
+          canjes,
+          bajasCancelaciones,
+          tramiteGeneral
         });
 
         // Mapear todas las resoluciones
@@ -891,7 +975,7 @@ export class CentroTramites implements OnInit {
 
           const nroNorm = this.normalizarNumeroResolucion(r.nro_resolucion, r.fecha_resolucion || r.fecha_registro);
           let tipoActo = r.tipo_acto || r.tipo_tramite_origen || 'MODIFICACION';
-          if ((r.nro_resolucion && r.nro_resolucion_primigenia && r.nro_resolucion === r.nro_resolucion_primigenia) || String(r.nro_resolucion || '').includes('0701')) {
+          if (tipoActo !== 'RENOVACION' && ((r.nro_resolucion && r.nro_resolucion_primigenia && r.nro_resolucion === r.nro_resolucion_primigenia) || String(r.nro_resolucion || '').includes('0701'))) {
             tipoActo = 'AUTORIZACION';
           }
           const infoTipo = this.obtenerInfoTipoTramite(tipoActo);
@@ -921,9 +1005,11 @@ export class CentroTramites implements OnInit {
             tipoRaw: tipoActo.toUpperCase(),
             tipo: tipoActo.replace(/_/g, ' '),
             tipoLabel: infoTipo.label,
-            tipoBadgeClass: infoTipo.badgeClass,
-            doc: expNumero || '', // para compatibilidad
+            doc: expNumero || r.documento_origen || '', // para compatibilidad
             expediente_numero: expNumero,
+            documento_origen: r.documento_origen || null,
+            tipo_origen: r.tipo_origen || (r.es_de_oficio ? 'EXPEDIENTE_OFICIO' : 'EXPEDIENTE'),
+            es_de_oficio: !!r.es_de_oficio,
             fecha_expediente: r.fecha_expediente || null,
             fecha_expediente_display: fechaExpDisplay,
             nro_resolucion_primigenia: r.nro_resolucion_primigenia,
@@ -1020,25 +1106,35 @@ export class CentroTramites implements OnInit {
     if (!val) return 'S/N';
     let s = val.trim().toUpperCase();
     if (!s || s === 'NAN' || s === 'NONE' || s === 'NULL' || s === '-' || s === 'TUC') return 'S/N';
+
+    const esDup = s.endsWith('-D');
+    const esCanje = s.endsWith('-C');
+    const sufijo = esDup ? '-D' : (esCanje ? '-C' : '');
+
+    // Si ya empieza con E- (expediente), D- (duplicado) o C- (canje)
+    if (s.startsWith('E-') || s.startsWith('D-') || s.startsWith('C-')) {
+      return s;
+    }
+
     s = s.replace(/^(?:RESOLUCI[OÓ]N|RES\.|RES-|R\.|R\s+)/, 'R-');
     s = s.replace(/^(?:N[°º]|N-)\s*/, '');
     const m = s.match(/^(?:R[-.\s]*)?0*(\d{1,6})[-/.\s]+(\d{4})/);
     if (m) {
-      return `R-${m[1].padStart(4, '0')}-${m[2]}`;
+      return `R-${m[1].padStart(4, '0')}-${m[2]}${sufijo}`;
     }
     const m2 = s.match(/^(?:R[-.\s]*)?0*(\d{1,6})[-/.\s]+(\d{2})(?:[-/.]?.*)?$/);
     if (m2) {
       const anio = parseInt(m2[2], 10) < 50 ? '20' + m2[2] : '19' + m2[2];
-      return `R-${m2[1].padStart(4, '0')}-${anio}`;
+      return `R-${m2[1].padStart(4, '0')}-${anio}${sufijo}`;
     }
     if (/^\d+$/.test(s) && fecha) {
       const d = new Date(fecha);
       if (!isNaN(d.getFullYear())) {
-        return `R-${s.padStart(4, '0')}-${d.getFullYear()}`;
+        return `R-${s.padStart(4, '0')}-${d.getFullYear()}${sufijo}`;
       }
     }
     if (/^\d/.test(s)) {
-      return `R-${s}`;
+      return `R-${s}${sufijo}`;
     }
     return s;
   }
@@ -1072,8 +1168,20 @@ export class CentroTramites implements OnInit {
     if (t.includes('CANJE')) {
       return { label: 'CANJE', badgeClass: 'badge-tramite-canje' };
     }
+    if (t.includes('JUDICIAL') || t.includes('JUZGADO') || t.includes('CAUTELAR')) {
+      return { label: 'MANDATO JUDICIAL', badgeClass: 'badge-tramite-judicial' };
+    }
+    if (t.includes('FRECUENCIA')) {
+      return { label: 'MODIF. FRECUENCIA', badgeClass: 'badge-tramite-modificacion' };
+    }
+    if (t.includes('DOMICILIO')) {
+      return { label: 'DOMICILIO LEGAL', badgeClass: 'badge-tramite-otros' };
+    }
     if (t.includes('REPRESENTANTE')) {
       return { label: 'CAMBIO REP.', badgeClass: 'badge-tramite-otros' };
+    }
+    if (t.includes('GENERAL') || t.includes('MIXTO')) {
+      return { label: 'TRÁMITE GENERAL', badgeClass: 'badge-tramite-general' };
     }
     if (t.includes('SUSPENSION')) {
       return { label: 'SUSPENSIÓN', badgeClass: 'badge-tramite-cancelacion' };
@@ -1405,6 +1513,18 @@ export class CentroTramites implements OnInit {
     this.advertenciaResolucion.set(null);
     this.advertenciaRenovacionResolucion.set(null);
     this.datosOrigenForm.reset({ tipo_origen: 'EXPEDIENTE', numero_origen: '', nro_resolucion_hija: '' });
+    this.tramiteGeneralForm.reset({
+      incluye_modificacion_ruta: false,
+      incluye_bajas: false,
+      incluye_disposicion: true,
+      codigo_ruta: '',
+      nuevo_itinerario: '',
+      nueva_frecuencia: '',
+      motivo_baja: 'BAJA VEHICULAR POR RESOLUCIÓN MIXTA',
+      asunto_resumen: 'Trámite General / Mixto con múltiples actos administrativos',
+      disposicion_resolutiva: '',
+      sustento_observaciones: ''
+    });
     this.pasoActual.set(0);
     if (this.stepper) {
       this.stepper.reset();
@@ -1565,6 +1685,15 @@ export class CentroTramites implements OnInit {
         return this.vehiculosRenovacionLista().some(v => v.seleccionado);
       }
       if (t === 'DUPLICADO' || t === 'CANJE') return this.vehiculosTramiteSeleccionados().length > 0;
+      if (t === 'TRAMITE_GENERAL') {
+        const val = this.tramiteGeneralForm.value;
+        const alMenosUno = !!val.incluye_modificacion_ruta || !!val.incluye_bajas || !!val.incluye_disposicion;
+        if (!alMenosUno) return false;
+        if (val.incluye_modificacion_ruta && !val.nuevo_itinerario?.trim()) return false;
+        if (val.incluye_bajas && this.vehiculosBajaSeleccionados().length === 0) return false;
+        if (val.incluye_disposicion && !val.disposicion_resolutiva?.trim()) return false;
+        return true;
+      }
       return true;
     }
     return true;
@@ -3537,14 +3666,12 @@ export class CentroTramites implements OnInit {
     }
 
     const tipo = this.datosOrigenForm.get('tipo_origen')?.value || 'EXPEDIENTE';
-    let prefijo = 'E';
-    if (tipo === 'OFICIO') prefijo = 'O';
-    if (tipo === 'MEMORANDUM') prefijo = 'M';
+    const prefijo = this.obtenerPrefijoTipo(tipo);
 
     const clean = actual.trim().toUpperCase();
-    const m = clean.match(/(?:[A-Z]-)?0*(\d+)(?:-\d{4})?/);
+    const m = clean.match(/^(?:([A-Z]{1,3})-)?0*(\d+)(?:-\d{4})?$/);
     if (m) {
-      const numPadded = m[1].padStart(4, '0');
+      const numPadded = m[2].padStart(4, '0');
       const nuevo = `${prefijo}-${numPadded}-${anio}`;
       if (nuevo !== actual) {
         this.datosOrigenForm.get('numero_origen')?.setValue(nuevo, { emitEvent: false });
@@ -3578,20 +3705,23 @@ export class CentroTramites implements OnInit {
   }
 
   cambiarTipoOrigen() {
-    let current = this.datosOrigenForm.get('numero_origen')?.value;
-    if (current && current.includes('-')) {
-      const parts = current.split('-');
-      if (parts.length === 3) {
-        const num = parts[1];
+    const tipo = this.datosOrigenForm.get('tipo_origen')?.value || 'EXPEDIENTE';
+    this.tipoOrigenDoc.set(tipo);
+
+    const current = this.datosOrigenForm.get('numero_origen')?.value;
+    const prefijo = this.obtenerPrefijoTipo(tipo);
+
+    if (current && current.trim()) {
+      const clean = current.trim().toUpperCase();
+      const m = clean.match(/^(?:([A-Z]{1,3})-)?0*(\d+)(?:-(\d{4}))?$/);
+      if (m) {
+        const numPadded = m[2].padStart(4, '0');
         const fechaDoc = this.datosOrigenForm.get('fecha_origen')?.value;
-        const anio = fechaDoc ? this.extraerAnioDeFecha(fechaDoc) : parts[2];
-        const tipo = this.datosOrigenForm.get('tipo_origen')?.value;
-        let prefijo = 'E';
-        if (tipo === 'OFICIO') prefijo = 'O';
-        if (tipo === 'MEMORANDUM') prefijo = 'M';
-        this.datosOrigenForm.get('numero_origen')?.setValue(`${prefijo}-${num}-${anio}`);
+        const anio = fechaDoc ? this.extraerAnioDeFecha(fechaDoc) : (m[3] || this.extraerAnioDeFecha(new Date()));
+        this.datosOrigenForm.get('numero_origen')?.setValue(`${prefijo}-${numPadded}-${anio}`);
       }
     }
+    this.validarExpedienteDuplicado();
   }
 
   normalizarNumero() {
@@ -3605,17 +3735,15 @@ export class CentroTramites implements OnInit {
     const fechaDoc = this.datosOrigenForm.get('fecha_origen')?.value;
     const anio = this.extraerAnioDeFecha(fechaDoc);
 
-    const tipo = this.datosOrigenForm.get('tipo_origen')?.value;
-    let prefijo = 'E';
-    if (tipo === 'OFICIO') prefijo = 'O';
-    if (tipo === 'MEMORANDUM') prefijo = 'M';
+    const tipo = this.datosOrigenForm.get('tipo_origen')?.value || 'EXPEDIENTE';
+    const prefijo = this.obtenerPrefijoTipo(tipo);
 
-    const m = num.match(/(?:[A-Z]-)?0*(\d+)(?:-(\d{4}))?/);
+    const m = num.match(/^(?:([A-Z]{1,3})-)?0*(\d+)(?:-(\d{4}))?$/);
     if (m) {
-      const numPadded = m[1].padStart(4, '0');
+      const numPadded = m[2].padStart(4, '0');
       let anioFinal = anio;
-      if (!fechaDoc && m[2]) {
-        anioFinal = m[2];
+      if (!fechaDoc && m[3]) {
+        anioFinal = m[3];
       }
       this.datosOrigenForm.get('numero_origen')?.setValue(`${prefijo}-${numPadded}-${anioFinal}`);
     }
@@ -3655,29 +3783,43 @@ export class CentroTramites implements OnInit {
     const val = rawVal.trim().toUpperCase();
     const fechaDoc = this.datosOrigenForm.get('fecha_origen')?.value;
     const anioDoc = this.extraerAnioDeFecha(fechaDoc);
+    const tipo = this.datosOrigenForm.get('tipo_origen')?.value || 'EXPEDIENTE';
+    const prefijoEsperado = this.obtenerPrefijoTipo(tipo);
 
-    // Extraer número y año para búsqueda flexible
+    // Extraer prefijo (si viene explícito o el seleccionado), número y año
+    let corePrefix = prefijoEsperado;
     let coreNum: number | null = null;
     let coreAnio: string = anioDoc;
 
-    const matchFormat = val.match(/(?:[A-Z]-)?0*(\d+)-(\d{4})/);
+    const matchFormat = val.match(/^(?:([A-Z]{1,3})-)?0*(\d+)(?:-(\d{4}))?$/);
     if (matchFormat) {
-      coreNum = parseInt(matchFormat[1], 10);
-      coreAnio = fechaDoc ? anioDoc : matchFormat[2];
-    } else if (/^\d+$/.test(val)) {
-      coreNum = parseInt(val, 10);
-      coreAnio = anioDoc;
+      if (matchFormat[1]) {
+        corePrefix = matchFormat[1];
+      }
+      coreNum = parseInt(matchFormat[2], 10);
+      coreAnio = fechaDoc ? anioDoc : (matchFormat[3] || anioDoc);
+    } else {
+      this.advertenciaExpediente.set(null);
+      return;
     }
+
+    const numPadded = coreNum !== null ? coreNum.toString().padStart(4, '0') : '';
+    const canonicalVal = `${corePrefix}-${numPadded}-${coreAnio}`;
 
     // 1. Búsqueda instantánea en el historial en memoria de todas las resoluciones
     const match = this.todasResoluciones().find(item => {
-      const doc = (item.expediente_numero || item.doc || '').trim().toUpperCase();
+      const doc = (item.documento_origen || item.expediente_numero || item.doc || '').trim().toUpperCase();
       if (!doc) return false;
-      if (doc === val) return true;
+      if (doc === canonicalVal || doc === val) return true;
 
-      if (coreNum !== null && coreAnio !== null) {
-        const m = doc.match(/(?:[A-Z]-)?0*(\d+)-(\d{4})/);
-        if (m && parseInt(m[1], 10) === coreNum && m[2] === coreAnio) {
+      const mItem = doc.match(/^(?:([A-Z]{1,3})-)?0*(\d+)-(\d{4})$/);
+      if (mItem && coreNum !== null && coreAnio !== null) {
+        const itemPrefix = mItem[1] || (item.es_de_oficio ? 'EO' : 'E');
+        const itemNum = parseInt(mItem[2], 10);
+        const itemAnio = mItem[3];
+
+        // Comparación estricta por prefijo (EO != E != O != M), número y año
+        if (itemPrefix === corePrefix && itemNum === coreNum && itemAnio === coreAnio) {
           return true;
         }
       }
@@ -3685,15 +3827,21 @@ export class CentroTramites implements OnInit {
     });
 
     if (match) {
+      let labelDoc = 'el expediente';
+      if (corePrefix === 'EO') labelDoc = 'el Expediente de Oficio';
+      else if (corePrefix === 'O') labelDoc = 'el Oficio';
+      else if (corePrefix === 'M') labelDoc = 'el Memorándum';
+
       this.advertenciaExpediente.set({
-        mensaje: `⚠️ Advertencia: El expediente ${val} ya se encuentra registrado.`,
+        mensaje: `⚠️ Advertencia: ${labelDoc} ${canonicalVal} ya se encuentra registrado.`,
         detalle: `Asociado al trámite ${match.id || match.nro_resolucion_raw} (${match.tipoLabel || match.tipo}) de la empresa "${match.empresa}" (RUC: ${match.ruc}) emitido el ${match.fecha}.`
       });
       return;
     }
 
-    // 2. Consultar servicio de expedientes (backend)
-    if (coreNum !== null && coreAnio !== null) {
+    // 2. Consultar servicio de expedientes (backend) ÚNICAMENTE si es Expediente de Mesa de Partes (prefijo E)
+    // Los expedientes de oficio (EO), oficios simples (O) y memorándums (M) no residen en el registro de mesa de partes
+    if (corePrefix === 'E' && coreNum !== null && coreAnio !== null) {
       this.verificandoExpediente.set(true);
       this.expedienteService.validarNumeroBackend(coreNum.toString(), parseInt(coreAnio, 10)).subscribe({
         next: (resp) => {
@@ -3702,7 +3850,7 @@ export class CentroTramites implements OnInit {
             const expEx = resp.expedienteExistente;
             this.advertenciaExpediente.set({
               mensaje: `⚠️ Advertencia: ${resp.mensaje || 'Este expediente ya existe en la base de datos.'}`,
-              detalle: expEx ? `Expediente: ${expEx.nroExpediente || val} | Estado: ${expEx.estado || 'PROCESADO'} | Empresa: ${expEx.empresaId || 'Consignada'}` : undefined
+              detalle: expEx ? `Expediente: ${expEx.nroExpediente || canonicalVal} | Estado: ${expEx.estado || 'PROCESADO'} | Empresa: ${expEx.empresaId || 'Consignada'}` : undefined
             });
           } else {
             this.advertenciaExpediente.set(null);
@@ -3955,7 +4103,7 @@ export class CentroTramites implements OnInit {
       });
       return;
     }
-    const esDeOficio = origenVal.tipo_origen === 'OFICIO';
+    const esDeOficio = origenVal.tipo_origen === 'OFICIO' || origenVal.tipo_origen === 'EXPEDIENTE_OFICIO';
     const docOrigen = origenVal.numero_origen || undefined;
     const nroHija = tipo === 'RENOVACION'
       ? this.normalizarResolucionTexto(
@@ -4164,6 +4312,29 @@ export class CentroTramites implements OnInit {
       payloadExtra = {
         cancelacion_total: this.cancelacionForm.value.cancelacion_total ?? true
       };
+    } else if (tipo === 'TRAMITE_GENERAL') {
+      const gVal = this.tramiteGeneralForm.value;
+      if (gVal.incluye_bajas) {
+        if (this.vehiculosBajaSeleccionados().length === 0) {
+          this.snackBar.open('Debe seleccionar al menos un vehículo para dar de baja', 'Cerrar', { duration: 4000 });
+          return;
+        }
+        vehiculosItems = this.vehiculosBajaSeleccionados().map(placa => ({
+          placa: placa,
+          tipo_operacion: 'BAJAS',
+          observacion_custom: gVal.motivo_baja || 'BAJA EN TRÁMITE GENERAL'
+        }));
+      }
+      payloadExtra = {
+        datos_modificacion: {
+          asunto_resumen: gVal.asunto_resumen,
+          disposicion_resolutiva: gVal.disposicion_resolutiva,
+          sustento_observaciones: gVal.sustento_observaciones || gVal.disposicion_resolutiva,
+          codigo_ruta: gVal.incluye_modificacion_ruta ? gVal.codigo_ruta : undefined,
+          nuevo_itinerario: gVal.incluye_modificacion_ruta ? gVal.nuevo_itinerario : undefined,
+          nueva_frecuencia: gVal.incluye_modificacion_ruta ? gVal.nueva_frecuencia : undefined
+        }
+      };
     }
 
     const payload: TramiteMasivoRequest = {
@@ -4171,12 +4342,13 @@ export class CentroTramites implements OnInit {
       razon_social: emp.razon_social,
       nro_resolucion_primigenia: resPrimigenia,
       tipo_tramite: tipo,
+      tipo_origen: origenVal.tipo_origen || (esDeOficio ? 'EXPEDIENTE_OFICIO' : 'EXPEDIENTE'),
       es_de_oficio: esDeOficio,
       documento_origen: docOrigen,
       num_expediente: !esDeOficio ? docOrigen : undefined,
       fecha_expediente: origenVal.fecha_origen || undefined,
       nro_resolucion_hija: nroHija,
-      tipo_resolucion_hija: nroHija ? (tipo === 'SUSTITUCION' ? 'S' : tipo === 'INCREMENTO' ? 'I' : tipo === 'RENOVACION' ? 'R' : 'M') : undefined,
+      tipo_resolucion_hija: nroHija ? (tipo === 'SUSTITUCION' ? 'S' : tipo === 'INCREMENTO' ? 'I' : tipo === 'RENOVACION' ? 'R' : (tipo === 'DUPLICADO' ? 'D' : (tipo === 'CANJE' ? 'C' : 'M'))) : undefined,
       fecha_emision_resolucion: fechaRes,
       vehiculos: vehiculosItems,
       ...payloadExtra
@@ -4199,6 +4371,18 @@ export class CentroTramites implements OnInit {
         this.vehiculosTramiteSeleccionados.set([]);
         this.tramiteSeleccionado.set(null);
         this.datosOrigenForm.reset({ tipo_origen: 'EXPEDIENTE' });
+        this.tramiteGeneralForm.reset({
+          incluye_modificacion_ruta: false,
+          incluye_bajas: false,
+          incluye_disposicion: true,
+          codigo_ruta: '',
+          nuevo_itinerario: '',
+          nueva_frecuencia: '',
+          motivo_baja: 'BAJA VEHICULAR POR RESOLUCIÓN MIXTA',
+          asunto_resumen: 'Trámite General / Mixto con múltiples actos administrativos',
+          disposicion_resolutiva: '',
+          sustento_observaciones: ''
+        });
         this.isDrawerOpen.set(false);
         this.pageIndex.set(0);
 
@@ -4351,5 +4535,58 @@ export class CentroTramites implements OnInit {
     if (!placa) return;
     this.tucService.imprimirHtmlDirecto(placa);
     this.snackBar.open(`Abriendo impresión directa calibrada de ${placa}...`, 'OK', { duration: 3000 });
+  }
+
+  exportarAExcel(): void {
+    const tramites = this.tramitesFiltrados();
+    if (!tramites || tramites.length === 0) {
+      this.snackBar.open('No hay trámites para exportar con los filtros seleccionados', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    try {
+      const rows = tramites.map((t, idx) => ({
+        'N°': idx + 1,
+        'Resolución': t.nro_resolucion || 'S/N',
+        'Fecha Emisión': t.fecha_resolucion ? new Date(t.fecha_resolucion).toLocaleDateString('es-PE') : (t.fecha_emision ? new Date(t.fecha_emision).toLocaleDateString('es-PE') : 'S/F'),
+        'Tipo de Trámite': t.tipoLabel || t.tipoRaw || t.tipo_acto || t.tipo_tramite || 'TRÁMITE',
+        'Expediente / Documento': t.expediente || t.num_expediente || t.documento_origen || 'S/N',
+        'RUC': t.ruc || '',
+        'Empresa / Razón Social': t.empresa || t.razon_social || '',
+        'Resolución Primigenia': t.nro_resolucion_primigenia || '-',
+        'Placas Ingresantes': (t.placasIng || t.vehiculos_ingresantes || []).join(', ') || '-',
+        'Placas Salientes (Bajas)': (t.placasSal || t.vehiculos_salientes || []).join(', ') || '-',
+        'TUCs Asignados': (t.numeros_tuc || []).join(', ') || '-',
+        'Observaciones / Detalle': t.observaciones || t.detalles || ''
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      worksheet['!cols'] = [
+        { wch: 6 },   // N°
+        { wch: 18 },  // Resolución
+        { wch: 14 },  // Fecha
+        { wch: 22 },  // Tipo
+        { wch: 20 },  // Expediente
+        { wch: 14 },  // RUC
+        { wch: 35 },  // Razón Social
+        { wch: 20 },  // Primigenia
+        { wch: 25 },  // Placas Ingresantes
+        { wch: 25 },  // Placas Salientes
+        { wch: 20 },  // TUCs
+        { wch: 40 }   // Observaciones
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Trámites DRTC Puno');
+      
+      const filtro = this.filtroTipo() !== 'TODOS' ? `_${this.filtroTipo()}` : '';
+      const fechaHoy = new Date().toISOString().substring(0, 10);
+      XLSX.writeFile(workbook, `Tramites_DRTC_Puno${filtro}_${fechaHoy}.xlsx`);
+
+      this.snackBar.open(`✓ Se exportaron ${rows.length} registros a Excel exitosamente`, 'Entendido', { duration: 4000 });
+    } catch (err) {
+      console.error('Error al exportar a Excel:', err);
+      this.snackBar.open('Ocurrió un error al generar el archivo Excel', 'Cerrar', { duration: 4000 });
+    }
   }
 }

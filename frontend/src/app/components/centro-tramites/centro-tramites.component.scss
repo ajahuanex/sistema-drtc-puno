@@ -1205,8 +1205,32 @@
     border: 1px solid #fde68a;
   }
 
-  &.badge-tramite-duplicado,
-  &.badge-tramite-canje,
+  &.badge-tramite-judicial {
+    background: #faf5ff;
+    color: #7c3aed;
+    border: 1px solid #ddd6fe;
+    font-weight: 700;
+  }
+
+  &.badge-tramite-duplicado {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  &.badge-tramite-canje {
+    background: #f0fdfa;
+    color: #0f766e;
+    border: 1px solid #99f6e4;
+  }
+
+  &.badge-tramite-general {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    font-weight: 700;
+  }
+
   &.badge-tramite-otros {
     background: #f8fafc;
     color: #475569;

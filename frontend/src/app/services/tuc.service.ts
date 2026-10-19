@@ -83,6 +83,8 @@ export interface VariablePlantillaTuc {
   col_codigo_mm?: number;
   col_tramo_mm?: number;
   col_frecuencia_mm?: number;
+  escala_codigo_ruta?: number; // Escala proporcional (ej: 1.00 = 100%) para código de ruta ("Ruta 01:")
+  escala_frecuencia?: number; // Escala proporcional (ej: 1.00 = 100%) para texto de frecuencia ("20 DIARIAS")
   escala_dias_frec?: number; // Escala proporcional (ej: 0.80 = 80%) para días entre paréntesis en frecuencias
   escala_itinerario?: number; // Escala proporcional (ej: 0.85 = 85%) para itinerario en rutas
   espacio_filas_rutas_mm?: number; // Espacio vertical (padding) entre filas de rutas en mm (ej: 0.4 = más compacto)

@@ -2235,6 +2235,60 @@ export class TucStudioComponent implements OnInit {
     return (r.tramo || 'AMBITO REGIONAL PUNO').trim();
   }
 
+  obtenerEscalaCodigoRuta(v?: VariablePlantillaTuc | null): number {
+    return v?.escala_codigo_ruta !== undefined ? v.escala_codigo_ruta : 1.0;
+  }
+
+  ajustarEscalaCodigoRuta(delta: number): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const actual = this.obtenerEscalaCodigoRuta(sel);
+    sel.escala_codigo_ruta = Math.min(1.5, Math.max(0.4, Math.round((actual + delta) * 100) / 100));
+    this.notificarCambio();
+  }
+
+  cambiarEscalaCodigoRuta(sel: VariablePlantillaTuc, event: Event): void {
+    const val = parseFloat((event.target as HTMLInputElement).value);
+    if (!isNaN(val)) {
+      sel.escala_codigo_ruta = Math.min(1.5, Math.max(0.4, Math.round(val * 100) / 100));
+      this.notificarCambio();
+    }
+  }
+
+  obtenerFontCodigoRutaPt(v?: VariablePlantillaTuc | null): number {
+    const basePt = v?.font_size_pt || 6.0;
+    const escala = v?.escala_codigo_ruta !== undefined ? v.escala_codigo_ruta : 1.0;
+    const esc = Math.min(1.5, Math.max(0.4, Number(escala) || 1.0));
+    return Math.round(basePt * esc * 10) / 10;
+  }
+
+  obtenerEscalaFrecuencia(v?: VariablePlantillaTuc | null): number {
+    return v?.escala_frecuencia !== undefined ? v.escala_frecuencia : 1.0;
+  }
+
+  ajustarEscalaFrecuencia(delta: number): void {
+    const sel = this.selectedVariable();
+    if (!sel || sel.bloqueado) return;
+    const actual = this.obtenerEscalaFrecuencia(sel);
+    sel.escala_frecuencia = Math.min(1.5, Math.max(0.4, Math.round((actual + delta) * 100) / 100));
+    this.notificarCambio();
+  }
+
+  cambiarEscalaFrecuencia(sel: VariablePlantillaTuc, event: Event): void {
+    const val = parseFloat((event.target as HTMLInputElement).value);
+    if (!isNaN(val)) {
+      sel.escala_frecuencia = Math.min(1.5, Math.max(0.4, Math.round(val * 100) / 100));
+      this.notificarCambio();
+    }
+  }
+
+  obtenerFontFrecuenciaPt(v?: VariablePlantillaTuc | null): number {
+    const basePt = v?.font_size_pt || 6.0;
+    const escala = v?.escala_frecuencia !== undefined ? v.escala_frecuencia : 1.0;
+    const esc = Math.min(1.5, Math.max(0.4, Number(escala) || 1.0));
+    return Math.round(basePt * esc * 10) / 10;
+  }
+
   obtenerEscalaDiasFrec(v?: VariablePlantillaTuc | null): number {
     return v?.escala_dias_frec !== undefined ? v.escala_dias_frec : 0.80;
   }

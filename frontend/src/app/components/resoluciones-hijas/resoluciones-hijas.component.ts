@@ -140,9 +140,14 @@ import {
                   <mat-option value="SUSTITUCION_VEHICULAR">Sustitución Vehicular</mat-option>
                   <mat-option value="BAJA_VEHICULAR">Baja Vehicular</mat-option>
                   <mat-option value="MODIFICACION_RUTA">Modificación de Ruta</mat-option>
+                  <mat-option value="DUPLICADO">Duplicado de TUC</mat-option>
+                  <mat-option value="CANJE">Canje de TUC</mat-option>
+                  <mat-option value="FE_DE_ERRATAS">Fe de Erratas</mat-option>
+                  <mat-option value="MANDATO_JUDICIAL">Mandato Judicial</mat-option>
                   <mat-option value="CAMBIO_REPRESENTANTE">Cambio de Representante</mat-option>
                   <mat-option value="SUSPENSION_TEMPORAL">Suspensión Temporal</mat-option>
                   <mat-option value="CANCELACION_PARCIAL">Cancelación Parcial</mat-option>
+                  <mat-option value="TRAMITE_GENERAL">Trámite General / Mixto</mat-option>
                   <mat-option value="OTROS">Otros Actos</mat-option>
                 </mat-select>
               </mat-form-field>
@@ -421,9 +426,14 @@ import {
                       <mat-option value="RENOVACION">Renovación</mat-option>
                       <mat-option value="BAJA_VEHICULAR">Baja Vehicular</mat-option>
                       <mat-option value="MODIFICACION_RUTA">Modificación de Ruta</mat-option>
+                      <mat-option value="DUPLICADO">Duplicado de TUC</mat-option>
+                      <mat-option value="CANJE">Canje de TUC</mat-option>
+                      <mat-option value="FE_DE_ERRATAS">Fe de Erratas</mat-option>
+                      <mat-option value="MANDATO_JUDICIAL">Mandato Judicial</mat-option>
                       <mat-option value="CAMBIO_REPRESENTANTE">Cambio de Representante</mat-option>
                       <mat-option value="SUSPENSION_TEMPORAL">Suspensión Temporal</mat-option>
                       <mat-option value="CANCELACION_PARCIAL">Cancelación Parcial</mat-option>
+                      <mat-option value="TRAMITE_GENERAL">Trámite General / Mixto</mat-option>
                       <mat-option value="OTROS">Otros Actos</mat-option>
                     </mat-select>
                   </mat-form-field>
@@ -1157,6 +1167,11 @@ import {
       &.acto-renovacion { background-color: #fef08a; color: #854d0e; }
       &.acto-baja_vehicular { background-color: #fee2e2; color: #b91c1c; }
       &.acto-modificacion_ruta { background-color: #f3e8ff; color: #7e22ce; }
+      &.acto-duplicado { background-color: #e0f2fe; color: #0284c7; }
+      &.acto-canje { background-color: #ccfbf1; color: #0f766e; }
+      &.acto-mandato_judicial { background-color: #f5f3ff; color: #6d28d9; }
+      &.acto-fe_de_erratas { background-color: #fef3c7; color: #b45309; }
+      &.acto-tramite_general { background-color: #f1f5f9; color: #334155; }
     }
 
     .badge-veh {
@@ -2215,7 +2230,10 @@ export class ResolucionesHijasComponent implements OnInit {
     if (sub.includes('SUSTITUCION')) return 'tipo-sustitucion';
     if (sub.includes('MODIFICACION')) return 'tipo-modificacion';
     if (sub.includes('BAJA') || sub.includes('CANCELACION')) return 'tipo-baja';
-    if (sub.includes('DUPLICADO') || sub.includes('CANJE')) return 'tipo-duplicado';
+    if (sub.includes('DUPLICADO')) return 'tipo-duplicado';
+    if (sub.includes('CANJE')) return 'tipo-canje';
+    if (sub.includes('JUDICIAL')) return 'tipo-judicial';
+    if (sub.includes('GENERAL') || sub.includes('MIXTO')) return 'tipo-general';
     if (sub.includes('ERRATAS')) return 'tipo-erratas';
     if (sub.includes('RENOVACION')) return 'tipo-renovacion';
     if (sub.includes('REPRESENTANTE')) return 'tipo-representante';
@@ -2228,11 +2246,15 @@ export class ResolucionesHijasComponent implements OnInit {
       'INCREMENTO_FLOTA': 'Incremento Flota',
       'SUSTITUCION_VEHICULAR': 'Sustitución Vehicular',
       'BAJA_VEHICULAR': 'Baja Vehicular',
-      'MODIFICACION_RUTA': 'Modificación',
+      'MODIFICACION_RUTA': 'Modificación de Ruta',
+      'DUPLICADO': 'Duplicado TUC',
+      'CANJE': 'Canje TUC',
+      'MANDATO_JUDICIAL': 'Mandato Judicial',
       'CAMBIO_REPRESENTANTE': 'Cambio Representante',
       'SUSPENSION_TEMPORAL': 'Suspensión Temporal',
       'CANCELACION_PARCIAL': 'Cancelación Parcial',
       'FE_DE_ERRATAS': 'Fe de Erratas',
+      'TRAMITE_GENERAL': 'Trámite General / Mixto',
       'OTROS': 'Otros'
     };
     return map[tipo] || tipo;

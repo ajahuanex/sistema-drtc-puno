@@ -372,6 +372,18 @@ class FlotaEmpresaService:
         )
 
         total_renovaciones = by_tramite.get("RENOVACION", 0) or by_tipo.get("R", 0)
+        if total_renovaciones == 0:
+            total_renovaciones = await self.db["resoluciones_hijas"].count_documents({
+                "ruc_empresa": ruc,
+                "tipo_acto": "RENOVACION",
+                "esta_activo": {"$ne": False}
+            })
+            if total_renovaciones == 0:
+                total_renovaciones = await self.db["resoluciones_primigenias"].count_documents({
+                    "ruc_empresa": ruc,
+                    "tipo_tramite": "RENOVACION",
+                    "esta_activo": {"$ne": False}
+                })
         total_sustituciones = by_tramite.get("SUSTITUCION", 0) or by_tipo.get("S", 0) or total_sustituidos
         total_incrementos = by_tramite.get("INCREMENTO", 0) or by_tipo.get("I", 0)
 
@@ -1199,12 +1211,10 @@ class FlotaEmpresaService:
                 # Deben esperar a un trámite de CANJE.
 
         # -------------------------------------------------------------
-        # 1.6. CASO ESPECIAL: MODIFICACION
+        # 1.6. CASO ESPECIAL: MODIFICACION Y TRAMITE_GENERAL
         # -------------------------------------------------------------
-        if req.tipo_tramite == "MODIFICACION" and req.datos_modificacion:
-            # Aquí se puede actualizar la empresa (ej: cambio de Razón Social)
-            # Y guardar historial en resoluciones hijas
-            logger.info(f"Tramite MODIFICACION recibido para {ruc}: {req.datos_modificacion}")
+        if (req.tipo_tramite in ["MODIFICACION", "TRAMITE_GENERAL"]) and req.datos_modificacion:
+            logger.info(f"Tramite {req.tipo_tramite} recibido para {ruc}: {req.datos_modificacion}")
             res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
             if req.datos_modificacion.get("nueva_razon_social"):
                 await self.db.empresas.update_one(
@@ -1216,6 +1226,36 @@ class FlotaEmpresaService:
                         }
                     }
                 )
+
+            # Si incluye modificación de ruta o frecuencia en trámite general/mixto
+            if req.datos_modificacion.get("nuevo_itinerario") or req.datos_modificacion.get("nueva_frecuencia"):
+                cod_ruta = str(req.datos_modificacion.get("codigo_ruta", "")).strip()
+                filtro_r: dict = {
+                    "$or": [
+                        {"empresa.ruc": ruc},
+                        {"ruc": ruc}
+                    ]
+                }
+                if cod_ruta:
+                    filtro_r["$and"] = [
+                        {"$or": [{"codigoRuta": cod_ruta}, {"codigo": cod_ruta}, {"codigo_ruta": cod_ruta}]}
+                    ]
+                
+                update_r: dict = {
+                    "fechaActualizacion": now,
+                    "ultima_resolucion_modificatoria": res_ref
+                }
+                if req.datos_modificacion.get("nuevo_itinerario"):
+                    it_val = str(req.datos_modificacion["nuevo_itinerario"]).strip().upper()
+                    update_r["itinerario"] = it_val
+                    update_r["itinerario_texto"] = it_val
+                if req.datos_modificacion.get("nueva_frecuencia"):
+                    freq_val = str(req.datos_modificacion["nueva_frecuencia"]).strip().upper()
+                    update_r["frecuencias"] = freq_val
+                    update_r["frecuencia"] = freq_val
+                
+                await self.db.rutas.update_many(filtro_r, {"$set": update_r})
+                logger.info(f"Rutas actualizadas para {ruc} con trámite {req.tipo_tramite}")
 
         # -------------------------------------------------------------
         # 2. DEFINIR RESOLUCIÓN HIJA Y IDENTIFICADORES DEL TRÁMITE
@@ -1238,18 +1278,37 @@ class FlotaEmpresaService:
             "SUSTITUCION": "SUSTITUCION_VEHICULAR",
             "RENOVACION": "RENOVACION",
             "BAJAS": "BAJA_VEHICULAR",
-            "DUPLICADO": "OTROS",
-            "CANJE": "OTROS",
-            "CANCELACION": "CANCELACION_PARCIAL" if not getattr(req, "cancelacion_total", False) else "OTROS",
-            "MODIFICACION": "MODIFICACION_RUTA"
+            "DUPLICADO": "DUPLICADO",
+            "CANJE": "CANJE",
+            "CANCELACION": "CANCELACION_PARCIAL" if not getattr(req, "cancelacion_total", False) else "TRAMITE_GENERAL",
+            "MODIFICACION": "MODIFICACION_RUTA",
+            "MODIFICACION_RUTA": "MODIFICACION_RUTA",
+            "MODIFICACION_FRECUENCIA": "MODIFICACION_FRECUENCIA",
+            "FE_DE_ERRATAS": "FE_DE_ERRATAS",
+            "CAMBIO_REPRESENTANTE": "CAMBIO_REPRESENTANTE",
+            "CAMBIO_DOMICILIO": "CAMBIO_DOMICILIO",
+            "REACTIVACION_JUDICIAL": "REACTIVACION_JUDICIAL",
+            "MANDATO_JUDICIAL": "MANDATO_JUDICIAL",
+            "TRAMITE_GENERAL": "TRAMITE_GENERAL",
+            "GENERAL": "TRAMITE_GENERAL",
+            "MIXTO": "TRAMITE_GENERAL"
         }
-        tipo_acto = tipo_acto_map.get(req.tipo_tramite.upper(), "OTROS")
+        tipo_acto = tipo_acto_map.get(req.tipo_tramite.upper(), "TRAMITE_GENERAL" if "GENERAL" in req.tipo_tramite.upper() else "OTROS")
         doc_hija_id = str(uuid.uuid4())
 
         fecha_res = _parse_safe_dt(req.fecha_emision_resolucion or req.nueva_fecha_emision, now)
         fecha_exp = _parse_safe_dt(req.fecha_expediente, now)
         exp_num = req.num_expediente or req.documento_origen or ""
-        origen_txt = f"OFICIO {req.documento_origen}" if req.es_de_oficio else f"EXP. {exp_num or 'S/N'}"
+        tipo_orig = getattr(req, "tipo_origen", None) or ("EXPEDIENTE_OFICIO" if req.es_de_oficio else "EXPEDIENTE")
+        
+        if tipo_orig == "EXPEDIENTE_OFICIO" or (req.es_de_oficio and str(exp_num).startswith("EO-")):
+            origen_txt = f"EXP. DE OFICIO {exp_num}"
+        elif req.es_de_oficio or tipo_orig == "OFICIO" or str(exp_num).startswith("O-"):
+            origen_txt = f"OFICIO {exp_num}"
+        elif tipo_orig == "MEMORANDUM" or str(exp_num).startswith("M-"):
+            origen_txt = f"MEMORÁNDUM {exp_num}"
+        else:
+            origen_txt = f"EXP. {exp_num or 'S/N'}"
         origen_texto = origen_txt
 
         # -------------------------------------------------------------
@@ -1299,7 +1358,8 @@ class FlotaEmpresaService:
                 
             origen_texto = f"OFICIO {req.documento_origen}" if req.es_de_oficio else f"EXP. {req.num_expediente or 'S/N'}"
                 
-            if req.tipo_tramite == "BAJAS":
+            es_op_baja = req.tipo_tramite == "BAJAS" or getattr(item, "tipo_operacion", None) == "BAJAS"
+            if es_op_baja:
                 v_saliente = None
                 saliente_id = getattr(item, "saliente_id", None) or getattr(item, "vehiculo_saliente_id", None)
                 if saliente_id:
@@ -2046,7 +2106,7 @@ class FlotaEmpresaService:
                         f"Tener por acreditada y registrar la baja previa de la unidad con placa {bp.get('placa')} en el ámbito {amb_ext} mediante {doc_ext}"
                     )
 
-        if req.tipo_tramite == "BAJAS" and placas_sal:
+        if (req.tipo_tramite in ["BAJAS", "TRAMITE_GENERAL"]) and placas_sal:
             partes_desafectacion.append(
                 f"Disponer la baja y desafectación de la flota vehicular de la empresa '{razon_social}' de la(s) unidad(es): {', '.join(placas_sal)}"
             )
@@ -2081,6 +2141,9 @@ class FlotaEmpresaService:
             "fecha_resolucion": fecha_res,
             "fecha_inicio_efectos": fecha_res,
             "expediente_numero": exp_num,
+            "documento_origen": req.documento_origen or (exp_num if req.es_de_oficio else None),
+            "tipo_origen": tipo_orig,
+            "es_de_oficio": req.es_de_oficio,
             "fecha_expediente": fecha_exp,
             "vehiculos_ingresantes": placas_ing,
             "vehiculos_salientes": placas_sal,
@@ -2092,7 +2155,7 @@ class FlotaEmpresaService:
             "rutas_modificadas_ids": req.nuevas_rutas or [],
             "numeros_tuc": tucs_alta,
             "tucs_baja": [],
-            "observaciones": f"Trámite de {req.tipo_tramite} procesado en Centro de Trámites ({origen_txt})",
+            "observaciones": (req.datos_modificacion.get("sustento_observaciones") or req.datos_modificacion.get("asunto_resumen")) if (req.datos_modificacion and (req.datos_modificacion.get("sustento_observaciones") or req.datos_modificacion.get("asunto_resumen"))) else f"Trámite de {req.tipo_tramite} procesado en Centro de Trámites ({origen_txt})",
             "esta_activo": True,
             "fecha_registro": now,
             "fecha_actualizacion": now
@@ -2119,8 +2182,8 @@ class FlotaEmpresaService:
                 }
             )
 
-        # Vincular y actualizar expediente si viene informado
-        if exp_num:
+        # Vincular y actualizar expediente si viene informado y es a solicitud de parte (no de oficio)
+        if exp_num and not req.es_de_oficio and tipo_orig not in ["EXPEDIENTE_OFICIO", "OFICIO", "MEMORANDUM"]:
             exp_clean = exp_num.strip().upper()
             await self.db.expedientes.update_one(
                 {"$or": [{"nro_expediente": exp_clean}, {"nroExpediente": exp_clean}]},

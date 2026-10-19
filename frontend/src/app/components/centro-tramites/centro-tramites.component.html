@@ -95,6 +95,42 @@
         </div>
       </div>
 
+      <!-- BARRA INTERACTIVA DE OTROS TRÁMITES: MODIFICACIONES, FE DE ERRATAS, ACTOS JUDICIALES, DUPLICADOS, CANJES, BAJAS -->
+      <div class="kpi-submetrics-bar" style="display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.65rem 1rem; margin-top: -0.5rem; margin-bottom: 1.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <span style="font-size: 0.78rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.35rem; margin-right: 0.25rem;">
+          <span class="material-symbols-outlined" style="font-size: 16px; color: #64748b;">analytics</span>
+          Otros Actos / Trámites:
+        </span>
+        <button type="button" class="submetric-chip" (click)="cambiarFiltroTipo('MODIFICACION')" style="border: 1px solid #e0e7ff; background: #eef2ff; color: #4338ca; border-radius: 20px; padding: 3px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 14px;">alt_route</span>
+          Modificaciones Ruta: <strong>{{estadisticas().modificaciones}}</strong>
+        </button>
+        <button type="button" class="submetric-chip" (click)="cambiarFiltroTipo('FE_DE_ERRATAS')" style="border: 1px solid #fef3c7; background: #fffbeb; color: #b45309; border-radius: 20px; padding: 3px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 14px;">spellcheck</span>
+          Fe de Erratas: <strong>{{estadisticas().feDeErratas}}</strong>
+        </button>
+        <button type="button" class="submetric-chip" (click)="cambiarFiltroTipo('JUDICIAL')" style="border: 1px solid #ddd6fe; background: #faf5ff; color: #7c3aed; border-radius: 20px; padding: 3px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 14px;">gavel</span>
+          Mandatos Judiciales: <strong>{{estadisticas().actosJudiciales}}</strong>
+        </button>
+        <button type="button" class="submetric-chip" (click)="cambiarFiltroTipo('DUPLICADO')" style="border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; border-radius: 20px; padding: 3px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 14px;">file_copy</span>
+          Duplicados TUC: <strong>{{estadisticas().duplicados}}</strong>
+        </button>
+        <button type="button" class="submetric-chip" (click)="cambiarFiltroTipo('CANJE')" style="border: 1px solid #99f6e4; background: #f0fdfa; color: #0f766e; border-radius: 20px; padding: 3px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 14px;">change_circle</span>
+          Canjes: <strong>{{estadisticas().canjes}}</strong>
+        </button>
+        <button type="button" class="submetric-chip" (click)="cambiarFiltroTipo('CANCELACION')" style="border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; border-radius: 20px; padding: 3px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 14px;">cancel</span>
+          Bajas / Cancelaciones: <strong>{{estadisticas().bajasCancelaciones}}</strong>
+        </button>
+        <button type="button" class="submetric-chip" (click)="cambiarFiltroTipo('TRAMITE_GENERAL')" style="border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; border-radius: 20px; padding: 3px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 14px;">hub</span>
+          Trámite General / Mixto: <strong>{{estadisticas().tramiteGeneral}}</strong>
+        </button>
+      </div>
+
       <!-- SEARCH AND FILTER SECTION (BUSCADOR EN VIVO Y FILTROS) -->
       <section class="stitch-filters" data-purpose="table-filters" style="margin-bottom: 1.5rem;">
         
@@ -116,7 +152,7 @@
         </div>
 
         <!-- Filtro 1: Tipo de Trámite -->
-        <mat-form-field appearance="outline" class="stitch-select-field" style="width: 190px;">
+        <mat-form-field appearance="outline" class="stitch-select-field" style="width: 210px;">
           <mat-label>Tipo de Trámite</mat-label>
           <mat-select [value]="filtroTipo()" (selectionChange)="cambiarFiltroTipo($event.value)">
             <mat-option value="TODOS">Todos los tipos</mat-option>
@@ -128,6 +164,9 @@
             <mat-option value="BAJAS">Bajas</mat-option>
             <mat-option value="CANCELACION">Cancelación</mat-option>
             <mat-option value="MODIFICACION">Modificación</mat-option>
+            <mat-option value="FE_DE_ERRATAS">Fe de Erratas</mat-option>
+            <mat-option value="JUDICIAL">Mandato Judicial / Juzgado</mat-option>
+            <mat-option value="TRAMITE_GENERAL">Trámite General / Mixto</mat-option>
           </mat-select>
         </mat-form-field>
 
@@ -203,6 +242,11 @@
                 <div class="col-config-backdrop" (click)="cerrarConfigColumnas()"></div>
               }
             </div>
+
+            <button mat-stroked-button (click)="exportarAExcel()" [disabled]="cargandoHistorial()" matTooltip="Descargar trámites filtrados en formato Excel XLSX" style="font-size: 0.8rem; font-weight: 600; color: #047857; border-color: #a7f3d0; background: #f0fdf4;">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: #10b981; margin-right: 4px;">file_download</span>
+              <span>Exportar Excel</span>
+            </button>
 
             <button mat-button color="primary" style="font-size: 0.8rem; font-weight: 600;" (click)="iniciarNuevoTramite()">
               <mat-icon style="font-size: 18px; width: 18px; height: 18px;">add_circle</mat-icon>
@@ -718,17 +762,18 @@
                           <mat-form-field appearance="outline" style="width: 100%;">
                             <mat-label>Tipo de Documento de Origen</mat-label>
                             <mat-select formControlName="tipo_origen" (selectionChange)="cambiarTipoOrigen()">
-                              <mat-option value="EXPEDIENTE">Expediente Administrativo</mat-option>
-                              <mat-option value="OFICIO">Oficio (De Oficio)</mat-option>
+                              <mat-option value="EXPEDIENTE">Expediente Administrativo (A Solicitud de Parte)</mat-option>
+                              <mat-option value="EXPEDIENTE_OFICIO">Expediente de Oficio / Oficio de Inicio (De Oficio DRTC)</mat-option>
+                              <mat-option value="OFICIO">Oficio (Mero Trámite / Comunicación)</mat-option>
                               <mat-option value="MEMORANDUM">Memorándum Interno</mat-option>
                             </mat-select>
                           </mat-form-field>
                           
                           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                             <mat-form-field appearance="outline" style="width: 100%;">
-                              <mat-label>Número de Documento (Ej. 123)</mat-label>
-                              <input matInput formControlName="numero_origen" placeholder="Se normalizará al salir..." (blur)="normalizarNumero()">
-                              <mat-hint style="font-size: 11px;">Opcional: Trámites históricos pueden no tener expediente</mat-hint>
+                              <mat-label>{{ labelNumeroDocumento() }}</mat-label>
+                              <input matInput formControlName="numero_origen" [placeholder]="placeholderNumeroDocumento()" (blur)="normalizarNumero()">
+                              <mat-hint style="font-size: 11px;">{{ hintNumeroDocumento() }}</mat-hint>
                             </mat-form-field>
                             
                             <mat-form-field appearance="outline" style="width: 100%;">
@@ -1736,6 +1781,195 @@
                     </div>
                   }
 
+                  <!-- CASO 9: TRÁMITE GENERAL / MIXTO (MÚLTIPLES ACTOS SIMULTÁNEOS) -->
+                  @case ('TRAMITE_GENERAL') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 1.25rem;">
+                      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                          <div style="width: 42px; height: 42px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;">
+                            <mat-icon style="color: #475569; font-size: 24px;">hub</mat-icon>
+                          </div>
+                          <div>
+                            <h4 style="font-size: 1.05rem; font-weight: bold; color: #1e293b; margin: 0;">Trámite General / Mixto (Resolución Multiacto)</h4>
+                            <span style="font-size: 0.8rem; color: #64748b;">Configure los diferentes actos administrativos que resuelve este documento</span>
+                          </div>
+                        </div>
+                        <span style="background: #f1f5f9; color: #334155; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; border: 1px solid #cbd5e1;">
+                          Acto Compuesto
+                        </span>
+                      </div>
+
+                      <!-- SELECTOR DE ACCIONES INCLUIDAS -->
+                      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+                        <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #475569; letter-spacing: 0.05em; display: block; margin-bottom: 0.65rem;">
+                          Seleccione las operaciones que comprende esta resolución:
+                        </span>
+                        
+                        <form [formGroup]="tramiteGeneralForm">
+                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+                            <!-- Checkbox 1: Modificación de Ruta -->
+                            <div style="padding: 0.75rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; background: white;"
+                                 [style.borderColor]="tramiteGeneralForm.get('incluye_modificacion_ruta')?.value ? '#2563eb' : '#e2e8f0'">
+                              <mat-checkbox formControlName="incluye_modificacion_ruta" color="primary">
+                                <span style="font-weight: 600; font-size: 0.85rem; color: #1e293b;">1. Modificación de Ruta</span>
+                              </mat-checkbox>
+                              <p style="font-size: 0.72rem; color: #64748b; margin: 4px 0 0 24px;">Variación de itinerario, paradas o frecuencias</p>
+                            </div>
+
+                            <!-- Checkbox 2: Bajas de Flota -->
+                            <div style="padding: 0.75rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; background: white;"
+                                 [style.borderColor]="tramiteGeneralForm.get('incluye_bajas')?.value ? '#dc2626' : '#e2e8f0'">
+                              <mat-checkbox formControlName="incluye_bajas" color="warn">
+                                <span style="font-weight: 600; font-size: 0.85rem; color: #1e293b;">2. Bajas de Vehículos</span>
+                              </mat-checkbox>
+                              <p style="font-size: 0.72rem; color: #64748b; margin: 4px 0 0 24px;">Desafectación e inhabilitación de unidades</p>
+                            </div>
+
+                            <!-- Checkbox 3: Disposiciones Resolutivas -->
+                            <div style="padding: 0.75rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; background: white;"
+                                 [style.borderColor]="tramiteGeneralForm.get('incluye_disposicion')?.value ? '#7c3aed' : '#e2e8f0'">
+                              <mat-checkbox formControlName="incluye_disposicion" color="primary">
+                                <span style="font-weight: 600; font-size: 0.85rem; color: #1e293b;">3. Disposiciones Conexas</span>
+                              </mat-checkbox>
+                              <p style="font-size: 0.72rem; color: #64748b; margin: 4px 0 0 24px;">Plazos, apercibimientos, mandatos legales</p>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+
+                      <!-- SUB-SECCIÓN A: MODIFICACIÓN DE RUTA SI ESTÁ ACTIVO -->
+                      @if (tramiteGeneralForm.get('incluye_modificacion_ruta')?.value) {
+                        <div style="border: 1px solid #bfdbfe; background: #f0f9ff; border-radius: 10px; padding: 1.25rem;">
+                          <h5 style="font-size: 0.9rem; font-weight: 700; color: #1d4ed8; margin: 0 0 0.75rem 0; display: flex; align-items: center; gap: 0.4rem;">
+                            <mat-icon style="font-size: 20px; width: 20px; height: 20px;">alt_route</mat-icon>
+                            Modificación de Itinerario / Ruta Autorizada
+                          </h5>
+
+                          <form [formGroup]="tramiteGeneralForm">
+                            <div style="display: grid; grid-template-columns: 1fr; gap: 0.75rem;">
+                              <mat-form-field appearance="outline" style="width: 100%;">
+                                <mat-label>Código de Ruta a Modificar</mat-label>
+                                <mat-select formControlName="codigo_ruta">
+                                  @for (ruta of rutasEmpresaActual(); track ruta.id || ruta.codigoRuta) {
+                                    <mat-option [value]="ruta.codigoRuta || ruta.codigo">
+                                      Ruta {{ruta.codigoRuta || ruta.codigo}}: {{ruta.origen}} ➔ {{ruta.destino}} ({{ruta.itinerario || 'Sin itinerario'}})
+                                    </mat-option>
+                                  } @empty {
+                                    <mat-option disabled>No hay rutas cargadas para esta resolución</mat-option>
+                                  }
+                                </mat-select>
+                              </mat-form-field>
+
+                              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+                                <mat-form-field appearance="outline" style="width: 100%;">
+                                  <mat-label>Nuevo Itinerario / Escalas Comerciales *</mat-label>
+                                  <input matInput formControlName="nuevo_itinerario" placeholder="Ej. JULIACA - LAMPA - CABANILLA" style="text-transform: uppercase; font-weight: 600;">
+                                </mat-form-field>
+
+                                <mat-form-field appearance="outline" style="width: 100%;">
+                                  <mat-label>Nueva Frecuencia (Opcional)</mat-label>
+                                  <input matInput formControlName="nueva_frecuencia" placeholder="Ej. 06 DIARIAS" style="text-transform: uppercase;">
+                                </mat-form-field>
+                              </div>
+                            </div>
+                          </form>
+                        </div>
+                      }
+
+                      <!-- SUB-SECCIÓN B: BAJA DE VEHÍCULOS SI ESTÁ ACTIVO -->
+                      @if (tramiteGeneralForm.get('incluye_bajas')?.value) {
+                        <div style="border: 1px solid #fecaca; background: #fef2f2; border-radius: 10px; padding: 1.25rem;">
+                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h5 style="font-size: 0.9rem; font-weight: 700; color: #b91c1c; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+                              <mat-icon style="font-size: 20px; width: 20px; height: 20px;">domain_disabled</mat-icon>
+                              Vehículos a Dar de Baja en este Acto
+                            </h5>
+                            <span style="background: #fee2e2; color: #dc2626; font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;">
+                              {{vehiculosBajaSeleccionados().length}} seleccionados
+                            </span>
+                          </div>
+
+                          <form [formGroup]="tramiteGeneralForm" style="margin-bottom: 0.75rem;">
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>Causal / Motivo de la Baja</mat-label>
+                              <input matInput formControlName="motivo_baja" placeholder="RETIRO VOLUNTARIO Y CESE DE OPERACIONES">
+                            </mat-form-field>
+                          </form>
+
+                          <div style="max-height: 220px; overflow-y: auto; border: 1px solid #fca5a5; border-radius: 6px; background: white;">
+                            <table class="custom-table" style="width: 100%;">
+                              <thead style="position: sticky; top: 0; background: #fff1f2; z-index: 1;">
+                                <tr>
+                                  <th style="width: 45px; text-align: center;">
+                                    <mat-checkbox 
+                                      [checked]="vehiculosEnResolucion().length > 0 && vehiculosBajaSeleccionados().length === vehiculosEnResolucion().length"
+                                      [indeterminate]="vehiculosBajaSeleccionados().length > 0 && vehiculosBajaSeleccionados().length < vehiculosEnResolucion().length"
+                                      (change)="toggleTodosBajas()">
+                                    </mat-checkbox>
+                                  </th>
+                                  <th>Placa</th>
+                                  <th>Marca / Modelo</th>
+                                  <th>Año</th>
+                                  <th>TUC Actual</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (v of vehiculosEnResolucion(); track v.placa) {
+                                  <tr [style.background]="isBajaSeleccionada(v.placa) ? '#fee2e2' : 'white'">
+                                    <td style="text-align: center;">
+                                      <mat-checkbox 
+                                        color="warn" 
+                                        [checked]="isBajaSeleccionada(v.placa)"
+                                        (change)="toggleSeleccionBaja(v.placa)">
+                                      </mat-checkbox>
+                                    </td>
+                                    <td><strong style="font-family: monospace; font-size: 0.9rem;">{{v.placa}}</strong></td>
+                                    <td style="color: #475569; font-size: 0.8rem;">{{v.marca}} / {{v.modelo}}</td>
+                                    <td style="color: #475569; font-size: 0.8rem;">{{v.anio_fabricacion || 'S/A'}}</td>
+                                    <td style="font-family: monospace; font-size: 0.78rem;">{{v.numero_tuc || 'SIN TUC'}}</td>
+                                  </tr>
+                                } @empty {
+                                  <tr>
+                                    <td colspan="5" style="text-align: center; padding: 1.5rem; color: #94a3b8; font-size: 0.82rem;">
+                                      No hay vehículos registrados bajo esta resolución para dar de baja.
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      }
+
+                      <!-- SUB-SECCIÓN C: ASUNTO Y DISPOSICIONES RESOLUTIVAS -->
+                      <div style="border: 1px solid #e2e8f0; background: #ffffff; border-radius: 10px; padding: 1.25rem;">
+                        <h5 style="font-size: 0.9rem; font-weight: 700; color: #1e293b; margin: 0 0 0.75rem 0; display: flex; align-items: center; gap: 0.4rem;">
+                          <mat-icon style="font-size: 20px; width: 20px; height: 20px; color: #7c3aed;">description</mat-icon>
+                          Resumen y Disposiciones Resolutivas del Acto Administrativo
+                        </h5>
+
+                        <form [formGroup]="tramiteGeneralForm">
+                          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>Asunto o Título del Trámite *</mat-label>
+                              <input matInput formControlName="asunto_resumen" placeholder="Ej. Modificación de ruta, baja de flota y fijación de nuevo itinerario...">
+                            </mat-form-field>
+
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>Texto de la Parte Resolutiva / Mandato Específico *</mat-label>
+                              <textarea matInput formControlName="disposicion_resolutiva" rows="3" placeholder="Ej. ARTÍCULO PRIMERO.- APROBAR la variación del itinerario... ARTÍCULO SEGUNDO.- DISPONER la baja voluntaria de las unidades..."></textarea>
+                            </mat-form-field>
+
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>Considerandos y Sustento Técnico-Legal</mat-label>
+                              <textarea matInput formControlName="sustento_observaciones" rows="2" placeholder="Informes técnicos, considerandos de ley o solicitudes anexas..."></textarea>
+                            </mat-form-field>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  }
+
                   @default {
                     <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; text-align: center;">
                       <mat-icon style="font-size: 40px; width: 40px; height: 40px; color: #94a3b8; margin-bottom: 1rem;">settings_suggest</mat-icon>
@@ -1818,6 +2052,26 @@
                           <p style="margin: 0.25rem 0; font-size: 0.85rem; color: #b91c1c;"><strong>Dice:</strong> {{tramiteAdminForm.get('dice_texto')?.value}}</p>
                           <p style="margin: 0.25rem 0; font-size: 0.85rem; color: #15803d;"><strong>Debe Decir:</strong> {{tramiteAdminForm.get('debe_decir_texto')?.value}}</p>
                         }
+                        @if (tramiteSeleccionado() === 'TRAMITE_GENERAL') {
+                          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.85rem; margin-top: 0.5rem;">
+                            <p style="margin: 0 0 0.4rem 0; font-size: 0.85rem;"><strong>Asunto:</strong> {{tramiteGeneralForm.get('asunto_resumen')?.value}}</p>
+                            @if (tramiteGeneralForm.get('incluye_modificacion_ruta')?.value) {
+                              <p style="margin: 0.25rem 0; font-size: 0.82rem; color: #1d4ed8;">
+                                <strong>Ruta Modificada:</strong> {{tramiteGeneralForm.get('codigo_ruta')?.value || 'Ruta Concesionada'}} ➔ {{tramiteGeneralForm.get('nuevo_itinerario')?.value}}
+                              </p>
+                            }
+                            @if (tramiteGeneralForm.get('incluye_bajas')?.value) {
+                              <p style="margin: 0.25rem 0; font-size: 0.82rem; color: #b91c1c;">
+                                <strong>Bajas Inhabilitadas ({{vehiculosBajaSeleccionados().length}}):</strong> {{vehiculosBajaSeleccionados().join(', ') || 'Ninguna seleccionada'}}
+                              </p>
+                            }
+                            @if (tramiteGeneralForm.get('disposicion_resolutiva')?.value) {
+                              <p style="margin: 0.35rem 0 0 0; font-size: 0.8rem; color: #475569; font-style: italic;">
+                                "{{tramiteGeneralForm.get('disposicion_resolutiva')?.value}}"
+                              </p>
+                            }
+                          </div>
+                        }
                       </div>
                     }
 
@@ -1828,7 +2082,7 @@
                         <div>
                           <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Doc. Origen</p>
                           <p style="font-weight: bold; color: #1e293b; margin: 0;">
-                            {{datosOrigenForm.get('tipo_origen')?.value}}: {{datosOrigenForm.get('numero_origen')?.value || 'S/N'}}
+                            {{obtenerEtiquetaTipoOrigen(datosOrigenForm.get('tipo_origen')?.value)}}: {{datosOrigenForm.get('numero_origen')?.value || 'S/N'}}
                           </p>
                         </div>
                       </div>

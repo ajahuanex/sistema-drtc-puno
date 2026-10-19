@@ -234,6 +234,7 @@ export interface TramiteMasivoRequest {
   razon_social?: string;
   nro_resolucion_primigenia: string;
   tipo_tramite: string;
+  tipo_origen?: string;
   es_de_oficio?: boolean;
   documento_origen?: string;
   tipo_resolucion_hija?: string;

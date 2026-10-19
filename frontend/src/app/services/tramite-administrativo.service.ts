@@ -7,7 +7,7 @@ export interface TramiteAdministrativoPayload {
   ruc_empresa: string;
   razon_social?: string;
   ambito: 'EMPRESA' | 'CONCESION';
-  tipo_tramite: 'CAMBIO_REPRESENTANTE' | 'CAMBIO_DOMICILIO' | 'MODIFICACION_RUTA' | 'MODIFICACION_FRECUENCIA' | 'FE_DE_ERRATAS' | 'REACTIVACION_JUDICIAL';
+  tipo_tramite: 'CAMBIO_REPRESENTANTE' | 'CAMBIO_DOMICILIO' | 'MODIFICACION_RUTA' | 'MODIFICACION_FRECUENCIA' | 'FE_DE_ERRATAS' | 'REACTIVACION_JUDICIAL' | 'TRAMITE_GENERAL';
   nro_resolucion: string;
   fecha_resolucion?: string;
   nro_expediente?: string;

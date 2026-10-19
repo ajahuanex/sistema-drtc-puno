@@ -9,6 +9,10 @@ export type TipoActoModificatorio =
   | 'SUSPENSION_TEMPORAL' 
   | 'CANCELACION_PARCIAL' 
   | 'FE_DE_ERRATAS'
+  | 'DUPLICADO'
+  | 'CANJE'
+  | 'MANDATO_JUDICIAL'
+  | 'TRAMITE_GENERAL'
   | 'OTROS';
 
 export interface ResolucionHija {

@@ -3,6 +3,7 @@ from io import BytesIO
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import uuid
+import re
 import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.models.resolucion_primigenia import ResolucionPrimigeniaCreate, EstadoResolucionPrimigenia
@@ -227,6 +228,17 @@ class ResolucionPrimigeniaExcelService:
                     tipo_aut = 'PASAJEROS'
 
                 modalidad_final = tipo_aut
+
+                # Determinar tipo de trámite: AUTORIZACION_NUEVA vs RENOVACION
+                tipo_res_clean = get_col_val(row, 'TIPO_RESOLUCION', 'TIPO RESOLUCION', 'TIPO_TRAMITE', 'TRAMITE').upper()
+                if any(k in tipo_res_clean for k in ['AUTORIZ', 'NUEV', 'PRIMIG']):
+                    tipo_tramite = "AUTORIZACION_NUEVA"
+                else:
+                    tipo_tramite = "RENOVACION"
+
+                res_asoc_raw = get_col_val(row, 'RESOLUCION_ASOCIADA', 'RESOLUCION ASOCIADA', 'RES_ASOCIADA', 'RESOLUCION_PADRE')
+                res_asociada = normalizar_numero_resolucion(res_asoc_raw) if res_asoc_raw and str(res_asoc_raw).lower() != 'nan' else None
+
                 # NOTA: La columna 'RAZON_SOCIAL' del Sheet de resoluciones se ignora deliberadamente,
                 # ya que es meramente referencial y la Razón Social oficial reside en el módulo Empresas (por RUC).
 
@@ -251,12 +263,22 @@ class ResolucionPrimigeniaExcelService:
                         parte_upper = parte.upper()
                         if 'ERRATA' in parte_upper or 'RECTIF' in parte_upper:
                             tipo_mod = "FE_DE_ERRATAS"
-                        elif 'CANCEL' in parte_upper:
+                        elif 'JUDICIAL' in parte_upper or 'JUZGADO' in parte_upper or 'CAUTELAR' in parte_upper:
+                            tipo_mod = "MANDATO_JUDICIAL"
+                        elif 'DUPLIC' in parte_upper:
+                            tipo_mod = "DUPLICADO"
+                        elif 'CANJE' in parte_upper:
+                            tipo_mod = "CANJE"
+                        elif 'CANCEL' in parte_upper or 'BAJA' in parte_upper:
                             tipo_mod = "CANCELACION_PARCIAL"
                         elif 'REPRESENTANTE' in parte_upper or 'LEGAL' in parte_upper:
                             tipo_mod = "CAMBIO_REPRESENTANTE"
+                        elif 'DOMICILIO' in parte_upper:
+                            tipo_mod = "CAMBIO_DOMICILIO"
                         elif 'RUTA' in parte_upper:
                             tipo_mod = "MODIFICACION_RUTA"
+                        elif 'FRECUENCIA' in parte_upper or 'HORARIO' in parte_upper:
+                            tipo_mod = "MODIFICACION_FRECUENCIA"
                         elif 'FLOTA' in parte_upper or 'INCREMENTO' in parte_upper:
                             tipo_mod = "INCREMENTO_FLOTA"
                         elif 'SUSTITUCION' in parte_upper:
@@ -300,6 +322,9 @@ class ResolucionPrimigeniaExcelService:
                             tiene_eficacia_anticipada=tiene_eficacia if tiene_eficacia is not None else existente.tiene_eficacia_anticipada,
                             tipo_autorizacion=tipo_aut,
                             modalidad=modalidad_final,
+                            tipo_tramite=tipo_tramite,
+                            tipo_resolucion="PADRE",
+                            resolucion_asociada=res_asociada or existente.resolucion_asociada,
                             link_documento=link_doc or existente.link_documento,
                             expedientes_codigos=expedientes_list or existente.expedientes_codigos,
                             historial_modificaciones=mods_combinadas,
@@ -328,6 +353,9 @@ class ResolucionPrimigeniaExcelService:
                         tiene_eficacia_anticipada=tiene_eficacia,
                         tipo_autorizacion=tipo_aut,
                         modalidad=modalidad_final,
+                        tipo_tramite=tipo_tramite,
+                        tipo_resolucion="PADRE",
+                        resolucion_asociada=res_asociada,
                         link_documento=link_doc,
                         expedientes_codigos=expedientes_list,
                         historial_modificaciones=modificaciones_list,
@@ -344,31 +372,70 @@ class ResolucionPrimigeniaExcelService:
                         "accion": "CREADO"
                     })
 
-                # Sincronizar resoluciones de RENOVACIÓN con resoluciones_hijas para visibilidad en Centro de Trámites
-                tipo_res_clean = get_col_val(row, 'TIPO_RESOLUCION', 'TIPO RESOLUCION', 'TIPO_TRAMITE', 'TRAMITE').upper()
-                if 'RENOV' in tipo_res_clean or 'RENOV' in obs_raw:
+                # Sincronizar resoluciones de RENOVACIÓN con resoluciones_hijas para visibilidad en Centro de Trámites y Estadísticas
+                if tipo_tramite == 'RENOVACION' or 'RENOV' in obs_raw:
+                    # Obtener razón social de empresas
+                    emp_doc = await self.db["empresas"].find_one({"ruc": ruc})
+                    razon_social_str = None
+                    if emp_doc:
+                        rs = emp_doc.get("razonSocial")
+                        if isinstance(rs, dict):
+                            razon_social_str = rs.get("principal") or rs.get("sunat") or rs.get("minimo") or ""
+                        elif isinstance(rs, str):
+                            razon_social_str = rs
+
+                    # Si hay resolución asociada previa, actualizar la predecesora para indicar que fue renovada
+                    if res_asociada:
+                        await self.db["resoluciones_primigenias"].update_one(
+                            {"nro_resolucion": res_asociada},
+                            {
+                                "$set": {
+                                    "estado": EstadoResolucionPrimigenia.CANCELADA.value,
+                                    "observaciones": f"RENOVADA por {numero}",
+                                    "fecha_actualizacion": datetime.utcnow()
+                                }
+                            }
+                        )
+
+                    # Buscar vehículos habilitados en flota_empresa vinculados a esta resolución
+                    vehs_flota = await self.db["flota_empresa"].find(
+                        {
+                            "ruc": ruc,
+                            "$or": [
+                                {"nro_resolucion_primigenia": numero},
+                                {"nro_resolucion_hija": numero}
+                            ]
+                        },
+                        {"placa": 1, "numero_tuc": 1}
+                    ).to_list(length=None)
+
+                    placas_renov = [v["placa"] for v in vehs_flota if v.get("placa") and v["placa"] != "-"]
+                    tucs_renov = [v["numero_tuc"] for v in vehs_flota if v.get("numero_tuc") and v["numero_tuc"] != "-"]
+
                     await self.db["resoluciones_hijas"].update_one(
                         {"nro_resolucion": numero},
                         {
                             "$set": {
                                 "nro_resolucion": numero,
-                                "nro_resolucion_primigenia": numero,
+                                "nro_resolucion_primigenia": res_asociada or numero,
+                                "resolucion_asociada": res_asociada,
                                 "ruc_empresa": ruc,
+                                "razon_social": razon_social_str,
                                 "tipo_acto": "RENOVACION",
                                 "tipo_tramite_origen": "RENOVACION",
                                 "fecha_resolucion": fecha_res or fecha_ini,
                                 "fecha_inicio_efectos": fecha_ini,
                                 "expediente_numero": expedientes_list[0] if expedientes_list else None,
                                 "link_documento": link_doc,
-                                "observaciones": obs or "Resolución de Renovación importada desde DB_RESOLUCIONES",
+                                "observaciones": obs or (f"Resolución de Renovación {numero}" + (f" (asociada a {res_asociada})" if res_asociada else "")),
                                 "esta_activo": True,
                                 "fecha_actualizacion": datetime.utcnow()
                             },
                             "$setOnInsert": {
                                 "id": str(uuid.uuid4()),
-                                "vehiculos_ingresantes": [],
+                                "vehiculos_ingresantes": placas_renov,
                                 "vehiculos_salientes": [],
-                                "numeros_tuc": [],
+                                "numeros_tuc": tucs_renov,
                                 "fecha_registro": datetime.utcnow()
                             }
                         },

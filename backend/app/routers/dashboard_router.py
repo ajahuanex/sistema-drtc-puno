@@ -242,6 +242,44 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
             "esta_activo": {"$ne": False}
         })
 
+        total_modificaciones_ruta = await db["resoluciones_hijas"].count_documents({
+            "tipo_acto": {"$in": ["MODIFICACION_RUTA", "MODIFICACION_FRECUENCIA"]},
+            "esta_activo": {"$ne": False}
+        })
+
+        total_fe_erratas = await db["resoluciones_hijas"].count_documents({
+            "tipo_acto": "FE_DE_ERRATAS",
+            "esta_activo": {"$ne": False}
+        })
+
+        total_actos_judiciales = await db["resoluciones_hijas"].count_documents({
+            "tipo_acto": {"$in": ["MANDATO_JUDICIAL", "REACTIVACION_JUDICIAL", "MEDIDA_CAUTELAR", "JUDICIAL"]},
+            "esta_activo": {"$ne": False}
+        })
+
+        hijas_dup = await db["resoluciones_hijas"].count_documents({"tipo_acto": "DUPLICADO", "esta_activo": {"$ne": False}})
+        flota_dup = await db["flota_empresa"].count_documents({"tramite": "DUPLICADO", "esta_activo": True})
+        total_duplicados = hijas_dup or flota_dup
+
+        hijas_canje = await db["resoluciones_hijas"].count_documents({"tipo_acto": "CANJE", "esta_activo": {"$ne": False}})
+        flota_canje = await db["flota_empresa"].count_documents({"tramite": "CANJE", "esta_activo": True})
+        total_canjes = hijas_canje or flota_canje
+
+        total_cancelaciones_bajas = await db["resoluciones_hijas"].count_documents({
+            "tipo_acto": {"$in": ["CANCELACION_PARCIAL", "BAJA_VEHICULAR", "BAJA"]},
+            "esta_activo": {"$ne": False}
+        })
+
+        total_otros_tramites = await db["resoluciones_hijas"].count_documents({
+            "tipo_acto": "OTROS",
+            "esta_activo": {"$ne": False}
+        })
+
+        total_tramite_general = await db["resoluciones_hijas"].count_documents({
+            "tipo_acto": "TRAMITE_GENERAL",
+            "esta_activo": {"$ne": False}
+        })
+
         tramites_cursor = db["resoluciones_hijas"].aggregate([
             {"$match": {"esta_activo": {"$ne": False}, "tipo_acto": {"$in": ["RENOVACION", "SUSTITUCION_VEHICULAR", "INCREMENTO_FLOTA"]}}},
             {"$group": {
@@ -523,7 +561,28 @@ async def get_dashboard_estadisticas(db = Depends(get_database)):
             "totalRenovaciones": total_renovaciones,
             "totalSustituciones": total_sustituciones,
             "totalIncrementos": total_incrementos,
+            "totalModificacionesRuta": total_modificaciones_ruta,
+            "totalDuplicados": total_duplicados,
+            "totalCanjes": total_canjes,
+            "totalFeErratas": total_fe_erratas,
+            "totalActosJudiciales": total_actos_judiciales,
+            "totalCancelacionesBajas": total_cancelaciones_bajas,
+            "totalTramiteGeneral": total_tramite_general,
+            "totalOtrosTramites": total_otros_tramites,
             "totalTramitesFlota": total_renovaciones + total_sustituciones + total_incrementos,
+            "desgloseTramites": {
+                "renovaciones": total_renovaciones,
+                "sustituciones": total_sustituciones,
+                "incrementos": total_incrementos,
+                "modificacionesRuta": total_modificaciones_ruta,
+                "duplicados": total_duplicados,
+                "canjes": total_canjes,
+                "feDeErratas": total_fe_erratas,
+                "actosJudiciales": total_actos_judiciales,
+                "cancelacionesBajas": total_cancelaciones_bajas,
+                "tramiteGeneral": total_tramite_general,
+                "otros": total_otros_tramites
+            },
             "topEmpresasTramites": top_empresas_tramites,
             "totalFlotaHabilitada": total_flota_habilitada,
             "topFlotasPorEmpresa": flotas_por_empresa,

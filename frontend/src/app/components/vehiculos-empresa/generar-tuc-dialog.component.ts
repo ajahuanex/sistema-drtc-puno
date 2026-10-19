@@ -175,7 +175,7 @@ export interface GenerarTucDialogData {
                                         @if (rutasDetalleList().length > 0) {
                                           @for (r of rutasDetalleList(); track $index) {
                                             <tr class="ruta-tr" [class.is-last-ruta]="$last">
-                                              <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                              <td class="col-cod" [style.fontSize.pt]="obtenerFontCodigoRutaPt(v)" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 {{ r.codigo }}
                                               </td>
                                               <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
@@ -188,14 +188,14 @@ export interface GenerarTucDialogData {
                                                 <div class="frec-col-cell text-right"
                                                      style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
                                                      [class.shrink-font]="esTextoLargo2Lineas(r.frecuencia, v.col_frecuencia_mm || 14, v.font_size_pt || 6)"
-                                                     [innerHTML]="formatearFrecuenciaHtml(r.frecuencia, v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false)">
+                                                     [innerHTML]="formatearFrecuenciaHtml(r.frecuencia, v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false, v.escala_frecuencia || 1.0)">
                                                 </div>
                                               </td>
                                             </tr>
                                           }
                                         } @else {
                                           <tr class="ruta-tr r-empty is-last-ruta">
-                                            <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap;">
+                                            <td class="col-cod" [style.fontSize.pt]="obtenerFontCodigoRutaPt(v)" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap;">
                                               Ruta 01:
                                             </td>
                                             <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
@@ -206,7 +206,7 @@ export interface GenerarTucDialogData {
                                             <td class="col-frec" style="vertical-align: top; text-align: right; font-weight: 700; color: #000000; padding: 0.8mm 0 0.8mm 0.4mm;">
                                               <div class="frec-col-cell text-right"
                                                    style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
-                                                   [innerHTML]="formatearFrecuenciaHtml('20 DIARIAS (LUN A SAB)', v.escala_dias_frec || 0.80)">
+                                                   [innerHTML]="formatearFrecuenciaHtml('20 DIARIAS (LUN A SAB)', v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false, v.escala_frecuencia || 1.0)">
                                               </div>
                                             </td>
                                           </tr>
@@ -289,7 +289,7 @@ export interface GenerarTucDialogData {
                                         @if (rutasDetalleList().length > 0) {
                                           @for (r of rutasDetalleList(); track $index) {
                                             <tr class="ruta-tr" [class.is-last-ruta]="$last">
-                                              <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                              <td class="col-cod" [style.fontSize.pt]="obtenerFontCodigoRutaPt(v)" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 {{ r.codigo }}
                                               </td>
                                               <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
@@ -302,14 +302,14 @@ export interface GenerarTucDialogData {
                                                 <div class="frec-col-cell text-right"
                                                     style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
                                                      [class.shrink-font]="esTextoLargo2Lineas(r.frecuencia, v.col_frecuencia_mm || 14, v.font_size_pt || 6)"
-                                                     [innerHTML]="formatearFrecuenciaHtml(r.frecuencia, v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false)">
+                                                     [innerHTML]="formatearFrecuenciaHtml(r.frecuencia, v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false, v.escala_frecuencia || 1.0)">
                                                 </div>
                                               </td>
                                             </tr>
                                           }
                                         } @else {
                                           <tr class="ruta-tr r-empty is-last-ruta">
-                                            <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap;">
+                                            <td class="col-cod" [style.fontSize.pt]="obtenerFontCodigoRutaPt(v)" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap;">
                                               Ruta 01:
                                             </td>
                                             <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
@@ -320,7 +320,7 @@ export interface GenerarTucDialogData {
                                             <td class="col-frec" style="vertical-align: top; text-align: right; font-weight: 700; color: #000000; padding: 0.8mm 0 0.8mm 0.4mm;">
                                               <div class="frec-col-cell text-right"
                                                    style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
-                                                   [innerHTML]="formatearFrecuenciaHtml('20 DIARIAS (LUN A SAB)', v.escala_dias_frec || 0.80)">
+                                                   [innerHTML]="formatearFrecuenciaHtml('20 DIARIAS (LUN A SAB)', v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false, v.escala_frecuencia || 1.0)">
                                               </div>
                                             </td>
                                           </tr>
@@ -393,7 +393,7 @@ export interface GenerarTucDialogData {
                                       @if (rutasDetalleList().length > 0) {
                                         @for (r of rutasDetalleList(); track $index) {
                                           <tr class="ruta-tr" [class.is-last-ruta]="$last">
-                                            <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            <td class="col-cod" [style.fontSize.pt]="obtenerFontCodigoRutaPt(v)" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                               {{ r.codigo }}
                                             </td>
                                             <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
@@ -406,14 +406,14 @@ export interface GenerarTucDialogData {
                                               <div class="frec-col-cell text-right"
                                                    style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
                                                    [class.shrink-font]="esTextoLargo2Lineas(r.frecuencia, v.col_frecuencia_mm || 14, v.font_size_pt || 6)"
-                                                   [innerHTML]="formatearFrecuenciaHtml(r.frecuencia, v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false)">
+                                                   [innerHTML]="formatearFrecuenciaHtml(r.frecuencia, v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false, v.escala_frecuencia || 1.0)">
                                               </div>
                                             </td>
                                           </tr>
                                         }
                                       } @else {
                                         <tr class="ruta-tr r-empty is-last-ruta">
-                                          <td class="col-cod" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap;">
+                                          <td class="col-cod" [style.fontSize.pt]="obtenerFontCodigoRutaPt(v)" style="vertical-align: top; font-weight: 800; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0; white-space: nowrap;">
                                             Ruta 01:
                                           </td>
                                           <td class="col-tramo" style="vertical-align: top; color: #000000; padding: 0.8mm 0.8mm 0.8mm 0.4mm;">
@@ -424,7 +424,7 @@ export interface GenerarTucDialogData {
                                           <td class="col-frec" style="vertical-align: top; text-align: right; font-weight: 700; color: #000000; padding: 0.8mm 0 0.8mm 0.4mm;">
                                             <div class="frec-col-cell text-right"
                                                  style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 100%;"
-                                                 [innerHTML]="formatearFrecuenciaHtml('20 DIARIAS (LUN A SAB)', v.escala_dias_frec || 0.80)">
+                                                 [innerHTML]="formatearFrecuenciaHtml('20 DIARIAS (LUN A SAB)', v.escala_dias_frec || 0.80, v.font_size_pt || 6, v.frec_bold !== false, v.escala_frecuencia || 1.0)">
                                             </div>
                                           </td>
                                         </tr>
@@ -2218,19 +2218,28 @@ export class GenerarTucDialogComponent implements OnInit {
     return clean.length > (charsPorLinea * 1.8);
   }
 
-  formatearFrecuenciaHtml(frec: string | null | undefined, escala: number = 0.80, fontSizeBasePt: number = 6, bold: boolean = true): string {
+  obtenerFontCodigoRutaPt(v?: VariablePlantillaTuc | null): number {
+    const basePt = v?.font_size_pt || 6.0;
+    const escala = v?.escala_codigo_ruta !== undefined ? v.escala_codigo_ruta : 1.0;
+    const esc = Math.min(1.5, Math.max(0.4, Number(escala) || 1.0));
+    return Math.round(basePt * esc * 10) / 10;
+  }
+
+  formatearFrecuenciaHtml(frec: string | null | undefined, escala: number = 0.80, fontSizeBasePt: number = 6, bold: boolean = true, escalaFrecuencia: number = 1.0): string {
     if (!frec) return '';
     const clean = frec.trim();
     const openParenIdx = clean.indexOf('(');
     const esc = Math.min(1.0, Math.max(0.4, Number(escala) || 0.80));
     const fontDiasPt = Math.round((fontSizeBasePt || 6) * esc * 10) / 10;
+    const escFrec = Math.min(1.5, Math.max(0.4, Number(escalaFrecuencia) || 1.0));
+    const fontFrecPt = Math.round((fontSizeBasePt || 6) * escFrec * 10) / 10;
     const fwTxt = bold ? '700' : '400';
     const fwDias = bold ? '600' : '400';
     if (openParenIdx !== -1) {
       const textoPrincipal = clean.substring(0, openParenIdx).replace(/\s+/g, ' ').trim();
       const textoDias = clean.substring(openParenIdx).replace(/\s+/g, ' ').trim();
       return `<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.15;">` +
-        `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:${fwTxt};color:#000000;line-height:1.15;">${this.escapeHtml(textoPrincipal)}</div>` +
+        `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-size:${fontFrecPt}pt !important;font-weight:${fwTxt};color:#000000;line-height:1.15;">${this.escapeHtml(textoPrincipal)}</div>` +
         `<div class="frec-dias" style="display:block;margin-top:2px;font-size:${fontDiasPt}pt !important;font-weight:${fwDias};opacity:0.92;color:#000000;text-align:right;line-height:1.15;white-space:normal;word-break:break-word;">${this.escapeHtml(textoDias)}</div>` +
         `</div>`;
     }
@@ -2241,13 +2250,13 @@ export class GenerarTucDialogComponent implements OnInit {
         const textoPrincipal = partes[0];
         const textoDias = partes.slice(1).join(' ');
         return `<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.15;">` +
-          `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:${fwTxt};color:#000000;line-height:1.15;">${this.escapeHtml(textoPrincipal)}</div>` +
+          `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-size:${fontFrecPt}pt !important;font-weight:${fwTxt};color:#000000;line-height:1.15;">${this.escapeHtml(textoPrincipal)}</div>` +
           `<div class="frec-dias" style="display:block;margin-top:2px;font-size:${fontDiasPt}pt !important;font-weight:${fwDias};opacity:0.92;color:#000000;text-align:right;line-height:1.15;white-space:normal;word-break:break-word;">${this.escapeHtml(textoDias)}</div>` +
           `</div>`;
       }
     }
     return `<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%;line-height:1.15;">` +
-      `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-weight:${fwTxt};color:#000000;line-height:1.15;">${this.escapeHtml(clean)}</div>` +
+      `<div class="frec-txt" style="display:block;white-space:nowrap;text-align:right;font-size:${fontFrecPt}pt !important;font-weight:${fwTxt};color:#000000;line-height:1.15;">${this.escapeHtml(clean)}</div>` +
       `</div>`;
   }
 

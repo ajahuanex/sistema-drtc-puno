@@ -53,7 +53,7 @@ COLUMNAS_MAP = {
 }
 
 ESTADOS_VALIDOS = {"HABILITADO", "INHABILITADO", "OBSERVADO", "CANCELADO", "SUSPENDIDO"}
-TIPOS_HIJA_VALIDOS = {"I", "S", "M", "O", "C", "R", "FE"}
+TIPOS_HIJA_VALIDOS = {"I", "S", "M", "O", "C", "R", "FE", "D"}
 PLACA_REGEX = re.compile(r"^[A-Z0-9]{1,3}-[A-Z0-9]{3,4}$", re.IGNORECASE)
 
 
@@ -319,7 +319,7 @@ def _extraer_tipo_hija(nro_hija: Optional[str]) -> Optional[str]:
     """Extraer tipo de resolución hija del número. 0133-2024-S → 'S', 0133-2024-FE → 'FE'."""
     if not nro_hija:
         return None
-    m = re.search(r"-(FE|[ISMOCR])(?:\s|$)", nro_hija.upper())
+    m = re.search(r"-(FE|[ISMOCRD])(?:\s|$)", nro_hija.upper())
     if m:
         return m.group(1)
     partes = nro_hija.upper().split("-")
@@ -583,47 +583,91 @@ class FlotaEmpresaExcelService:
         Si la resolución primigenia no tuviera la hija registrada, se importa/crea
         o actualiza automáticamente en ese módulo.
         """
-        if not nro_hija:
-            return
-        
-        nro_hija_clean = nro_hija.strip()
-        nro_norm = _normalizar_hija(nro_hija_clean)
-        if not nro_norm:
-            return
+        tramite_upper = str(tramite or "").upper().strip()
+        nro_hija_clean = str(nro_hija or "").strip()
+
+        # Si nro_hija está vacío o es solo -D / -C pero es DUPLICADO o CANJE
+        if not nro_hija_clean or nro_hija_clean in ("-D", "-C", "D", "C", "-"):
+            if "DUPLIC" in tramite_upper or nro_hija_clean in ("-D", "D"):
+                if num_expediente:
+                    nro_norm = f"{num_expediente.split(',')[0].strip()}-D"
+                elif placa and placa not in ("-", ""):
+                    nro_norm = f"D-{placa}"
+                else:
+                    return
+                nro_hija_clean = nro_norm
+                tipo_hija_code = "D"
+            elif "CANJE" in tramite_upper or nro_hija_clean in ("-C", "C"):
+                if num_expediente:
+                    nro_norm = f"{num_expediente.split(',')[0].strip()}-C"
+                elif placa and placa not in ("-", ""):
+                    nro_norm = f"C-{placa}"
+                else:
+                    return
+                nro_hija_clean = nro_norm
+                tipo_hija_code = "C"
+            else:
+                return
+        else:
+            nro_norm = _normalizar_hija(nro_hija_clean)
+            if not nro_norm:
+                if "DUPLIC" in tramite_upper or "-D" in nro_hija_clean.upper():
+                    nro_norm = f"{num_expediente.split(',')[0].strip()}-D" if num_expediente else (f"D-{placa}" if placa else None)
+                elif "CANJE" in tramite_upper or "-C" in nro_hija_clean.upper():
+                    nro_norm = f"{num_expediente.split(',')[0].strip()}-C" if num_expediente else (f"C-{placa}" if placa else None)
+                if not nro_norm:
+                    return
+            else:
+                # Si el trámite original tiene sufijo -D o -C, preservarlo
+                if ("DUPLIC" in tramite_upper or "-D" in nro_hija_clean.upper()) and not nro_norm.endswith("-D"):
+                    nro_norm = f"{nro_norm}-D"
+                elif ("CANJE" in tramite_upper or "-C" in nro_hija_clean.upper()) and not nro_norm.endswith("-C"):
+                    nro_norm = f"{nro_norm}-C"
+
         nro_prim_norm = _normalizar_primigenia(nro_prim) or nro_prim
         now = datetime.utcnow()
         fecha_efecto = fecha_hija or fecha_crono or None
         
         if not tipo_hija_code:
-            tipo_hija_code = _extraer_tipo_hija(nro_hija)
+            tipo_hija_code = _extraer_tipo_hija(nro_hija_clean)
         
         mapeo_tipo = {
             "I": "INCREMENTO_FLOTA",
             "S": "SUSTITUCION_VEHICULAR",
             "M": "MODIFICACION_RUTA",
             "O": "OTROS",
-            "C": "CANCELACION_PARCIAL",
+            "C": "CANJE",
             "B": "CANCELACION_PARCIAL",
             "R": "RENOVACION",
             "FE": "FE_DE_ERRATAS",
+            "D": "DUPLICADO",
         }
 
         # Detección inteligente por columna TRAMITE o sufijo de resolución
-        tramite_upper = str(tramite or "").upper().strip()
-        if "AUTORIZ" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() in ("A", "AP")) or (nro_norm and nro_prim_norm and nro_norm == nro_prim_norm):
-            tipo_acto = "AUTORIZACION"
-        elif "RENOV" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "R"):
+        if "RENOV" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "R"):
             tipo_acto = "RENOVACION"
         elif "SUSTITUC" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "S") or (baja and str(baja).strip() not in ("-", "", "None", "NAN")):
             tipo_acto = "SUSTITUCION_VEHICULAR"
         elif "INCREMENT" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "I"):
             tipo_acto = "INCREMENTO_FLOTA"
+        elif "DUPLIC" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "D") or "-D" in nro_norm.upper():
+            tipo_acto = "DUPLICADO"
+        elif "CANJE" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "C" and "CANCEL" not in tramite_upper) or "-C" in nro_norm.upper():
+            tipo_acto = "CANJE"
+        elif "JUDICIAL" in tramite_upper or "JUZGADO" in tramite_upper or "CAUTELAR" in tramite_upper:
+            tipo_acto = "MANDATO_JUDICIAL"
         elif "RUTA" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "M"):
             tipo_acto = "MODIFICACION_RUTA"
         elif "CANCEL" in tramite_upper or "BAJA" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() in ("C", "B")):
             tipo_acto = "CANCELACION_PARCIAL"
         elif "ERRATA" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() == "FE"):
             tipo_acto = "FE_DE_ERRATAS"
+        elif "REPRESENTANTE" in tramite_upper:
+            tipo_acto = "CAMBIO_REPRESENTANTE"
+        elif "GENERAL" in tramite_upper or "MIXTO" in tramite_upper or ("MODIFIC" in tramite_upper and ("BAJA" in tramite_upper or "CANCEL" in tramite_upper or "SUSTITUC" in tramite_upper or "INCREMENT" in tramite_upper)):
+            tipo_acto = "TRAMITE_GENERAL"
+        elif "AUTORIZ" in tramite_upper or (tipo_hija_code and tipo_hija_code.upper() in ("A", "AP")) or (nro_norm and nro_prim_norm and nro_norm == nro_prim_norm):
+            tipo_acto = "AUTORIZACION"
         else:
             tipo_acto = mapeo_tipo.get((tipo_hija_code or "").upper(), "AUTORIZACION" if (nro_norm and nro_prim_norm and nro_norm == nro_prim_norm) else ("INCREMENTO_FLOTA" if (placa and placa != "-") else "OTROS"))
         
@@ -633,7 +677,7 @@ class FlotaEmpresaExcelService:
         elif nro_hija_clean in hija_cache:
             hija_doc = hija_cache[nro_hija_clean]
         else:
-            core = re.sub(r'^[Rr]-?', '', re.sub(r'-[ISRMOCFE]$', '', nro_hija_clean, flags=re.I)).strip()
+            core = re.sub(r'^[Rr]-?', '', re.sub(r'-[ISRMOCFED]$', '', nro_hija_clean, flags=re.I)).strip()
             parts = core.split('-')
             conditions = [
                 {"nro_resolucion": nro_norm},
@@ -644,7 +688,7 @@ class FlotaEmpresaExcelService:
             if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
                 num_int = int(parts[0])
                 year = parts[1]
-                regex_pat = f"^R?-?0*{num_int}-{year}(-[ISRMOCFE])?$"
+                regex_pat = f"^R?-?0*{num_int}-{year}(-[ISRMOCFED])?$"
                 conditions.append({"nro_resolucion": {"$regex": regex_pat, "$options": "i"}})
 
             if ruc:
@@ -849,6 +893,37 @@ class FlotaEmpresaExcelService:
         id_tuc = _clean_str(get_col("V", ["ID_TUC", "ID TUC", "id_tuc"]))
         link_notificacion = _clean_str(get_col("W", ["LINK_NOTIFICACION", "LINK NOTIFICACION", "link_notificacion"]))
         tramite = _clean_str(get_col("X", ["TRAMITE", "tramite", "TIPO_TRAMITE"]))
+        
+        # Detección y asignación precisa de Duplicado (-D) y Canje (-C)
+        tramite_upper = str(tramite or "").upper()
+        obs_str = " ".join([o.texto for o in obs if hasattr(o, 'texto') and o.texto]).upper() if obs else ""
+        nro_hija_raw_upper = str(nro_hija_raw or "").upper()
+
+        if "DUPLIC" in tramite_upper or "DUPLIC" in obs_str or "-D" in nro_hija_raw_upper:
+            tipo_hija = "D"
+            if not tramite or tramite.upper() == "RENOVACION":
+                if "DUPLIC" in obs_str or "-D" in nro_hija_raw_upper:
+                    tramite = "DUPLICADO"
+            if nro_hija:
+                if not nro_hija.endswith("-D"):
+                    nro_hija = f"{nro_hija}-D"
+            elif num_expediente:
+                nro_hija = f"{num_expediente.split(',')[0].strip()}-D"
+            elif placa:
+                nro_hija = f"D-{placa}"
+
+        elif "CANJE" in tramite_upper or "CANJE" in obs_str or (detalles and "CANJE" in detalles.upper()) or "-C" in nro_hija_raw_upper:
+            tipo_hija = "C"
+            if not tramite or tramite.upper() == "RENOVACION":
+                if "CANJE" in obs_str or "-C" in nro_hija_raw_upper:
+                    tramite = "CANJE"
+            if nro_hija:
+                if not nro_hija.endswith("-C"):
+                    nro_hija = f"{nro_hija}-C"
+            elif num_expediente:
+                nro_hija = f"{num_expediente.split(',')[0].strip()}-C"
+            elif placa:
+                nro_hija = f"C-{placa}"
         
         partida_raw = _clean_str(get_col("Z", ["PARTIDA", "partida", "PARTIDA_REGISTRAL", "PARTIDA REGISTRAL", "partida_registral", "Partida Registral", "SUNARP"]))
         partida = None

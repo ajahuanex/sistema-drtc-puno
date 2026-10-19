@@ -52,6 +52,9 @@ class ResolucionPrimigenia(CamelModel):
     tiene_eficacia_anticipada: bool = Field(default=False, description="Indica si aplica eficacia anticipada (retroactividad)")
     tipo_autorizacion: Optional[str] = Field(default="PASAJEROS", description="Tipo o régimen de autorización (TURISMO, PERSONAL, TRABAJADORES, REGULAR, etc.)")
     modalidad: Optional[str] = Field(default=None, description="Modalidad de servicio autorizada (PASAJEROS, TURISMO, etc.)")
+    tipo_tramite: Optional[str] = Field(default="RENOVACION", description="Tipo de trámite inicial: 'RENOVACION' o 'AUTORIZACION_NUEVA'")
+    tipo_resolucion: Optional[str] = Field(default="PADRE", description="Tipo de resolución (PADRE o HIJO)")
+    resolucion_asociada: Optional[str] = Field(default=None, description="Número de resolución previa renovada")
     
     # Documentos, expedientes y rutas
     link_documento: Optional[str] = Field(None, description="Enlace al archivo o expediente digital en Google Drive")
@@ -81,6 +84,9 @@ class ResolucionPrimigeniaCreate(CamelModel):
     tiene_eficacia_anticipada: Optional[bool] = None
     tipo_autorizacion: Optional[str] = Field(default="PASAJEROS", description="TURISMO, PERSONAL, TRABAJADORES, etc.")
     modalidad: Optional[str] = Field(default=None, description="PASAJEROS, TURISMO, etc.")
+    tipo_tramite: Optional[str] = Field(default="RENOVACION", description="AUTORIZACION_NUEVA o RENOVACION")
+    tipo_resolucion: Optional[str] = Field(default="PADRE", description="PADRE o HIJO")
+    resolucion_asociada: Optional[str] = None
     link_documento: Optional[str] = None
     expedientes_codigos: List[str] = Field(default_factory=list)
     rutas_autorizadas_ids: List[str] = Field(default_factory=list, alias="rutasAutorizadasIds")
@@ -99,6 +105,9 @@ class ResolucionPrimigeniaUpdate(CamelModel):
     tiene_eficacia_anticipada: Optional[bool] = None
     tipo_autorizacion: Optional[str] = None
     modalidad: Optional[str] = None
+    tipo_tramite: Optional[str] = None
+    tipo_resolucion: Optional[str] = None
+    resolucion_asociada: Optional[str] = None
     link_documento: Optional[str] = None
     expedientes_codigos: Optional[List[str]] = None
     rutas_autorizadas_ids: Optional[List[str]] = Field(default=None, alias="rutasAutorizadasIds")
