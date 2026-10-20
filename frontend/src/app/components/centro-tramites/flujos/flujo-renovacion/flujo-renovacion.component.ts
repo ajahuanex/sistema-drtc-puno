@@ -15,6 +15,7 @@ import { VehiculoDataService } from '../../../../services/vehiculo-data.service'
 import { TucService } from '../../../../services/tuc.service';
 import { RutaModalComponent } from '../../ruta-modal.component';
 import { VehiculoModalComponent, calcularCompletitudVehiculo, enriquecerFichaTecnica } from '../../vehiculo-modal.component';
+import { evaluarPermanenciaVehiculo, EvaluacionPermanencia } from '../../../../utils/permanencia.utils';
 
 @Component({
   selector: 'app-flujo-renovacion',
@@ -68,6 +69,12 @@ export class FlujoRenovacionComponent {
   vehiculosRenovacionSeleccionadosCount = computed(() => {
     return this.vehiculos().filter(v => v.seleccionado).length;
   });
+
+  // Evaluador de Régimen de Permanencia Vehicular (MTC / Puno)
+  obtenerPermanencia(v: any): EvaluacionPermanencia {
+    const anio = v?.anio_fabricacion || v?.anio_modelo || v?.ano_fabricacion || v?.anio;
+    return evaluarPermanenciaVehiculo(anio);
+  }
 
   toggleColapsoVigencia() {
     this.grupoVigenciaColapsado.update(v => !v);

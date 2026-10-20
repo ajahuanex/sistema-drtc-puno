@@ -15,6 +15,7 @@ import { VehiculoDataService } from '../../../../services/vehiculo-data.service'
 import { FlotaEmpresaService } from '../../../../services/flota-empresa.service';
 import { TucService } from '../../../../services/tuc.service';
 import { VehiculoModalComponent } from '../../vehiculo-modal.component';
+import { evaluarPermanenciaVehiculo, EvaluacionPermanencia } from '../../../../utils/permanencia.utils';
 
 @Component({
   selector: 'app-flujo-incremento',
@@ -47,6 +48,12 @@ export class FlujoIncrementoComponent {
   empresaSeleccionada = input<any>(null);
   resolucionPrimigenia = input<string>('');
 
+  // Evaluador de Régimen de Permanencia Vehicular (MTC / Puno)
+  obtenerPermanencia(v: any): EvaluacionPermanencia {
+    const anio = v?.anio_fabricacion || v?.anio_modelo || v?.ano_fabricacion || v?.anio || v?.datos_tecnicos?.anio_fabricacion;
+    return evaluarPermanenciaVehiculo(anio);
+  }
+
   // Methods
   abrirModalVehiculo(vehiculoEdit?: any, index?: number) {
     const dialogRef = this.dialog.open(VehiculoModalComponent, {
@@ -60,6 +67,8 @@ export class FlujoIncrementoComponent {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
+        const perm = this.obtenerPermanencia(result);
+
         if (index !== undefined) {
           this.vehiculos.update(v => {
             const copia = [...v];
@@ -67,7 +76,8 @@ export class FlujoIncrementoComponent {
               ...copia[index],
               ...result,
               rutas: copia[index].rutas || (result.rutas && result.rutas.length > 0 ? result.rutas : this.rutasOpciones().map(o => o.codigo)),
-              numero_tuc: copia[index].numero_tuc || result.numero_tuc || ''
+              numero_tuc: copia[index].numero_tuc || result.numero_tuc || '',
+              permanencia: perm
             };
             return copia;
           });
@@ -90,10 +100,27 @@ export class FlujoIncrementoComponent {
             baja_interna_verificada: false,
             buscando_baja_interna: false,
             mostrar_ingreso_manual_interna: false,
-            baja_externa: null
+            baja_externa: null,
+            permanencia: perm
           };
           this.vehiculos.update(v => [...v, nuevoVehiculo]);
-          this.snackBar.open(`✓ Vehículo ${result.placa} agregado a la lista`, 'OK', { duration: 2500 });
+
+          if (!perm.esApto) {
+            this.snackBar.open(
+              `⛔ ATENCIÓN: La unidad ${result.placa} superó el Régimen de Permanencia MTC (${perm.fechaLimiteRetiro}). No procede su habilitación.`,
+              'ENTENDIDO',
+              { duration: 8000 }
+            );
+          } else if (perm.esCritico) {
+            this.snackBar.open(
+              `⚠️ ADVERTENCIA: La unidad ${result.placa} tiene retiro programado este año (${perm.fechaLimiteRetiro}).`,
+              'ENTENDIDO',
+              { duration: 6000 }
+            );
+          } else {
+            this.snackBar.open(`✓ Vehículo ${result.placa} agregado (Permanencia: ${perm.badgeTexto})`, 'OK', { duration: 3000 });
+          }
+
           this.verificarBajaOtraEmpresaParaVehiculo(result.placa, nuevoIdx);
         }
       }

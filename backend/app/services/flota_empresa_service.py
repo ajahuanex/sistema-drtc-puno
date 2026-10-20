@@ -1296,8 +1296,8 @@ class FlotaEmpresaService:
         tipo_acto = tipo_acto_map.get(req.tipo_tramite.upper(), "TRAMITE_GENERAL" if "GENERAL" in req.tipo_tramite.upper() else "OTROS")
         doc_hija_id = str(uuid.uuid4())
 
-        fecha_res = _parse_safe_dt(req.fecha_emision_resolucion or req.nueva_fecha_emision, now)
-        fecha_exp = _parse_safe_dt(req.fecha_expediente, now)
+        fecha_res = _parse_safe_dt(req.fecha_emision_resolucion or req.nueva_fecha_emision, None)
+        fecha_exp = _parse_safe_dt(req.fecha_expediente, None)
         exp_num = req.num_expediente or req.documento_origen or ""
         tipo_orig = getattr(req, "tipo_origen", None) or ("EXPEDIENTE_OFICIO" if req.es_de_oficio else "EXPEDIENTE")
         
@@ -1492,6 +1492,17 @@ class FlotaEmpresaService:
 
             f_inicio_calc = vig_veh.get("fecha_inicio") or (f_hija_input.isoformat()[:10] if isinstance(f_hija_input, (datetime, date)) else str(f_hija_input)[:10] if f_hija_input else None)
             f_fin_calc = vig_veh.get("fecha_fin")
+
+            if req.tipo_tramite in ["SUSTITUCION", "INCREMENTO"]:
+                f_lim_perm = vig_veh.get("fecha_limite_permanencia")
+                if f_lim_perm and f_lim_perm < now.strftime("%Y-%m-%d"):
+                    af_val = datos_tech.get("anio_fabricacion") or datos_tech.get("anio_modelo") or "S/A"
+                    raise ValueError(
+                        f"Operación Denegada por Régimen de Permanencia: El vehículo entrante {placa_in} "
+                        f"(año de fabricación {af_val}) tiene el ciclo de vida útil vencido desde el {f_lim_perm} "
+                        f"conforme a la normativa oficial MTC / DRTC Puno (R.M. 585-2021-MTC/01 y RENAT). "
+                        f"Prohibido habilitar unidades con ciclo de permanencia vencido."
+                    )
 
             es_tramite_hijo = req.tipo_tramite in ["SUSTITUCION", "INCREMENTO"]
             fecha_hija_val = fecha_res if es_tramite_hijo else None

@@ -16,6 +16,7 @@ import { FlotaEmpresaService } from '../../../../services/flota-empresa.service'
 import { TucService } from '../../../../services/tuc.service';
 import { VehiculoModalComponent } from '../../vehiculo-modal.component';
 import { BajaExternaFormComponent } from '../../../bajas-externas/baja-externa-form/baja-externa-form.component';
+import { evaluarPermanenciaVehiculo, EvaluacionPermanencia } from '../../../../utils/permanencia.utils';
 
 @Component({
   selector: 'app-flujo-sustitucion',
@@ -159,6 +160,23 @@ export class FlujoSustitucionComponent {
         : `⛔ No cumple con la regla de modernización de flota: La unidad entrante (${anioEnt}) debe ser de un año mejor (más reciente) que la unidad saliente (${anioSal}).`
     };
   });
+
+  // Régimen de Permanencia Vehicular (R.M. 585-2021-MTC/01 Puno y RENAT D.S. 017-2009-MTC)
+  permanenciaSaliente = computed(() => {
+    const sal = this.vehiculoSalienteSeleccionado();
+    const raw = sal?.anio_fabricacion || sal?.anio_modelo || sal?.anio;
+    return evaluarPermanenciaVehiculo(raw);
+  });
+
+  permanenciaEntrante = computed(() => {
+    const ent = this.datosTecnicosEntrante();
+    const raw = ent?.anio_fabricacion || ent?.anio_modelo || ent?.ano_fabricacion || ent?.anio;
+    return evaluarPermanenciaVehiculo(raw);
+  });
+
+  obtenerPermanencia(anio: any): EvaluacionPermanencia {
+    return evaluarPermanenciaVehiculo(anio);
+  }
 
   // Saliente handlers
   onSalienteInput(event: Event) {
@@ -595,6 +613,16 @@ export class FlujoSustitucionComponent {
       return;
     }
 
+    const permEntrante = this.permanenciaEntrante();
+    if (permEntrante.anioFabricacion && !permEntrante.esApto) {
+      this.snackBar.open(
+        `⛔ Bloqueo normativo (Permanencia Vencida): El vehículo entrante ${entrante} (año ${permEntrante.anioFabricacion}) superó su fecha límite de retiro (${permEntrante.fechaLimiteRetiro}) conforme a ${permEntrante.normaAplicable}. No se permite habilitar unidades con ciclo de permanencia vencido.`,
+        'CERRAR',
+        { duration: 7500 }
+      );
+      return;
+    }
+
     const diferenciaAnios = (anioSal > 0 && anioEnt > 0) ? (anioEnt - anioSal) : null;
 
     const rutasPar = (salienteObj?.rutas && salienteObj.rutas.length > 0)
@@ -634,7 +662,9 @@ export class FlujoSustitucionComponent {
       dar_de_baja_misma_empresa: esMismaEmpresaEntrante ? this.darDeBajaMismaEmpresa() : false,
       es_misma_empresa: esMismaEmpresaEntrante,
       misma_empresa_resolucion: mismaEmp?.nro_resolucion_hija || mismaEmp?.nro_resolucion_primigenia || entranteMisma?.nro_resolucion_hija || entranteMisma?.nro_resolucion_primigenia || null,
-      misma_empresa_tuc: mismaEmp?.numero_tuc || entranteMisma?.numero_tuc || null
+      misma_empresa_tuc: mismaEmp?.numero_tuc || entranteMisma?.numero_tuc || null,
+      permanencia_saliente: this.permanenciaSaliente(),
+      permanencia_entrante: permEntrante
     };
 
     this.pares.update(pares => [...pares, nuevoPar]);

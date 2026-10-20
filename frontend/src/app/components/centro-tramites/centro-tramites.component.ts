@@ -992,12 +992,33 @@ export class CentroTramites implements OnInit {
 
           const razon = r.razon_social || r.ruc_empresa || 'EMPRESA NO ESPECIFICADA';
 
+          let fechaDisplay = 'No consignada';
+          if (r.fecha_resolucion) {
+            try {
+              const raw = String(r.fecha_resolucion).trim();
+              if (raw.includes('T')) {
+                const p = raw.split('T')[0].split('-');
+                if (p.length === 3) fechaDisplay = `${p[2]}/${p[1]}/${p[0]}`;
+                else fechaDisplay = new Date(r.fecha_resolucion).toLocaleDateString('es-PE');
+              } else if (raw.includes('-')) {
+                const p = raw.split('-');
+                if (p.length === 3) fechaDisplay = `${p[2]}/${p[1]}/${p[0]}`;
+                else fechaDisplay = new Date(r.fecha_resolucion).toLocaleDateString('es-PE');
+              } else {
+                const d = new Date(r.fecha_resolucion);
+                if (!isNaN(d.getTime())) fechaDisplay = d.toLocaleDateString('es-PE');
+              }
+            } catch {
+              fechaDisplay = 'No consignada';
+            }
+          }
+
           return {
             _id: r._id || r.id,
             correlativo: '', // se asigna después del sort
             id: nroNorm,
             nro_resolucion_raw: r.nro_resolucion || '',
-            fecha: r.fecha_resolucion ? new Date(r.fecha_resolucion).toLocaleDateString('es-PE') : 'No consignada',
+            fecha: fechaDisplay,
             fechaSort,
             anio,
             empresa: razon,
@@ -1032,23 +1053,13 @@ export class CentroTramites implements OnInit {
           };
         });
 
-
-        // Ordenar descendente:
-        // Los trámites registrados en el sistema recientemente (fecha_registro posterior a la importación 2026-09-15)
-        // se colocan en la cima absoluta de la tabla para recibir el último correlativo disponible.
+        // Ordenar cronológicamente descendente:
+        // 1. Prioridad: Fecha cronológica de emisión / año de resolución más reciente
+        // 2. Si la fecha coincide, por código de resolución descendente
         mapeadas.sort((a, b) => {
-          const regA = a.fecha_registro ? new Date(a.fecha_registro).getTime() : 0;
-          const regB = b.fecha_registro ? new Date(b.fecha_registro).getTime() : 0;
-          const cutoff = new Date('2026-09-15T00:00:00Z').getTime();
-
-          const isNewA = regA > cutoff;
-          const isNewB = regB > cutoff;
-
-          if (isNewA && !isNewB) return -1;
-          if (!isNewA && isNewB) return 1;
-          if (isNewA && isNewB) return regB - regA;
-
-          return b.fechaSort.localeCompare(a.fechaSort);
+          const cmpFecha = (b.fechaSort || '').localeCompare(a.fechaSort || '');
+          if (cmpFecha !== 0) return cmpFecha;
+          return (b.id || '').localeCompare(a.id || '');
         });
 
         // Generar correlativo TR-XXXX-YY

@@ -72,7 +72,7 @@
             <tr>
               <th style="width: 120px;">Placa Entrante</th>
               <th style="width: 160px;">Marca / Modelo</th>
-              <th style="width: 100px;">Año / Cat.</th>
+              <th style="width: 140px;">Año / Permanencia</th>
               <th>Motor / Serie</th>
               <th style="min-width: 140px;">Rutas Asignadas</th>
               <th style="width: 155px;">Designación TUC</th>
@@ -82,7 +82,7 @@
           </thead>
           <tbody>
             @for (v of vehiculos(); track v.placa; let i = $index) {
-              <tr>
+              <tr [style.background]="obtenerPermanencia(v).estado === 'VENCIDO' ? '#fef2f2' : (obtenerPermanencia(v).estado === 'RETIRO_ANIO_ACTUAL' ? '#fffbeb' : (i % 2 === 0 ? '#ffffff' : '#fcfcfd'))">
                 <td>
                   <strong style="font-family: monospace; font-size: 0.95rem; padding: 3px 8px; border-radius: 4px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #059669; display: inline-block;">
                     {{v.placa}}
@@ -93,10 +93,38 @@
                   <div style="font-size: 0.74rem; color: #64748b;">{{v.modelo || '-'}}</div>
                 </td>
                 <td style="color: #334155; font-size: 0.82rem;">
-                  <div>{{v.anio_fabricacion || '-'}}</div>
-                  <span style="font-size: 0.7rem; background: #f1f5f9; color: #475569; padding: 1px 4px; border-radius: 3px; font-weight: 600;">
-                    {{v.categoria || 'M2'}}
-                  </span>
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <strong style="color: #0f172a; font-size: 0.86rem;">{{v.anio_fabricacion || '-'}}</strong>
+                    <span style="font-size: 0.68rem; background: #f1f5f9; color: #475569; padding: 1px 5px; border-radius: 4px; font-weight: 700;">
+                      {{v.categoria || 'M2'}}
+                    </span>
+                  </div>
+                  @let perm = obtenerPermanencia(v);
+                  <div style="margin-top: 3px;">
+                    @if (perm.estado === 'VENCIDO') {
+                      <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.67rem; font-weight: 700; color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 1px 5px; border-radius: 4px;" [matTooltip]="perm.mensaje">
+                        <mat-icon style="font-size: 11px; width: 11px; height: 11px;">cancel</mat-icon>
+                        <span>Vencido ({{perm.fechaLimiteRetiro}})</span>
+                      </span>
+                    } @else if (perm.estado === 'RETIRO_ANIO_ACTUAL') {
+                      <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.67rem; font-weight: 700; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 1px 5px; border-radius: 4px;" [matTooltip]="perm.mensaje">
+                        <mat-icon style="font-size: 11px; width: 11px; height: 11px;">warning</mat-icon>
+                        <span>Retiro 2026</span>
+                      </span>
+                    } @else if (perm.estado === 'PROXIMO_A_VENCER') {
+                      <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.67rem; font-weight: 600; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 1px 5px; border-radius: 4px;" [matTooltip]="perm.mensaje">
+                        <mat-icon style="font-size: 11px; width: 11px; height: 11px;">schedule</mat-icon>
+                        <span>Retiro: {{perm.anioRetiro}}</span>
+                      </span>
+                    } @else if (perm.estado === 'VIGENTE') {
+                      <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.67rem; font-weight: 600; color: #047857; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1px 5px; border-radius: 4px;" [matTooltip]="perm.mensaje">
+                        <mat-icon style="font-size: 11px; width: 11px; height: 11px;">verified</mat-icon>
+                        <span>Retiro: {{perm.anioRetiro}}</span>
+                      </span>
+                    } @else {
+                      <span style="color: #94a3b8; font-size: 0.68rem; font-style: italic;">Sin año</span>
+                    }
+                  </div>
                 </td>
                 <td style="color: #475569; font-size: 0.76rem; font-family: monospace;">
                   <div>Motor: {{v.numero_motor || 'S/N'}}</div>

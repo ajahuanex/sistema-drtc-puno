@@ -10,6 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { VehiculoDataService } from '../../services/vehiculo-data.service';
+import { evaluarPermanenciaVehiculo, EvaluacionPermanencia } from '../../utils/permanencia.utils';
 
 export function calcularCompletitudVehiculo(v: any): number {
   if (!v) return 0;
@@ -288,6 +289,29 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
                 <input matInput formControlName="carroceria" placeholder="Ej. MINIBUS" [matTooltip]="form.get('carroceria')?.value || ''" style="text-transform: uppercase;">
               </mat-form-field>
             </div>
+
+            @let perm = permanencia;
+            @if (perm.anioFabricacion) {
+              <div style="margin-top: 0.4rem; padding: 4px 10px; border-radius: 6px; font-size: 0.73rem; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;"
+                   [style.background]="perm.estado === 'VENCIDO' ? '#fef2f2' : (perm.estado === 'RETIRO_ANIO_ACTUAL' ? '#fffbeb' : '#f0fdf4')"
+                   [style.border]="perm.estado === 'VENCIDO' ? '1px solid #fecaca' : (perm.estado === 'RETIRO_ANIO_ACTUAL' ? '1px solid #fde68a' : '1px solid #bbf7d0')"
+                   [style.color]="perm.estado === 'VENCIDO' ? '#991b1b' : (perm.estado === 'RETIRO_ANIO_ACTUAL' ? '#92400e' : '#166534')">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <mat-icon style="font-size: 16px; width: 16px; height: 16px;">
+                    {{ perm.estado === 'VENCIDO' ? 'cancel' : (perm.estado === 'RETIRO_ANIO_ACTUAL' ? 'warning' : 'verified') }}
+                  </mat-icon>
+                  <span><strong>Permanencia Vehicular:</strong> {{ perm.normaAplicable }} (Antigüedad: {{ perm.antiguedadAnios }} años)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; font-weight: 700;">
+                  <span>Límite Retiro: <strong>{{ perm.fechaLimiteRetiro }}</strong></span>
+                  <span style="padding: 2px 7px; border-radius: 4px; font-size: 0.68rem; font-family: monospace;"
+                        [style.background]="perm.estado === 'VENCIDO' ? '#fee2e2' : (perm.estado === 'RETIRO_ANIO_ACTUAL' ? '#fef3c7' : '#dcfce7')"
+                        [style.border]="perm.estado === 'VENCIDO' ? '1px solid #fca5a5' : (perm.estado === 'RETIRO_ANIO_ACTUAL' ? '1px solid #fcd34d' : '1px solid #86efac')">
+                    {{ perm.badgeTexto }}
+                  </span>
+                </div>
+              </div>
+            }
           </div>
 
           <!-- Sección 3: Clasificación, Combustible y Motor -->
@@ -639,6 +663,11 @@ export class VehiculoModalComponent {
   get tieneClaseC3(): boolean {
     const cat = this.form?.get('categoria')?.value;
     return !!(cat && String(cat).toUpperCase().includes('C3'));
+  }
+
+  get permanencia(): EvaluacionPermanencia {
+    const anio = this.form?.get('anio_fabricacion')?.value;
+    return evaluarPermanenciaVehiculo(anio);
   }
 
   aplicarAnioPcm() {
