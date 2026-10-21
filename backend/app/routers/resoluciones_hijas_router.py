@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from io import BytesIO
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.dependencies.db import get_database
 from app.models.resolucion_hija import (
@@ -98,6 +99,34 @@ async def get_siguiente_numero_resolucion(
     """Obtener el siguiente número correlativo sugerido para resolución hija"""
     siguiente = await service.generar_siguiente_numero(tipo_tramite, anio)
     return {"siguiente_numero": siguiente}
+
+@router.get("/siguiente-correlativo", summary="Generar el siguiente correlativo anual inmutable de trámite (TR-XXXX-AAAA)")
+async def get_siguiente_correlativo_tramite_endpoint(
+    anio: Optional[int] = Query(None, description="Año del trámite (por defecto año en curso)"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Consulta el próximo correlativo atómico sugerido para el año especificado"""
+    from app.services.correlativo_tramite_service import (
+        COLECCION_CONTADORES
+    )
+    from datetime import datetime
+    anio_val = anio or datetime.utcnow().year
+    doc = await db[COLECCION_CONTADORES].find_one({"_id": f"tramite_{anio_val}"})
+    secuencia_actual = doc.get("secuencia", 0) if doc else 0
+    return {
+        "anio": anio_val,
+        "secuencia_actual": secuencia_actual,
+        "siguiente_correlativo": f"TR-{secuencia_actual + 1:04d}-{anio_val}"
+    }
+
+@router.post("/inicializar-correlativos-2026", summary="Inicializar correlativos 2026 en resoluciones hijas")
+async def inicializar_correlativos_endpoint(
+    forzar: bool = Query(False, description="Forzar renumeración completa"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Ejecuta el saneamiento y numeración oficial inmutable TR-0001-2026... para el periodo 2026"""
+    from app.services.correlativo_tramite_service import inicializar_correlativos_2026
+    return await inicializar_correlativos_2026(db, forzar_renumeracion=forzar)
 
 @router.get("/numero/{nro_resolucion}", response_model=ResolucionHijaResponse, response_model_by_alias=False)
 async def get_resolucion_hija_by_numero(

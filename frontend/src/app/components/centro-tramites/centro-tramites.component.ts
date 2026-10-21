@@ -464,6 +464,7 @@ export class CentroTramites implements OnInit {
   filtroTexto = signal<string>('');
   filtroTipo = signal<string>('TODOS');
   filtroAnio = signal<string>('TODOS');
+  filtroSegmento = signal<'TODOS' | '2026' | '2025' | 'HISTORICO'>('2026');
   filtroEstado = signal<string>('TODOS');
   pageIndex = signal<number>(0);
   pageSize = signal<number>(10);
@@ -485,7 +486,7 @@ export class CentroTramites implements OnInit {
 
   // Column configuration
   todasColumnasDisponibles = [
-    { key: 'correlativo', label: 'Correlativo', visible: true, fija: false },
+    { key: 'correlativo', label: 'Nº', visible: true, fija: false },
     { key: 'id', label: 'N° Resolución', visible: true, fija: false },
     { key: 'fecha', label: 'Fecha', visible: true, fija: false },
     { key: 'empresa', label: 'Empresa / RUC', visible: true, fija: false },
@@ -686,10 +687,19 @@ export class CentroTramites implements OnInit {
     return Array.from(setAnios).sort((a, b) => b.localeCompare(a));
   });
 
+  conteo2026 = computed(() => this.todasResoluciones().filter(r => r.anio === '2026').length);
+  conteo2025 = computed(() => this.todasResoluciones().filter(r => r.anio === '2025').length);
+  conteoHistorico = computed(() => this.todasResoluciones().filter(r => {
+    const yr = parseInt(r.anio, 10);
+    return isNaN(yr) || yr < 2025;
+  }).length);
+  conteoTodos = computed(() => this.todasResoluciones().length);
+
   hayFiltrosActivos = computed(() => {
     return !!this.filtroTexto().trim() || 
            this.filtroTipo() !== 'TODOS' || 
            this.filtroAnio() !== 'TODOS' || 
+           this.filtroSegmento() !== '2026' || 
            this.filtroEstado() !== 'TODOS';
   });
 
@@ -802,7 +812,20 @@ export class CentroTramites implements OnInit {
     const txt = this.filtroTexto().trim().toLowerCase();
     const tipo = this.filtroTipo();
     const anio = this.filtroAnio();
+    const seg = this.filtroSegmento();
     const est = this.filtroEstado();
+
+    // Segmentación por periodo anual
+    if (seg === '2026') {
+      list = list.filter(item => item.anio === '2026');
+    } else if (seg === '2025') {
+      list = list.filter(item => item.anio === '2025');
+    } else if (seg === 'HISTORICO') {
+      list = list.filter(item => {
+        const yr = parseInt(item.anio, 10);
+        return isNaN(yr) || yr < 2025;
+      });
+    }
 
     if (txt) {
       list = list.filter(item => 
@@ -1015,7 +1038,8 @@ export class CentroTramites implements OnInit {
 
           return {
             _id: r._id || r.id,
-            correlativo: '', // se asigna después del sort
+            item_secuencial: 0,
+            correlativo: r.correlativo_tramite || r.correlativoTramite || r.correlativo || '',
             id: nroNorm,
             nro_resolucion_raw: r.nro_resolucion || '',
             fecha: fechaDisplay,
@@ -1053,20 +1077,39 @@ export class CentroTramites implements OnInit {
           };
         });
 
-        // Ordenar cronológicamente descendente:
-        // 1. Prioridad: Fecha cronológica de emisión / año de resolución más reciente
-        // 2. Si la fecha coincide, por código de resolución descendente
+        // Ordenar con máxima prioridad:
+        // 1. Fecha de registro en el sistema DESC (el último trámite registrado aparece en la 1° fila)
+        // 2. Correlativo anual inmutable DESC (TR-XXXX-AAAA)
+        // 3. Fecha oficial de emisión de resolución DESC
+        // 4. Código de resolución descendente
         mapeadas.sort((a, b) => {
+          const timeA = a.fecha_registro ? new Date(a.fecha_registro).getTime() : 0;
+          const timeB = b.fecha_registro ? new Date(b.fecha_registro).getTime() : 0;
+          if (timeB !== timeA) return timeB - timeA;
+
+          if (a.correlativo && b.correlativo && a.correlativo !== 'DOCUMENTAL' && b.correlativo !== 'DOCUMENTAL') {
+            const cmpCorr = b.correlativo.localeCompare(a.correlativo);
+            if (cmpCorr !== 0) return cmpCorr;
+          }
+
           const cmpFecha = (b.fechaSort || '').localeCompare(a.fechaSort || '');
           if (cmpFecha !== 0) return cmpFecha;
           return (b.id || '').localeCompare(a.id || '');
         });
 
-        // Generar correlativo TR-XXXX-YY
-        const anioActual = new Date().getFullYear().toString().slice(-2);
+        // Asignar número de ítem secuencial y asegurar que NINGUNA celda quede vacía
         mapeadas.forEach((item, index) => {
-          const num = (mapeadas.length - index).toString().padStart(4, '0');
-          item.correlativo = `TR-${num}-${anioActual}`;
+          item.item_secuencial = index + 1;
+          if (!item.correlativo) {
+            const yr = parseInt(item.anio, 10);
+            if (!isNaN(yr) && yr < 2025) {
+              item.correlativo = 'DOCUMENTAL';
+            } else {
+              const num = (mapeadas.length - index).toString().padStart(4, '0');
+              const anioTag = item.anio && item.anio !== 'S/A' ? item.anio : new Date().getFullYear();
+              item.correlativo = `TR-${num}-${String(anioTag).slice(-2)}`;
+            }
+          }
         });
 
         this.todasResoluciones.set(mapeadas);
@@ -1090,6 +1133,11 @@ export class CentroTramites implements OnInit {
     this.pageIndex.set(0);
   }
 
+  cambiarFiltroSegmento(segmento: 'TODOS' | '2026' | '2025' | 'HISTORICO') {
+    this.filtroSegmento.set(segmento);
+    this.pageIndex.set(0);
+  }
+
   cambiarFiltroTipo(tipo: string) {
     this.filtroTipo.set(tipo);
     this.pageIndex.set(0);
@@ -1109,6 +1157,7 @@ export class CentroTramites implements OnInit {
     this.filtroTexto.set('');
     this.filtroTipo.set('TODOS');
     this.filtroAnio.set('TODOS');
+    this.filtroSegmento.set('2026');
     this.filtroEstado.set('TODOS');
     this.pageIndex.set(0);
   }

@@ -338,11 +338,19 @@ async def registrar_tramite_administrativo(
         )
 
     # 3. Sincronizar con resoluciones_hijas para inventario unificado de actos administrativos
+    from app.services.correlativo_tramite_service import (
+        obtener_siguiente_correlativo_tramite,
+        extraer_anio_de_resolucion
+    )
+    anio_tr = extraer_anio_de_resolucion(payload.nro_resolucion, payload.fecha_resolucion) or now.year
+    correlativo_tramite = await obtener_siguiente_correlativo_tramite(db, anio_tr)
+
     await db["resoluciones_hijas"].update_one(
         {"nro_resolucion": payload.nro_resolucion.strip().upper()},
         {
             "$setOnInsert": {
                 "id": tramite_id,
+                "correlativo_tramite": correlativo_tramite,
                 "nro_resolucion": payload.nro_resolucion.strip().upper(),
                 "nro_resolucion_primigenia": payload.nro_resolucion_primigenia or "AMBITO_CORPORATIVO_EMPRESA",
                 "ruc_empresa": ruc,
@@ -366,6 +374,8 @@ async def registrar_tramite_administrativo(
         upsert=True
     )
 
+    doc["correlativo_tramite"] = correlativo_tramite
+
     # 4. Guardar en la colección de trámites administrativos
     await db["tramites_administrativos"].insert_one(doc)
     doc.pop("_id", None)
@@ -373,5 +383,6 @@ async def registrar_tramite_administrativo(
     return {
         "success": True,
         "mensaje": f"Trámite de {payload.tipo_tramite.value} registrado y aplicado con éxito.",
+        "correlativo_tramite": correlativo_tramite,
         "tramite": doc
     }

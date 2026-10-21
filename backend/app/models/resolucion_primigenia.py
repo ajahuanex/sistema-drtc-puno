@@ -13,17 +13,17 @@ class EstadoResolucionPrimigenia(str, Enum):
 
 class FeErrata(CamelModel):
     """Modelo para fe de erratas o rectificación de error material"""
-    numero_resolucion: str = Field(..., description="Número de la resolución que contiene la fe de erratas")
-    fecha_emision: datetime = Field(..., description="Fecha de emisión de la fe de erratas")
-    detalle_correccion: str = Field(..., description="Detalle de los datos rectificados")
+    numero_resolucion: Optional[str] = Field(None, description="Número de la resolución que contiene la fe de erratas")
+    fecha_emision: Optional[datetime] = Field(None, description="Fecha de emisión de la fe de erratas")
+    detalle_correccion: Optional[str] = Field(None, description="Detalle de los datos rectificados")
     documento_link: Optional[str] = Field(None, description="Enlace a la fe de erratas digital")
 
 class ModificacionHistorial(CamelModel):
     """Modelo para registrar modificaciones posteriores realizadas por resoluciones hijas"""
     resolucion_hija_id: Optional[str] = Field(None, description="ID de la resolución modificatoria si existe")
-    nro_resolucion_hija: str = Field(..., description="Número de la resolución modificatoria (ej. 0450-2023)")
-    tipo_modificacion: str = Field(..., description="Tipo de modificación: INCREMENTO_FLOTA, SUSTITUCION, CAMBIO_REPRESENTANTE, CANCELACION_RUTA, etc.")
-    fecha_acto: datetime = Field(..., description="Fecha en que surte efecto la modificación")
+    nro_resolucion_hija: Optional[str] = Field(None, description="Número de la resolución modificatoria (ej. 0450-2023)")
+    tipo_modificacion: Optional[str] = Field(None, description="Tipo de modificación: INCREMENTO_FLOTA, SUSTITUCION, CAMBIO_REPRESENTANTE, CANCELACION_RUTA, etc.")
+    fecha_acto: Optional[datetime] = Field(None, description="Fecha en que surte efecto la modificación")
     observacion: Optional[str] = Field(None, description="Detalles u observaciones de la modificación")
 
 class ResolucionPrimigenia(CamelModel):

@@ -23,6 +23,8 @@ export class ResolucionHijaService {
     return {
       ...r,
       id: r.id || r._id,
+      correlativo_tramite: r.correlativo_tramite ?? r.correlativoTramite ?? '',
+      correlativoTramite: r.correlativoTramite ?? r.correlativo_tramite ?? '',
       nro_resolucion: r.nro_resolucion ?? r.nroResolucion ?? '',
       nroResolucion: r.nroResolucion ?? r.nro_resolucion ?? '',
       siglas: r.siglas ?? '',

@@ -68,6 +68,7 @@ class ResolucionHija(CamelModel):
     tucs_baja: List[str] = Field(default_factory=list, description="Números de TUC en baja")
     
     # Observaciones y control
+    correlativo_tramite: Optional[str] = Field(None, description="Código correlativo anual inmutable del trámite (ej: TR-0001-2026)")
     id_origen: Optional[str] = Field(None, description="ID externo de origen")
     observaciones: Optional[str] = Field(None, description="Notas explicativas del acto modificatorio")
     esta_activo: bool = True
@@ -75,6 +76,7 @@ class ResolucionHija(CamelModel):
     fecha_actualizacion: Optional[datetime] = None
 
 class ResolucionHijaCreate(CamelModel):
+    correlativo_tramite: Optional[str] = None
     nro_resolucion: str = Field(..., description="Número normalizado de la resolución hija (ej. R-0450-2023(I))")
     siglas: Optional[str] = Field(None, description="Siglas institucionales (ej: GRP/GRI/DRTC, GRP/DRTC, GR PUNO/GRI/DRTC)")
     nro_resolucion_primigenia: str = Field(..., description="Número de la resolución primigenia a modificar")
@@ -97,6 +99,7 @@ class ResolucionHijaCreate(CamelModel):
     observaciones: Optional[str] = None
 
 class ResolucionHijaUpdate(CamelModel):
+    correlativo_tramite: Optional[str] = None
     nro_resolucion: Optional[str] = None
     siglas: Optional[str] = None
     nro_resolucion_primigenia: Optional[str] = None

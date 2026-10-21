@@ -17,6 +17,7 @@ export type TipoActoModificatorio =
 
 export interface ResolucionHija {
   id: string;
+  correlativo_tramite?: string;
   nro_resolucion: string;
   siglas?: string;
   nro_resolucion_primigenia: string;

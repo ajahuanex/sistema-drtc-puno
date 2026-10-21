@@ -1252,6 +1252,16 @@ class FlotaEmpresaExcelService:
             logger.warning(f"⚠️ Alerta: Error en sincronización automática de TUCs: {e_tuc_sync}")
             tuc_sync_res = {"error": str(e_tuc_sync)}
 
+        # Inicialización y verificación de correlativos secuenciales de trámites 2026
+        correlativos_res = {}
+        try:
+            from app.services.correlativo_tramite_service import inicializar_correlativos_2026
+            correlativos_res = await inicializar_correlativos_2026(self.db)
+            logger.info(f"✅ Correlativos de trámites 2026 verificados/inicializados: {correlativos_res}")
+        except Exception as e_corr:
+            logger.warning(f"⚠️ Error al verificar correlativos 2026: {e_corr}")
+            correlativos_res = {"error": str(e_corr)}
+
         return {
             "total_filas": total,
             "creados": creados,
@@ -1260,6 +1270,7 @@ class FlotaEmpresaExcelService:
             "errores": errores_list[:50],
             "modo": modo,
             "sincronizacion_tucs": tuc_sync_res,
+            "correlativos_2026": correlativos_res,
         }
 
     # ------------------------------------------------------------------

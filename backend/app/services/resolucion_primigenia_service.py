@@ -3,7 +3,10 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from bson import ObjectId
+import logging
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from app.models.resolucion_primigenia import (
     ResolucionPrimigenia,
@@ -191,7 +194,13 @@ class ResolucionPrimigeniaService:
             doc["estado"] = self._calcular_estado_efectivo(doc)
         
         await self._enrich_empresa_names(docs)
-        return [ResolucionPrimigenia(**doc) for doc in docs]
+        resultado = []
+        for doc in docs:
+            try:
+                resultado.append(ResolucionPrimigenia(**doc))
+            except Exception as e:
+                logger.error(f"Error instanciando ResolucionPrimigenia id={doc.get('id')}: {e}")
+        return resultado
 
     async def get_resoluciones_con_filtros(self, filtros: Dict[str, Any]) -> List[ResolucionPrimigenia]:
         from app.utils.resolucion_utils import determinar_siglas_resolucion
@@ -239,7 +248,13 @@ class ResolucionPrimigeniaService:
             doc["estado"] = self._calcular_estado_efectivo(doc)
                 
         await self._enrich_empresa_names(docs)
-        return [ResolucionPrimigenia(**doc) for doc in docs]
+        resultado = []
+        for doc in docs:
+            try:
+                resultado.append(ResolucionPrimigenia(**doc))
+            except Exception as e:
+                logger.error(f"Error instanciando ResolucionPrimigenia id={doc.get('id')}: {e}")
+        return resultado
 
     async def update_resolucion_primigenia(
         self, 

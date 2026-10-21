@@ -2140,8 +2140,17 @@ class FlotaEmpresaService:
         })
         prim_id = prim_doc.get("id") or str(prim_doc["_id"]) if prim_doc else None
 
+        # Asignar Correlativo Anual Inmutable del Trámite (TR-XXXX-AAAA)
+        from app.services.correlativo_tramite_service import (
+            obtener_siguiente_correlativo_tramite,
+            extraer_anio_de_resolucion
+        )
+        anio_tramite = extraer_anio_de_resolucion(nro_hija_val, fecha_res) or now.year
+        correlativo_tramite = await obtener_siguiente_correlativo_tramite(self.db, anio_tramite)
+
         doc_hija = {
             "id": doc_hija_id,
+            "correlativo_tramite": correlativo_tramite,
             "nro_resolucion": nro_hija_val,
             "nro_resolucion_primigenia": req.nro_resolucion_primigenia,
             "resolucion_primigenia_id": prim_id,
@@ -2174,16 +2183,17 @@ class FlotaEmpresaService:
 
         # Guardar en base de datos resoluciones_hijas
         await self.db["resoluciones_hijas"].insert_one(doc_hija)
-        logger.info(f"Resolución hija {nro_hija_val} ({doc_hija_id}) registrada exitosamente en resoluciones_hijas para {ruc}")
+        logger.info(f"Resolución hija {nro_hija_val} ({doc_hija_id}) con correlativo {correlativo_tramite} registrada exitosamente para {ruc}")
 
         # Si existe resolución primigenia, añadir entrada al historial_modificaciones
         if prim_doc and "_id" in prim_doc:
             mod_entry = {
                 "resolucion_hija_id": doc_hija_id,
                 "nro_resolucion_hija": nro_hija_val,
+                "correlativo_tramite": correlativo_tramite,
                 "tipo_modificacion": tipo_acto,
                 "fecha_acto": fecha_res,
-                "observacion": f"Trámite {req.tipo_tramite} procesado ({origen_txt})"
+                "observacion": f"Trámite {req.tipo_tramite} procesado ({origen_txt}) - Correlativo: {correlativo_tramite}"
             }
             await self.db.resoluciones_primigenias.update_one(
                 {"_id": prim_doc["_id"]},
@@ -2203,9 +2213,10 @@ class FlotaEmpresaService:
                         "estado": "APROBADO",
                         "resolucion_hija_id": doc_hija_id,
                         "nro_resolucion_hija": nro_hija_val,
+                        "correlativo_tramite": correlativo_tramite,
                         "tipo_tramite": req.tipo_tramite,
                         "fecha_actualizacion": now,
-                        "observaciones": f"Trámite finalizado y aprobado mediante Res. {nro_hija_val}"
+                        "observaciones": f"Trámite finalizado y aprobado mediante Res. {nro_hija_val} ({correlativo_tramite})"
                     }
                 }
             )
@@ -2217,6 +2228,7 @@ class FlotaEmpresaService:
             "resolucion_primigenia": res_target,
             "nro_resolucion_hija": nro_hija_val,
             "resolucion_hija_id": doc_hija_id,
+            "correlativo_tramite": correlativo_tramite,
             "creados": creados,
             "actualizados": actualizados,
             "bajas_sustitucion": bajas_sustitucion,

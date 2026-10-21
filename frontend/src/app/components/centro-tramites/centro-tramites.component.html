@@ -131,6 +131,51 @@
         </button>
       </div>
 
+      <!-- SEGMENTACIÓN DE TRÁMITES POR PERIODO ANUAL (2026 ACTIVO, 2025 BASE, HISTÓRICO < 2025, TODOS) -->
+      <div class="segmentos-anio-bar" style="display: flex; align-items: center; gap: 0.625rem; margin-bottom: 1rem; flex-wrap: wrap;">
+        <span style="font-size: 0.8125rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 4px; margin-right: 2px;">
+          <span class="material-symbols-outlined" style="font-size: 18px; color: #2563eb;">date_range</span>
+          Segmento Anual:
+        </span>
+        <button type="button" 
+          class="seg-pill" 
+          [class.active]="filtroSegmento() === '2026'" 
+          (click)="cambiarFiltroSegmento('2026')"
+          matTooltip="Trámites del año en curso con trazabilidad digital y correlativo anual">
+          <span class="dot-live"></span>
+          <span>2026 (Periodo Activo)</span>
+          <span class="seg-badge">{{conteo2026()}}</span>
+        </button>
+
+        <button type="button" 
+          class="seg-pill" 
+          [class.active]="filtroSegmento() === '2025'" 
+          (click)="cambiarFiltroSegmento('2025')"
+          matTooltip="Trámites del periodo inmediato anterior">
+          <span>2025 (Periodo Base)</span>
+          <span class="seg-badge" [class.neutral]="filtroSegmento() !== '2025'">{{conteo2025()}}</span>
+        </button>
+
+        <button type="button" 
+          class="seg-pill" 
+          [class.active]="filtroSegmento() === 'HISTORICO'" 
+          (click)="cambiarFiltroSegmento('HISTORICO')"
+          matTooltip="Acervo documental físico previo al sistema informático">
+          <span class="material-symbols-outlined" style="font-size: 15px;">folder_open</span>
+          <span>Histórico Documental (&lt; 2025)</span>
+          <span class="seg-badge" [class.neutral]="filtroSegmento() !== 'HISTORICO'">{{conteoHistorico()}}</span>
+        </button>
+
+        <button type="button" 
+          class="seg-pill" 
+          [class.active]="filtroSegmento() === 'TODOS'" 
+          (click)="cambiarFiltroSegmento('TODOS')"
+          matTooltip="Ver todo el universo histórico y actual de resoluciones hijas">
+          <span>Todos los Periodos</span>
+          <span class="seg-badge" [class.neutral]="filtroSegmento() !== 'TODOS'">{{conteoTodos()}}</span>
+        </button>
+      </div>
+
       <!-- SEARCH AND FILTER SECTION (BUSCADOR EN VIVO Y FILTROS) -->
       <section class="stitch-filters" data-purpose="table-filters" style="margin-bottom: 1.5rem;">
         
@@ -259,11 +304,13 @@
           <div class="table-container">
             <table mat-table [dataSource]="tramitesPaginados()" class="custom-table" style="width: 100%;">
               
-              <!-- Correlativo -->
+              <!-- Nº (Ítem / Correlativo Simple) -->
               <ng-container matColumnDef="correlativo">
-                <th mat-header-cell *matHeaderCellDef class="sortable-th">Correlativo</th>
-                <td mat-cell *matCellDef="let element">
-                  <span class="correlativo-badge">{{element.correlativo}}</span>
+                <th mat-header-cell *matHeaderCellDef class="sortable-th th-col-numero">Nº</th>
+                <td mat-cell *matCellDef="let element; let i = index" class="td-col-numero">
+                  <span class="correlativo-item-num" [matTooltip]="element.correlativo && element.correlativo !== 'DOCUMENTAL' ? 'Código: ' + element.correlativo : 'Ítem #' + ((pageIndex() * pageSize()) + i + 1)">
+                    {{ (pageIndex() * pageSize()) + i + 1 }}
+                  </span>
                 </td>
               </ng-container>
 
