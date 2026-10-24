@@ -1,0 +1,718 @@
+<!-- BACKDROP CON BLUR TRANSLÚCIDO -->
+<div class="drawer-backdrop" [class.visible]="isOpen" (click)="cerrar()"></div>
+
+<!-- CONTENEDOR LATERAL DESLIZANTE DESDE LA DERECHA -->
+<div class="side-drawer" [class.open]="isOpen">
+  
+  <!-- CABECERA PRINCIPAL DEL DRAWER -->
+  <div class="drawer-top-bar">
+    <div class="drawer-title-group">
+      <div class="top-icon-badge">
+        <mat-icon>{{ tramiteSeleccionado() === 'SUSTITUCION' ? 'sync_alt' : (tramiteSeleccionado() === 'RENOVACION' ? 'autorenew' : 'assignment') }}</mat-icon>
+      </div>
+      <div>
+        <h2 class="drawer-main-title">Trámite de Flota Vehicular</h2>
+        <div class="drawer-company-pill" [matTooltip]="razonSocial">
+          <mat-icon style="font-size:14px;width:14px;height:14px;">business</mat-icon>
+          <span class="empresa-text">{{ razonSocial }}</span>
+          <span class="ruc-tag">RUC: {{ ruc }}</span>
+        </div>
+      </div>
+    </div>
+
+    <button mat-icon-button (click)="cerrar()" matTooltip="Cerrar panel lateral" class="btn-close-drawer">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- CUERPO CON DESPLAZAMIENTO Y STEPPER -->
+  <div class="drawer-scroll-body">
+    @if (isOpen) {
+      <mat-stepper [selectedIndex]="pasoActual()" [linear]="false" (selectionChange)="pasoActual.set($event.selectedIndex)" class="custom-stepper">
+        
+        <!-- ==============================================================
+             PASO 1: ÁMBITO Y TIPO DE TRÁMITE
+        ============================================================== -->
+        <mat-step>
+          <ng-template matStepLabel>Trámite y Ámbito</ng-template>
+          <div class="step-container">
+            
+            <!-- SECCIÓN 1: RESOLUCIÓN PRIMIGENIA DE CONCESIÓN -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <mat-icon class="sec-icon">verified</mat-icon>
+                <div class="sec-titles">
+                  <h4>1. Autorización Primigenia Afectada</h4>
+                  <p>Seleccione la concesión de transporte sobre la cual se aplicará el acto administrativo</p>
+                </div>
+              </div>
+
+              <div class="section-card-body">
+                @if (primigeniasDisponibles && primigeniasDisponibles.length > 0) {
+                  <mat-form-field appearance="outline" style="width: 100%;">
+                    <mat-label>Resolución Primigenia de Concesión</mat-label>
+                    <mat-select [value]="primigeniaActiva()" (selectionChange)="onPrimigeniaChange($event.value)">
+                      @for (p of primigeniasDisponibles; track (p.primigenia || p.nro_resolucion)) {
+                        <mat-option [value]="p.primigenia || p.nro_resolucion">
+                          <div class="option-prim-row">
+                            <span class="prim-code">{{ p.primigenia || p.nro_resolucion }}</span>
+                            <span class="prim-state-tag" [class.vencida]="p.estado === 'VENCIDA' || p.estado === 'CANCELADA'">
+                              {{ p.estado || 'VIGENTE' }}
+                            </span>
+                            @if (p.vigenciaHasta) {
+                              <span class="prim-vigencia">Vence: {{ p.vigenciaHasta | date:'dd/MM/yyyy' }}</span>
+                            }
+                          </div>
+                        </mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <!-- Rutas autorizadas de la primigenia activa -->
+                  @if (rutasPrimigeniaActiva().length > 0) {
+                    <div class="rutas-preview-box">
+                      <span class="rutas-preview-label">Rutas Autorizadas ({{ rutasPrimigeniaActiva().length }}):</span>
+                      <div class="rutas-chips-wrap">
+                        @for (r of rutasPrimigeniaActiva(); track r) {
+                          <span class="ruta-badge-mini">{{ r }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                } @else {
+                  <div class="empty-prim-warning">
+                    <mat-icon>warning</mat-icon>
+                    <span>No se encontraron resoluciones primigenias registradas para esta empresa. Ingrese el código en el paso resolutivo.</span>
+                  </div>
+                }
+
+                @if (esResolucionVencida()) {
+                  <div class="banner-alerta-vencida">
+                    <mat-icon>lock_clock</mat-icon>
+                    <div>
+                      <strong>Resolución Primigenia Vencida:</strong> Las sustituciones e incrementos ordinarios se encuentran restringidos. Se recomienda procesar el trámite de <strong>Renovación de Concesión</strong> para restablecer la vigencia oficial.
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- SECCIÓN 2: SELECCIÓN DEL TIPO DE TRÁMITE -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <mat-icon class="sec-icon">category</mat-icon>
+                <div class="sec-titles">
+                  <h4>2. Tipo de Trámite Operativo</h4>
+                  <p>Escoja la operación vehicular o administrativa que se formalizará</p>
+                </div>
+              </div>
+
+              <div class="tramites-grid">
+                @for (t of tiposTramite; track t.id) {
+                  <div class="tramite-card-option" 
+                       [class.selected]="tramiteSeleccionado() === t.id"
+                       (click)="seleccionarTramite(t.id)">
+                    <div class="tramite-icon-box" [style.background-color]="t.color + '15'" [style.color]="t.color">
+                      <mat-icon>{{ t.icono }}</mat-icon>
+                    </div>
+                    <div class="tramite-card-text">
+                      <div class="t-nombre">{{ t.nombre }}</div>
+                      <div class="t-desc">{{ t.desc }}</div>
+                    </div>
+                    @if (tramiteSeleccionado() === t.id) {
+                      <div class="check-selected-badge">
+                        <mat-icon>check_circle</mat-icon>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+          </div>
+        </mat-step>
+
+        <!-- ==============================================================
+             PASO 2: DOCUMENTO DE ORIGEN Y DATOS RESOLUTIVOS
+        ============================================================== -->
+        <mat-step>
+          <ng-template matStepLabel>Resolución y Origen</ng-template>
+          <div class="step-container">
+
+            <div class="section-card">
+              <div class="section-card-header">
+                <mat-icon class="sec-icon">description</mat-icon>
+                <div class="sec-titles">
+                  <h4>Documento Administrativo de Entrada</h4>
+                  <p>Consigne el expediente o documento oficial con el cual se dio inicio al trámite</p>
+                </div>
+              </div>
+
+              <div class="section-card-body" [formGroup]="datosOrigenForm">
+                <div class="form-row-grid">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Tipo de Documento</mat-label>
+                    <mat-select formControlName="tipo_origen">
+                      <mat-option value="EXPEDIENTE">Expediente Administrativo (E-)</mat-option>
+                      <mat-option value="EXPEDIENTE_OFICIO">Expediente de Oficio (EO-)</mat-option>
+                      <mat-option value="OFICIO">Oficio (O-)</mat-option>
+                      <mat-option value="MEMORANDUM">Memorándum (M-)</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>N° Documento / Expediente</mat-label>
+                    <input matInput formControlName="numero_origen" placeholder="Ej. E-0299-2026">
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Fecha del Documento</mat-label>
+                    <input matInput type="date" formControlName="fecha_origen">
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-card">
+              <div class="section-card-header">
+                <mat-icon class="sec-icon">gavel</mat-icon>
+                <div class="sec-titles">
+                  <h4>Resolución Administrativa a Emitirse (Resolución Hija)</h4>
+                  <p>Identificación legal y correlativo anual oficial del acto resolutivo</p>
+                </div>
+              </div>
+
+              <div class="section-card-body" [formGroup]="datosOrigenForm">
+                <div class="form-row-grid">
+                  <mat-form-field appearance="outline">
+                    <mat-label>N° Resolución Hija</mat-label>
+                    <input matInput formControlName="nro_resolucion_hija" placeholder="Ej. R-0123-2026">
+                    <mat-hint>Formato normalizado R-0000-AAAA</mat-hint>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Fecha de Emisión</mat-label>
+                    <input matInput type="date" formControlName="fecha_emision_resolucion">
+                  </mat-form-field>
+
+                  <div class="correlativo-preview-panel">
+                    <span class="corr-lbl">Correlativo Anual 2026:</span>
+                    <span class="corr-val-badge">AUTOMÁTICO ATÓMICO</span>
+                    <p class="corr-hint">Garantizado por el servicio de correlativos anuales DRTC Puno</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </mat-step>
+
+        <!-- ==============================================================
+             PASO 3: CONFIGURACIÓN DE FLOTA VEHICULAR
+        ============================================================== -->
+        <mat-step>
+          <ng-template matStepLabel>Configuración de Flota</ng-template>
+          <div class="step-container">
+
+            <!-- ── A. CASO: SUSTITUCIÓN VEHICULAR ───────────────────── -->
+            @if (tramiteSeleccionado() === 'SUSTITUCION') {
+              <div class="sustitucion-builder-card">
+                <div class="builder-header">
+                  <mat-icon style="color:#2563eb;">sync_alt</mat-icon>
+                  <div>
+                    <h4 style="margin:0;font-size:15px;font-weight:800;color:#1e293b;">Emparejamiento de Sustitución</h4>
+                    <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Seleccione el vehículo saliente e ingrese la unidad entrante con validación en vivo</p>
+                  </div>
+                </div>
+
+                <div class="builder-grid">
+                  <!-- COLUMNA 1: UNIDAD SALIENTE -->
+                  <div class="unit-box saliente-box">
+                    <div class="unit-box-label saliente-tag">
+                      <mat-icon>logout</mat-icon> UNIDAD SALIENTE (BAJA)
+                    </div>
+
+                    <mat-form-field appearance="outline" style="width:100%;">
+                      <mat-label>Vehículo Saliente</mat-label>
+                      <mat-select [value]="placaSalienteTemp()" (selectionChange)="onPlacaSalienteChange($event.value)">
+                        @for (v of flotaHabilitadaPrimigenia(); track v.placa) {
+                          <mat-option [value]="v.placa">
+                            <span style="font-family:monospace;font-weight:700;">{{ v.placa }}</span>
+                            @if (v.marca || v.modelo) {
+                              <span style="color:#64748b;font-size:12px;margin-left:6px;">({{ v.marca }} {{ v.modelo }})</span>
+                            }
+                            @if (v.numero_tuc) {
+                              <span style="color:#2563eb;font-size:11px;margin-left:6px;">TUC: {{ v.numero_tuc }}</span>
+                            }
+                          </mat-option>
+                        } @empty {
+                          <mat-option disabled>No hay vehículos habilitados en esta resolución</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+
+                    @if (vehiculoSalienteObj()) {
+                      <div class="specs-card saliente-specs">
+                        <div class="specs-title">{{ vehiculoSalienteObj().marca || 'MARCA' }} {{ vehiculoSalienteObj().modelo || 'MODELO' }}</div>
+                        <div class="specs-grid">
+                          <div><span>Año:</span> <strong>{{ vehiculoSalienteObj().anio_fabricacion || '-' }}</strong></div>
+                          <div><span>Cat:</span> <strong>{{ vehiculoSalienteObj().categoria || 'M2' }}</strong></div>
+                          <div><span>TUC:</span> <strong>{{ vehiculoSalienteObj().numero_tuc || 'S/N' }}</strong></div>
+                          <div><span>Asientos:</span> <strong>{{ vehiculoSalienteObj().asientos || '-' }}</strong></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- COLUMNA 2: FLECHA CENTRAL -->
+                  <div class="sync-center-arrow">
+                    <mat-icon>arrow_forward</mat-icon>
+                  </div>
+
+                  <!-- COLUMNA 3: UNIDAD ENTRANTE -->
+                  <div class="unit-box entrante-box">
+                    <div class="unit-box-label entrante-tag">
+                      <mat-icon>login</mat-icon> UNIDAD ENTRANTE (ALTA)
+                    </div>
+
+                    <div style="display:flex;gap:8px;align-items:center;">
+                      <mat-form-field appearance="outline" style="flex:1;">
+                        <mat-label>Placa Entrante</mat-label>
+                        <input matInput [value]="placaEntranteTemp()" 
+                               (input)="placaEntranteTemp.set($any($event.target).value.toUpperCase())"
+                               placeholder="Ej. V4E-967"
+                               (keyup.enter)="buscarDatosVehiculoEntrante()">
+                      </mat-form-field>
+
+                      <button mat-flat-button color="primary" 
+                              style="height:48px;border-radius:8px;margin-bottom:22px;font-weight:700;"
+                              (click)="buscarDatosVehiculoEntrante()" 
+                              [disabled]="buscandoPlacaEntrante()">
+                        @if (buscandoPlacaEntrante()) {
+                          <mat-spinner diameter="18" style="display:inline-block;margin-right:4px;"></mat-spinner>
+                        } @else {
+                          <mat-icon>search</mat-icon>
+                        }
+                        <span>Consultar</span>
+                      </button>
+                    </div>
+
+                    <!-- Alerta de doble habilitación -->
+                    @if (habilitacionOtraEmpresa()) {
+                      <div class="alerta-doble-hab">
+                        <mat-icon>warning</mat-icon>
+                        <div>
+                          <strong>Vehículo habilitado en otra empresa:</strong>
+                          <p style="margin:2px 0 6px;">{{ habilitacionOtraEmpresa().razon_social }} (RUC: {{ habilitacionOtraEmpresa().ruc }})</p>
+                          <mat-checkbox [(ngModel)]="darDeBajaOtraEmpresa" color="warn">
+                            Autorizar cese / baja previa (Art. 68.1 RNAT)
+                          </mat-checkbox>
+                        </div>
+                      </div>
+                    }
+
+                    @if (datosTecnicosEntrante()) {
+                      <div class="specs-card entrante-specs">
+                        <div class="specs-title">{{ datosTecnicosEntrante().marca }} {{ datosTecnicosEntrante().modelo }} ({{ datosTecnicosEntrante().placa }})</div>
+                        <div class="specs-grid">
+                          <div><span>Año:</span> <strong>{{ datosTecnicosEntrante().anio_fabricacion }}</strong></div>
+                          <div><span>Cat:</span> <strong>{{ datosTecnicosEntrante().categoria || 'M2' }}</strong></div>
+                          <div><span>Asientos:</span> <strong>{{ datosTecnicosEntrante().asientos || 15 }}</strong></div>
+                          <div><span>Carrocería:</span> <strong>{{ datosTecnicosEntrante().carroceria || 'MINIBUS' }}</strong></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- BOTÓN AGREGAR PAR -->
+                <div style="text-align:right;margin-top:16px;">
+                  <button mat-flat-button color="primary" 
+                          [disabled]="!placaSalienteTemp() || !placaEntranteTemp()" 
+                          (click)="agregarParSustitucion()"
+                          style="font-weight:700;border-radius:8px;padding:0 20px;height:40px;">
+                    <mat-icon>add</mat-icon> Confirmar y Agregar Par
+                  </button>
+                </div>
+
+                <!-- LISTA DE PARES CONFIGURADOS -->
+                @if (paresSustitucion().length > 0) {
+                  <div class="pares-list-section">
+                    <h5 style="margin:0 0 10px;font-size:13px;font-weight:700;color:#334155;">Pares Listos para Procesar ({{ paresSustitucion().length }}):</h5>
+                    <div class="pares-cards-list">
+                      @for (par of paresSustitucion(); track par.placa_saliente; let idx = $index) {
+                        <div class="par-item-row">
+                          <span class="par-badge saliente">- {{ par.placa_saliente }}</span>
+                          <mat-icon style="font-size:16px;width:16px;height:16px;color:#94a3b8;">arrow_forward</mat-icon>
+                          <span class="par-badge entrante">+ {{ par.placa_entrante }}</span>
+                          <span class="par-desc">{{ par.marca }} {{ par.modelo }} ({{ par.anio_fabricacion }})</span>
+                          <button mat-icon-button color="warn" (click)="eliminarParSustitucion(idx)" style="margin-left:auto;width:30px;height:30px;line-height:30px;">
+                            <mat-icon style="font-size:18px;">delete</mat-icon>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- ── B. CASO: INCREMENTO DE FLOTA ─────────────────────── -->
+            @if (tramiteSeleccionado() === 'INCREMENTO') {
+              <div class="section-card">
+                <div class="section-card-header">
+                  <mat-icon class="sec-icon" style="color:#0e7490;">trending_up</mat-icon>
+                  <div class="sec-titles">
+                    <h4>Nuevas Unidades para Incremento</h4>
+                    <p>Ingrese las placas a incorporar a la concesión con sus rutas asignadas</p>
+                  </div>
+                </div>
+
+                <div class="section-card-body">
+                  <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+                    <mat-form-field appearance="outline" style="flex:1;">
+                      <mat-label>Placa a Incrementar</mat-label>
+                      <input matInput [value]="placaIncrementoTemp()" 
+                             (input)="placaIncrementoTemp.set($any($event.target).value.toUpperCase())"
+                             placeholder="Ej. B7W-957">
+                    </mat-form-field>
+                    <button mat-flat-button color="primary" 
+                            style="height:48px;margin-bottom:22px;font-weight:700;" 
+                            (click)="buscarDatosVehiculoIncremento()"
+                            [disabled]="buscandoPlacaIncremento()">
+                      <mat-icon>search</mat-icon> Consultar
+                    </button>
+                  </div>
+
+                  @if (datosTecnicosIncremento()) {
+                    <div class="specs-card entrante-specs" style="margin-bottom:14px;">
+                      <div class="specs-title">{{ datosTecnicosIncremento().marca }} {{ datosTecnicosIncremento().modelo }} ({{ datosTecnicosIncremento().placa }})</div>
+                      <div class="specs-grid">
+                        <div><span>Año:</span> <strong>{{ datosTecnicosIncremento().anio_fabricacion }}</strong></div>
+                        <div><span>Cat:</span> <strong>{{ datosTecnicosIncremento().categoria || 'M2' }}</strong></div>
+                        <div><span>Asientos:</span> <strong>{{ datosTecnicosIncremento().asientos || 15 }}</strong></div>
+                      </div>
+                      <div style="text-align:right;margin-top:10px;">
+                        <button mat-flat-button color="primary" (click)="agregarVehiculoIncremento()" style="font-weight:700;">
+                          <mat-icon>add</mat-icon> Agregar a la Flota
+                        </button>
+                      </div>
+                    </div>
+                  }
+
+                  @if (vehiculosIncremento().length > 0) {
+                    <div class="pares-cards-list">
+                      @for (v of vehiculosIncremento(); track v.placa; let idx = $index) {
+                        <div class="par-item-row">
+                          <span class="par-badge entrante">+ {{ v.placa }}</span>
+                          <span class="par-desc">{{ v.marca }} {{ v.modelo }} ({{ v.anio_fabricacion }})</span>
+                          <button mat-icon-button color="warn" (click)="eliminarVehiculoIncremento(idx)" style="margin-left:auto;">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- ── C. CASO: RENOVACIÓN DE CONCESIÓN ─────────────────── -->
+            @if (tramiteSeleccionado() === 'RENOVACION') {
+              <div class="section-card">
+                <div class="section-card-header">
+                  <mat-icon class="sec-icon" style="color:#15803d;">autorenew</mat-icon>
+                  <div class="sec-titles">
+                    <h4>Ratificación de Flota y Nueva Vigencia</h4>
+                    <p>Valide las unidades que continuarán prestando el servicio bajo la renovación decenal</p>
+                  </div>
+                </div>
+
+                <div class="section-card-body">
+                  <div class="form-row-grid" [formGroup]="renovacionForm" style="margin-bottom:14px;">
+                    <mat-form-field appearance="outline">
+                      <mat-label>N° Nueva Primigenia / Renovación</mat-label>
+                      <input matInput formControlName="nueva_resolucion_primigenia">
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Fecha de Emisión</mat-label>
+                      <input matInput type="date" formControlName="nueva_fecha_emision">
+                    </mat-form-field>
+                  </div>
+
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="font-size:13px;font-weight:700;color:#334155;">Flota Actual a Ratificar:</span>
+                    <button mat-button color="primary" (click)="toggleTodosRenovacion(true)" style="font-size:12px;">
+                      Marcar Todos
+                    </button>
+                  </div>
+
+                  <div class="renovacion-fleet-scroll">
+                    @for (v of vehiculosRenovacionLista(); track v.placa; let idx = $index) {
+                      <div class="renovacion-fleet-item" [class.selected]="v.seleccionado" (click)="toggleVehiculoRenovacion(idx)">
+                        <mat-checkbox [checked]="v.seleccionado" (click)="$event.stopPropagation()" (change)="toggleVehiculoRenovacion(idx)"></mat-checkbox>
+                        <span class="placa-badge-mono">{{ v.placa }}</span>
+                        <span class="fleet-info">{{ v.marca }} {{ v.modelo }} (Año: {{ v.anio_fabricacion || '-' }})</span>
+                        @if (v.numero_tuc) {
+                          <span class="tuc-pill">TUC: {{ v.numero_tuc }}</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- ── D. CASO: BAJA VEHICULAR ──────────────────────────── -->
+            @if (tramiteSeleccionado() === 'BAJAS') {
+              <div class="section-card">
+                <div class="section-card-header">
+                  <mat-icon class="sec-icon" style="color:#dc2626;">remove_circle</mat-icon>
+                  <div class="sec-titles">
+                    <h4>Selección de Unidades para Baja</h4>
+                    <p>Marque los vehículos a retirar definitivamente del padrón</p>
+                  </div>
+                </div>
+
+                <div class="section-card-body">
+                  <div [formGroup]="bajaForm" style="margin-bottom:14px;">
+                    <mat-form-field appearance="outline" style="width:100%;">
+                      <mat-label>Motivo Oficial de la Baja</mat-label>
+                      <mat-select formControlName="motivo_baja">
+                        <mat-option value="RETIRO VOLUNTARIO Y CESE DE OPERACIONES">Retiro Voluntario y Cese de Operaciones</mat-option>
+                        <mat-option value="TRANSFERENCIA DE PROPIEDAD / VENTA A TERCEROS">Transferencia de Propiedad / Venta</mat-option>
+                        <mat-option value="ALCANCE DE ANTIGÜEDAD MÁXIMA / CHATARREO">Alcance de Antigüedad Máxima / Chatarreo</mat-option>
+                        <mat-option value="MANDATO JUDICIAL / RESOLUCIÓN SANCIONATORIA">Mandato Judicial / Sanción</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="bajas-grid-list">
+                    @for (v of flotaHabilitadaPrimigenia(); track v.placa) {
+                      <div class="baja-checkbox-card" 
+                           [class.selected]="vehiculosBajaSeleccionados().includes(v.placa)"
+                           (click)="toggleBajaVehiculo(v.placa)">
+                        <mat-checkbox [checked]="vehiculosBajaSeleccionados().includes(v.placa)" (click)="$event.stopPropagation()"></mat-checkbox>
+                        <div>
+                          <strong style="font-family:monospace;">{{ v.placa }}</strong>
+                          <div style="font-size:11px;color:#64748b;">{{ v.marca }} {{ v.modelo }}</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- ── E. CASO: CANJE / DUPLICADO DE TUC ────────────────── -->
+            @if (tramiteSeleccionado() === 'CANJE' || tramiteSeleccionado() === 'DUPLICADO') {
+              <div class="section-card">
+                <div class="section-card-header">
+                  <mat-icon class="sec-icon" style="color:#4f46e5;">badge</mat-icon>
+                  <div class="sec-titles">
+                    <h4>{{ tramiteSeleccionado() === 'CANJE' ? 'Canje de TUC' : 'Duplicado de TUC' }}</h4>
+                    <p>Seleccione la unidad vehicular cuyo certificado será emitido</p>
+                  </div>
+                </div>
+
+                <div class="section-card-body">
+                  <div [formGroup]="duplicadoCanjeForm" style="margin-bottom:14px;">
+                    <mat-form-field appearance="outline" style="width:100%;">
+                      <mat-label>Motivo de la Emisión</mat-label>
+                      <mat-select formControlName="motivo">
+                        <mat-option value="DETERIORO">Deterioro Físico del Documento</mat-option>
+                        <mat-option value="EXTRAVIO_PERDIDA">Extravío / Pérdida con Denuncia Policial</mat-option>
+                        <mat-option value="ACTUALIZACION_DATOS">Actualización de Especificaciones Técnicas</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="bajas-grid-list">
+                    @for (v of flotaHabilitadaPrimigenia(); track v.placa) {
+                      <div class="baja-checkbox-card" 
+                           [class.selected]="vehiculoTucSeleccionado()?.placa === v.placa"
+                           (click)="seleccionarVehiculoTuc(v)">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                          <mat-icon [style.color]="vehiculoTucSeleccionado()?.placa === v.placa ? '#2563eb' : '#94a3b8'">
+                            {{ vehiculoTucSeleccionado()?.placa === v.placa ? 'radio_button_checked' : 'radio_button_unchecked' }}
+                          </mat-icon>
+                          <div>
+                            <strong style="font-family:monospace;">{{ v.placa }}</strong>
+                            <div style="font-size:11px;color:#64748b;">TUC Actual: {{ v.numero_tuc || 'Sin TUC' }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- ── F. CASO: TRÁMITE GENERAL / MIXTO ─────────────────── -->
+            @if (tramiteSeleccionado() === 'TRAMITE_GENERAL') {
+              <div class="section-card" [formGroup]="tramiteGeneralForm">
+                <div class="section-card-header">
+                  <mat-icon class="sec-icon" style="color:#475569;">hub</mat-icon>
+                  <div class="sec-titles">
+                    <h4>Configuración de Trámite General / Mixto</h4>
+                    <p>Detalle las modificaciones de ruta, itinerario o actos simultáneos</p>
+                  </div>
+                </div>
+
+                <div class="section-card-body">
+                  <mat-form-field appearance="outline" style="width:100%;margin-bottom:10px;">
+                    <mat-label>Asunto / Resumen del Trámite</mat-label>
+                    <input matInput formControlName="asunto_resumen">
+                  </mat-form-field>
+
+                  <div class="form-row-grid">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Código de Ruta Modificada</mat-label>
+                      <input matInput formControlName="codigo_ruta" placeholder="Ej. 01 o 02">
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Nuevo Itinerario</mat-label>
+                      <input matInput formControlName="nuevo_itinerario" placeholder="Ej. PUNO - JULIACA - AYAVIRI">
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+            }
+
+          </div>
+        </mat-step>
+
+        <!-- ==============================================================
+             PASO 4: RESUMEN EJECUTIVO Y CONFIRMACIÓN
+        ============================================================== -->
+        <mat-step>
+          <ng-template matStepLabel>Confirmación</ng-template>
+          <div class="step-container">
+
+            <div class="resumen-box">
+              <div class="resumen-header">
+                <mat-icon style="color:#10b981;font-size:24px;">task_alt</mat-icon>
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:#1e293b;">Resumen Ejecutivo del Trámite</h3>
+              </div>
+
+              <div class="resumen-items-list">
+                <div class="resumen-row">
+                  <span class="lbl">Empresa:</span>
+                  <span class="val"><strong>{{ razonSocial }}</strong> (RUC: {{ ruc }})</span>
+                </div>
+                <div class="resumen-row">
+                  <span class="lbl">Resolución Concesión:</span>
+                  <span class="val badge-prim">{{ primigeniaActiva() }}</span>
+                </div>
+                <div class="resumen-row">
+                  <span class="lbl">Tipo de Trámite:</span>
+                  <span class="val badge-tipo">{{ tramiteSeleccionado() }}</span>
+                </div>
+                <div class="resumen-row">
+                  <span class="lbl">Expediente / Documento:</span>
+                  <span class="val">{{ datosOrigenForm.value.numero_origen }} ({{ datosOrigenForm.value.fecha_origen }})</span>
+                </div>
+                <div class="resumen-row">
+                  <span class="lbl">Resolución Hija a Emitir:</span>
+                  <span class="val badge-hija">{{ datosOrigenForm.value.nro_resolucion_hija }} (F. Emisión: {{ datosOrigenForm.value.fecha_emision_resolucion }})</span>
+                </div>
+                <div class="resumen-row">
+                  <span class="lbl">Correlativo Asignado:</span>
+                  <span class="val correlativo-pill">TR-XXXX-2026 (Atómico)</span>
+                </div>
+
+                <!-- Detalle de unidades afectadas -->
+                @if (tramiteSeleccionado() === 'SUSTITUCION') {
+                  <div class="resumen-flota-section">
+                    <span class="lbl">Pares de Sustitución ({{ paresSustitucion().length }}):</span>
+                    <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">
+                      @for (p of paresSustitucion(); track p.placa_saliente) {
+                        <div style="font-size:12px;display:flex;gap:8px;align-items:center;">
+                          <span style="color:#dc2626;font-family:monospace;font-weight:700;">- {{ p.placa_saliente }}</span>
+                          <span>➔</span>
+                          <span style="color:#16a34a;font-family:monospace;font-weight:700;">+ {{ p.placa_entrante }}</span>
+                          <span style="color:#64748b;">({{ p.marca }} {{ p.modelo }})</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (tramiteSeleccionado() === 'INCREMENTO') {
+                  <div class="resumen-flota-section">
+                    <span class="lbl">Unidades a Incrementar:</span>
+                    <span class="val" style="color:#16a34a;font-weight:700;">
+                      {{ vehiculosIncremento().length }} vehículo(s)
+                    </span>
+                  </div>
+                }
+
+                @if (tramiteSeleccionado() === 'RENOVACION') {
+                  <div class="resumen-flota-section">
+                    <span class="lbl">Flota Ratificada:</span>
+                    <span class="val" style="color:#15803d;font-weight:700;">
+                      {{ vehiculosRenovacionLista().length }} vehículos ratificados
+                    </span>
+                  </div>
+                }
+
+                @if (tramiteSeleccionado() === 'BAJAS') {
+                  <div class="resumen-flota-section">
+                    <span class="lbl">Unidades a Dar de Baja:</span>
+                    <span class="val" style="color:#dc2626;font-weight:700;">
+                      {{ vehiculosBajaSeleccionados().join(', ') }}
+                    </span>
+                  </div>
+                }
+              </div>
+            </div>
+
+          </div>
+        </mat-step>
+
+      </mat-stepper>
+    }
+  </div>
+
+  <!-- FOOTER FIJO INFERIOR -->
+  <div class="drawer-fixed-footer">
+    @if (pasoActual() > 0) {
+      <button mat-stroked-button (click)="retrocederPaso()" class="btn-footer-prev">
+        <mat-icon>arrow_back</mat-icon> Atrás
+      </button>
+    } @else {
+      <button mat-button (click)="cerrar()" style="color:#94a3b8;">
+        Cancelar
+      </button>
+    }
+
+    <div class="footer-step-counter">
+      Paso {{ pasoActual() + 1 }} de 4
+    </div>
+
+    @if (pasoActual() < 3) {
+      <button mat-flat-button color="primary" 
+              class="btn-footer-next" 
+              [disabled]="!puedeAvanzar(pasoActual())"
+              (click)="avanzarPaso()">
+        <span>Continuar</span>
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+    } @else {
+      <button mat-flat-button class="btn-footer-confirm" 
+              [disabled]="isProcessing()" 
+              (click)="confirmar()">
+        @if (isProcessing()) {
+          <mat-spinner diameter="18" style="display:inline-block;margin-right:6px;"></mat-spinner>
+          <span>Procesando...</span>
+        } @else {
+          <mat-icon>check_circle</mat-icon>
+          <span>Confirmar y Procesar Trámite</span>
+        }
+      </button>
+    }
+  </div>
+
+</div>

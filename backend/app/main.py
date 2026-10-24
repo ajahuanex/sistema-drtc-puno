@@ -145,15 +145,23 @@ from app.routers.tramites_administrativos_router import router as tramites_admin
 app.include_router(tramites_admin_router, prefix=api_prefix)
 from app.routers.casilla_router import router as casilla_router
 app.include_router(casilla_router, prefix=api_prefix)
+from app.routers.custodia_router import router as custodia_router
+app.include_router(custodia_router, prefix=api_prefix)
 
 
 # Montar archivos estáticos de frontend (assets, logotipos e imágenes)
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
+import os
 
 assets_dir = Path(__file__).resolve().parents[2] / "frontend" / "src" / "assets"
 if assets_dir.exists():
     app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+# Montar directorio de uploads para memorándums y expedientes escaneados en custodia
+uploads_dir = Path(settings.UPLOAD_DIR).resolve()
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 # Endpoint de salud
 @app.get("/api/v1/health", tags=["Health"])

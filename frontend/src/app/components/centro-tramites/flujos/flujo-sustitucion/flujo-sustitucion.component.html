@@ -82,7 +82,7 @@
                     @if (v.nro_resolucion_hija || v.nro_resolucion_primigenia) {
                       Res: <strong>{{v.nro_resolucion_hija || v.nro_resolucion_primigenia}}</strong> • 
                     }
-                    Año: {{v.anio_fabricacion || 'S/A'}} • Cat: {{v.categoria || 'M2'}} • {{v.asientos ? v.asientos + ' as.' : ''}}
+                    Año: {{v.anio_fabricacion || 'S/A'}}{{v.anio_modelo ? ' (Mod: ' + v.anio_modelo + ')' : ''}} • Cat: {{v.categoria || 'M2'}} • {{v.asientos ? v.asientos + ' as.' : ''}}
                     @if (v.motivo_baja) {
                       • <em style="color: #b45309;">{{v.motivo_baja}}</em>
                     }
@@ -166,7 +166,7 @@
                 @if (vehiculoSalienteSeleccionado()?.nro_resolucion_hija || vehiculoSalienteSeleccionado()?.nro_resolucion_primigenia) {
                   Res: <strong>{{vehiculoSalienteSeleccionado()?.nro_resolucion_hija || vehiculoSalienteSeleccionado()?.nro_resolucion_primigenia}}</strong> • 
                 }
-                Año: <strong>{{vehiculoSalienteSeleccionado()?.anio_fabricacion || 'S/A'}}</strong> • 
+                Año: <strong>{{vehiculoSalienteSeleccionado()?.anio_fabricacion || 'S/A'}}</strong>@if (vehiculoSalienteSeleccionado()?.anio_modelo) { (Mod: <strong>{{vehiculoSalienteSeleccionado()?.anio_modelo}}</strong>)} • 
                 Cat: <strong>{{vehiculoSalienteSeleccionado()?.categoria || 'M2'}}</strong> • 
                 <strong>{{vehiculoSalienteSeleccionado()?.asientos ? vehiculoSalienteSeleccionado()?.asientos + ' as.' : 'S/Asientos'}}</strong>
                 @if (vehiculoSalienteSeleccionado()?.peso_neto) {
@@ -191,7 +191,7 @@
               <span class="material-symbols-outlined" style="font-size: 13px;">directions_bus</span>
               <span>
                 <strong>{{placaEntranteTemp()}}</strong> • 
-                Año: <strong>{{datosTecnicosEntrante()?.anio_fabricacion || 'S/A'}}</strong> • 
+                Año: <strong>{{datosTecnicosEntrante()?.anio_fabricacion || 'S/A'}}</strong>@if (datosTecnicosEntrante()?.anio_modelo) { (Mod: <strong>{{datosTecnicosEntrante()?.anio_modelo}}</strong>)} • 
                 Cat: <strong>{{datosTecnicosEntrante()?.categoria || 'M2'}}</strong> • 
                 <strong>{{datosTecnicosEntrante()?.asientos ? datosTecnicosEntrante()?.asientos + ' as.' : 'S/Asientos'}}</strong>
                 @if (datosTecnicosEntrante()?.peso_neto) {
@@ -422,7 +422,7 @@
                       @if (p.saliente_resolucion) {
                         Res: <strong>{{p.saliente_resolucion}}</strong> • 
                       }
-                      {{p.saliente_anio || 'S/A'}} • {{p.saliente_categoria || 'M2'}} • {{p.saliente_asientos ? p.saliente_asientos + ' as.' : 'S/Asientos'}}
+                      Fab: {{p.saliente_anio || 'S/A'}}{{p.saliente_anio_modelo ? ' • Mod: ' + p.saliente_anio_modelo : ''}} • {{p.saliente_categoria || 'M2'}} • {{p.saliente_asientos ? p.saliente_asientos + ' as.' : 'S/Asientos'}}
                     </span>
                     @let permSal = obtenerPermanencia(p.saliente_anio);
                     @if (permSal.anioFabricacion) {
@@ -457,7 +457,7 @@
                   <div class="pair-unit-box">
                     <strong class="plate-badge plate-emerald">{{p.placa_entrante}}</strong>
                     <span class="pair-mini-specs">
-                      {{p.anio_fabricacion || 'S/A'}} • {{p.categoria || 'M2'}} • {{p.asientos ? p.asientos + ' as.' : 'S/Asientos'}}
+                      Fab: {{p.anio_fabricacion || 'S/A'}}{{p.anio_modelo ? ' • Mod: ' + p.anio_modelo : ''}} • {{p.categoria || 'M2'}} • {{p.asientos ? p.asientos + ' as.' : 'S/Asientos'}}
                     </span>
                     @let permEnt = obtenerPermanencia(p.anio_fabricacion);
                     @if (permEnt.anioFabricacion) {

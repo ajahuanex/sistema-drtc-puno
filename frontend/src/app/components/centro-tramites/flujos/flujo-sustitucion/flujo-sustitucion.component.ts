@@ -113,6 +113,7 @@ export class FlujoSustitucionComponent {
       marca: dt.marca || base.marca || '',
       modelo: dt.modelo || base.modelo || '',
       anio_fabricacion: dt.anio_fabricacion || base.anio_fabricacion || base.anio || null,
+      anio_modelo: dt.anio_modelo || base.anio_modelo || null,
       categoria: dt.categoria || base.categoria || 'M2',
       asientos: dt.asientos || dt.numero_asientos || dt.numero_pasajeros || base.asientos || null,
       peso_neto: dt.peso_neto || base.peso_neto || null,
@@ -305,6 +306,7 @@ export class FlujoSustitucionComponent {
             marca: dt.marca || '',
             modelo: dt.modelo || '',
             anio_fabricacion: dt.anio_fabricacion || null,
+            anio_modelo: dt.anio_modelo || null,
             categoria: dt.categoria || 'M2',
             asientos: dt.asientos || null,
             peso_neto: dt.peso_neto || null,
@@ -326,7 +328,8 @@ export class FlujoSustitucionComponent {
                 placa: d.placa || placa,
                 marca: d.marca || prev?.marca || '',
                 modelo: d.modelo || prev?.modelo || '',
-                anio_fabricacion: d.anio_fabricacion || d.anio_modelo || d.ano_fabricacion || d.anoFabricacion || d.anio || prev?.anio_fabricacion || null,
+                anio_fabricacion: d.anio_fabricacion || d.ano_fabricacion || d.anoFabricacion || d.anio || prev?.anio_fabricacion || null,
+                anio_modelo: d.anio_modelo || d.anioModelo || prev?.anio_modelo || null,
                 categoria: d.categoria || prev?.categoria || 'M2',
                 asientos: d.numero_asientos || d.asientos || d.numero_pasajeros || d.pasajeros || prev?.asientos || null,
                 peso_neto: d.peso_neto || d.peso_seco || prev?.peso_neto || null,
@@ -344,6 +347,7 @@ export class FlujoSustitucionComponent {
                 marca: '',
                 modelo: '',
                 anio_fabricacion: null,
+                anio_modelo: null,
                 categoria: 'M2'
               });
             }
@@ -356,6 +360,7 @@ export class FlujoSustitucionComponent {
                 marca: '',
                 modelo: '',
                 anio_fabricacion: null,
+                anio_modelo: null,
                 categoria: 'M2'
               });
             }
@@ -372,7 +377,8 @@ export class FlujoSustitucionComponent {
                 placa: d.placa || placa,
                 marca: d.marca || '',
                 modelo: d.modelo || '',
-                anio_fabricacion: d.anio_fabricacion || d.anio_modelo || d.ano_fabricacion || d.anoFabricacion || d.anio || null,
+                anio_fabricacion: d.anio_fabricacion || d.ano_fabricacion || d.anoFabricacion || d.anio || null,
+                anio_modelo: d.anio_modelo || d.anioModelo || null,
                 categoria: d.categoria || 'M2',
                 asientos: d.numero_asientos || d.asientos || d.numero_pasajeros || null,
                 peso_neto: d.peso_neto || d.peso_seco || null,
@@ -390,6 +396,7 @@ export class FlujoSustitucionComponent {
                 marca: '',
                 modelo: '',
                 anio_fabricacion: null,
+                anio_modelo: null,
                 categoria: 'M2'
               });
             }
@@ -401,6 +408,7 @@ export class FlujoSustitucionComponent {
               marca: '',
               modelo: '',
               anio_fabricacion: null,
+              anio_modelo: null,
               categoria: 'M2'
             });
           }
@@ -421,6 +429,7 @@ export class FlujoSustitucionComponent {
         marca: par.marca,
         modelo: par.modelo,
         anio_fabricacion: par.anio_fabricacion,
+        anio_modelo: par.anio_modelo,
         categoria: par.categoria,
         asientos: par.asientos,
         peso_neto: par.peso_neto,
@@ -453,6 +462,7 @@ export class FlujoSustitucionComponent {
               marca: result.marca,
               modelo: result.modelo,
               anio_fabricacion: result.anio_fabricacion,
+              anio_modelo: result.anio_modelo,
               categoria: result.categoria,
               asientos: result.asientos,
               peso_neto: result.peso_neto,
@@ -638,7 +648,9 @@ export class FlujoSustitucionComponent {
       plazo_sustitucion_dias: esInhab ? this.plazoSustitucionDias() : null,
       saliente_marca: salienteObj?.marca || 'S/M',
       saliente_modelo: salienteObj?.modelo || '',
-      saliente_anio: salienteObj?.anio_fabricacion || salienteObj?.anio_modelo || salienteObj?.anio || null,
+      saliente_anio: salienteObj?.anio_fabricacion || salienteObj?.anio || null,
+      saliente_anio_fabricacion: salienteObj?.anio_fabricacion || salienteObj?.anio || null,
+      saliente_anio_modelo: salienteObj?.anio_modelo || null,
       saliente_categoria: salienteObj?.categoria || 'M2',
       saliente_asientos: salienteObj?.asientos || salienteObj?.numero_asientos || salienteObj?.numero_pasajeros || null,
       saliente_peso_neto: salienteObj?.peso_neto || null,
@@ -646,7 +658,8 @@ export class FlujoSustitucionComponent {
       placa_entrante: entrante,
       marca: dt.marca || 'S/M',
       modelo: dt.modelo || '',
-      anio_fabricacion: dt.anio_fabricacion || dt.anio_modelo || dt.ano_fabricacion || dt.anio || null,
+      anio_fabricacion: dt.anio_fabricacion || dt.ano_fabricacion || dt.anio || null,
+      anio_modelo: dt.anio_modelo || null,
       categoria: dt.categoria || 'M2',
       asientos: dt.asientos || dt.numero_asientos || dt.numero_pasajeros || null,
       peso_neto: dt.peso_neto || null,

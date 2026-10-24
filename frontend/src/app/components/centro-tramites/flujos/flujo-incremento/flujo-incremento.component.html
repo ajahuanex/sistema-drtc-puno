@@ -72,7 +72,7 @@
             <tr>
               <th style="width: 120px;">Placa Entrante</th>
               <th style="width: 160px;">Marca / Modelo</th>
-              <th style="width: 140px;">Año / Permanencia</th>
+              <th style="width: 155px;">Año (Fab / Mod) • Perm.</th>
               <th>Motor / Serie</th>
               <th style="min-width: 140px;">Rutas Asignadas</th>
               <th style="width: 155px;">Designación TUC</th>
@@ -93,11 +93,16 @@
                   <div style="font-size: 0.74rem; color: #64748b;">{{v.modelo || '-'}}</div>
                 </td>
                 <td style="color: #334155; font-size: 0.82rem;">
-                  <div style="display: flex; align-items: center; gap: 5px;">
-                    <strong style="color: #0f172a; font-size: 0.86rem;">{{v.anio_fabricacion || '-'}}</strong>
-                    <span style="font-size: 0.68rem; background: #f1f5f9; color: #475569; padding: 1px 5px; border-radius: 4px; font-weight: 700;">
-                      {{v.categoria || 'M2'}}
-                    </span>
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                      <span style="font-size: 0.70rem; color: #64748b; font-weight: 600;">Fab:</span>
+                      <strong style="color: #0f172a; font-size: 0.86rem;">{{v.anio_fabricacion || '-'}}</strong>
+                      <span style="font-size: 0.70rem; color: #64748b; font-weight: 600; margin-left: 2px;">Mod:</span>
+                      <span style="color: #1e293b; font-weight: 700; font-size: 0.82rem;">{{v.anio_modelo || v.anio_fabricacion || '-'}}</span>
+                      <span style="font-size: 0.68rem; background: #f1f5f9; color: #475569; padding: 1px 4px; border-radius: 4px; font-weight: 700; margin-left: auto;">
+                        {{v.categoria || 'M2'}}
+                      </span>
+                    </div>
                   </div>
                   @let perm = obtenerPermanencia(v);
                   <div style="margin-top: 3px;">

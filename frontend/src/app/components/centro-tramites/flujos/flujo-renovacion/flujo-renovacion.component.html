@@ -334,7 +334,7 @@
                   </td>
                   <td style="vertical-align: middle; white-space: nowrap; font-size: 0.81rem;">
                     <div style="display: inline-flex; align-items: center; gap: 6px;">
-                      <strong style="color: #0f172a;">{{v.anio_fabricacion || 'S/A'}}</strong>
+                      <strong style="color: #0f172a;">Fab: {{v.anio_fabricacion || 'S/A'}}{{v.anio_modelo ? ' • Mod: ' + v.anio_modelo : ''}}</strong>
                       <span style="color: #cbd5e1;">•</span>
                       <span style="font-weight: 700; color: #0284c7;">{{v.categoria || 'M2'}}</span>
                       <span style="color: #cbd5e1;">•</span>

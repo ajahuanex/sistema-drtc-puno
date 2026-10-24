@@ -989,8 +989,16 @@ export class CentroTramites implements OnInit {
             fechaSort = `${anio}-01-01T00:00:00.000Z`;
           }
 
-          const placasIng: string[] = Array.isArray(r.vehiculos_ingresantes) ? r.vehiculos_ingresantes.filter(Boolean) : [];
-          const placasSal: string[] = Array.isArray(r.vehiculos_salientes) ? r.vehiculos_salientes.filter(Boolean) : [];
+          let placasIng: string[] = this.extraerPlacasLimpias(r.vehiculos_ingresantes);
+          let placasSal: string[] = this.extraerPlacasLimpias(r.vehiculos_salientes);
+          if (placasIng.length === 0 && placasSal.length === 0) {
+            if (r.placa) {
+              placasIng = this.extraerPlacasLimpias(r.placa);
+            } else if (r.vehiculo) {
+              placasIng = this.extraerPlacasLimpias(r.vehiculo);
+            }
+          }
+
           const todasPlacas = Array.from(new Set([...placasIng, ...placasSal]));
           const totalVehiculos = todasPlacas.length;
           const placaPrincipal = placasIng[0] || placasSal[0] || (todasPlacas[0] ?? null);
@@ -1036,6 +1044,11 @@ export class CentroTramites implements OnInit {
             }
           }
 
+          const partesTexto: string[] = [];
+          if (placasIng.length > 0) partesTexto.push(`+ Ingresantes (${placasIng.length}): ${placasIng.join(', ')}`);
+          if (placasSal.length > 0) partesTexto.push(`- Salientes (${placasSal.length}): ${placasSal.join(', ')}`);
+          const placasTexto = partesTexto.join(' | ') || (todasPlacas.length > 0 ? todasPlacas.join(', ') : '-');
+
           return {
             _id: r._id || r.id,
             item_secuencial: 0,
@@ -1063,7 +1076,7 @@ export class CentroTramites implements OnInit {
             esSoloBaja,
             placasIng,
             placasSal,
-            placasTexto: todasPlacas.join(' '),
+            placasTexto,
             estado: r.esta_activo !== false ? 'PROCESADO' : 'INACTIVO',
             // datos extra para detalle
             observaciones: r.observaciones || '',
@@ -1197,6 +1210,35 @@ export class CentroTramites implements OnInit {
       return `R-${s}${sufijo}`;
     }
     return s;
+  }
+
+  extraerPlacasLimpias(input: any): string[] {
+    if (!input) return [];
+    let items: string[] = [];
+    if (Array.isArray(input)) {
+      for (const item of input) {
+        if (typeof item === 'string') {
+          const limpio = item.replace(/[\[\]'"]/g, ' ').trim();
+          const splits = limpio.split(/[\s,;|]+/).filter(Boolean);
+          items.push(...splits);
+        } else if (item && typeof item === 'object' && item.placa) {
+          items.push(String(item.placa).trim());
+        }
+      }
+    } else if (typeof input === 'string') {
+      const limpio = input.replace(/[\[\]'"]/g, ' ').trim();
+      items = limpio.split(/[\s,;|]+/).filter(Boolean);
+    }
+
+    const placasLimpias = items
+      .map(p => p.trim().toUpperCase())
+      .filter(p => {
+        if (!p || p.length < 5 || p.length > 10) return false;
+        if (p === 'NULL' || p === 'UNDEFINED' || p === 'NINGUNO' || p === 'SIN-PLACA') return false;
+        return /^[A-Z0-9]{3}[-]?[A-Z0-9]{3,4}$/i.test(p) || /^[A-Z0-9]{5,8}$/i.test(p);
+      });
+
+    return Array.from(new Set(placasLimpias));
   }
 
   obtenerInfoTipoTramite(tipoRaw: string): { label: string; badgeClass: string } {
@@ -4228,6 +4270,7 @@ export class CentroTramites implements OnInit {
           marca: p.marca,
           modelo: p.modelo,
           anio_fabricacion: p.anio_fabricacion,
+          anio_modelo: p.anio_modelo,
           categoria: p.categoria || 'M2',
           asientos: p.asientos || undefined,
           peso_neto: p.peso_neto || undefined
@@ -4267,6 +4310,7 @@ export class CentroTramites implements OnInit {
           marca: v.marca,
           modelo: v.modelo,
           anio_fabricacion: v.anio_fabricacion,
+          anio_modelo: v.anio_modelo,
           categoria: v.categoria || 'M2',
           asientos: v.asientos || v.numero_asientos || undefined,
           peso_neto: v.peso_neto || v.peso_seco || undefined
@@ -4304,6 +4348,7 @@ export class CentroTramites implements OnInit {
           marca: v.marca,
           modelo: v.modelo,
           anio_fabricacion: v.anio_fabricacion,
+          anio_modelo: v.anio_modelo,
           categoria: v.categoria || 'M2',
           asientos: v.asientos || v.numero_asientos || undefined,
           numero_asientos: v.numero_asientos || v.asientos || undefined,

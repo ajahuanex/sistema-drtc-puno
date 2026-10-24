@@ -375,7 +375,7 @@
                 <th mat-header-cell *matHeaderCellDef class="sortable-th">Expediente</th>
                 <td mat-cell *matCellDef="let element">
                   @if (element.expediente_numero) {
-                    <div class="col-expediente-wrapper">
+                    <div class="col-expediente-wrapper" [title]="element.expediente_numero">
                       <span class="expediente-code">{{element.expediente_numero}}</span>
                       @if (element.fecha_expediente_display) {
                         <span class="expediente-fecha">
@@ -396,7 +396,7 @@
                 <td mat-cell *matCellDef="let element">
                   @if (element.placaPrincipal) {
                     <div class="col-vehiculo-cell" [title]="element.placasTexto">
-                      <span class="badge-placa-principal" [class.badge-saliente]="element.esSoloBaja">
+                      <span class="badge-placa-principal" [class.badge-saliente]="element.esSoloBaja" [title]="element.placasTexto">
                         {{ element.esSoloBaja ? '- ' : '+ ' }}{{ element.placaPrincipal }}
                       </span>
                       @if (element.totalVehiculos > 1) {
@@ -694,21 +694,21 @@
             <!-- PASO 2: Selección de Resolución y Tipo de Origen -->
             <mat-step>
               <ng-template matStepLabel>Resolución y Origen</ng-template>
-              <div style="padding: 1.5rem 1.5rem;">
+              <div class="paso-resolucion-origen" style="padding: 1.25rem 1.5rem;">
                 
-                <div style="display: grid; grid-template-columns: 1fr; gap: 1.25rem;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
                   
                   @if (!esTramiteEmpresa()) {
                     <!-- Resolución Afectada -->
                     <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
-                      <div style="background: #f8fafc; padding: 0.85rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
+                      <div style="background: #f8fafc; padding: 0.75rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
                         <h4 style="font-size: 0.85rem; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
                           <mat-icon style="color: #2563eb; font-size: 20px;">gavel</mat-icon> Resolución de Concesión Afectada
                         </h4>
                       </div>
-                      <div style="padding: 1.25rem;">
+                      <div style="padding: 1.15rem 1.25rem;">
                         <form [formGroup]="resolucionForm">
-                          <mat-form-field appearance="outline" style="width: 100%;">
+                          <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                             <mat-label>Seleccione la Resolución Primigenia</mat-label>
                             <mat-select formControlName="nro_resolucion_primigenia">
                               @for (res of resoluciones(); track res.id || res.nro_resolucion) {
@@ -730,7 +730,7 @@
 
                         @if (resolucionForm.get('nro_resolucion_primigenia')?.value) {
                           @if (resolucionSeleccionada()?.estado === 'VENCIDA' && tramiteSeleccionado() === 'RENOVACION') {
-                            <div style="margin-top: 0.75rem; padding: 0.85rem 1rem; background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 8px; display: flex; gap: 0.75rem; align-items: flex-start;">
+                            <div style="margin-top: 0.75rem; padding: 0.75rem 1rem; background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 8px; display: flex; gap: 0.75rem; align-items: flex-start;">
                               <mat-icon style="color: #d97706; font-size: 24px; width: 24px; height: 24px; flex-shrink: 0;">autorenew</mat-icon>
                               <div>
                                 <p style="color: #92400e; font-weight: bold; margin: 0 0 0.25rem 0; font-size: 0.85rem;">
@@ -743,7 +743,7 @@
                               </div>
                             </div>
                           } @else if (esResolucionInactiva()) {
-                            <div style="margin-top: 0.75rem; padding: 0.9rem 1rem; background: #fef2f2; border: 1.5px solid #f87171; border-radius: 8px; display: flex; gap: 0.75rem; align-items: flex-start;">
+                            <div style="margin-top: 0.75rem; padding: 0.75rem 1rem; background: #fef2f2; border: 1.5px solid #f87171; border-radius: 8px; display: flex; gap: 0.75rem; align-items: flex-start;">
                               <mat-icon style="color: #dc2626; font-size: 24px; width: 24px; height: 24px; flex-shrink: 0;">cancel</mat-icon>
                               <div>
                                 <p style="color: #991b1b; font-weight: bold; margin: 0 0 0.25rem 0; font-size: 0.85rem;">
@@ -757,7 +757,7 @@
                               </div>
                             </div>
                           } @else {
-                            <div style="margin-top: 0.75rem; padding: 0.85rem 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; gap: 0.75rem; align-items: flex-start;">
+                            <div style="margin-top: 0.75rem; padding: 0.75rem 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; gap: 0.75rem; align-items: flex-start;">
                               <mat-icon style="color: #16a34a;">check_circle</mat-icon>
                               <div>
                                 <p style="color: #166534; font-weight: bold; margin: 0 0 0.2rem 0; font-size: 0.85rem;">Resolución Vigente Seleccionada</p>
@@ -774,12 +774,12 @@
                   } @else {
                     <!-- Ámbito Corporativo (Persona Jurídica) -->
                     <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
-                      <div style="background: #f5f3ff; padding: 0.85rem 1.25rem; border-bottom: 1px solid #ddd6fe;">
+                      <div style="background: #f5f3ff; padding: 0.75rem 1.25rem; border-bottom: 1px solid #ddd6fe;">
                         <h4 style="font-size: 0.85rem; font-weight: bold; color: #5b21b6; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
                           <mat-icon style="color: #7c3aed; font-size: 20px;">business</mat-icon> Ámbito Corporativo (Persona Jurídica)
                         </h4>
                       </div>
-                      <div style="padding: 1.25rem;">
+                      <div style="padding: 1.15rem 1.25rem;">
                         <div style="padding: 1rem; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; display: flex; gap: 0.75rem; align-items: center;">
                           <mat-icon style="color: #7c3aed; font-size: 28px; width: 28px; height: 28px;">info</mat-icon>
                           <div>
@@ -797,16 +797,16 @@
 
                   <!-- Datos del Expediente / Oficio y Resolución Modificatoria -->
                   <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
-                    <div style="background: #f8fafc; padding: 0.85rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
+                    <div style="background: #f8fafc; padding: 0.75rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
                       <h4 style="font-size: 0.85rem; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
                         <mat-icon style="color: #2563eb; font-size: 20px;">source</mat-icon> 
                         {{tramiteSeleccionado() === 'RENOVACION' ? 'Origen del Trámite' : 'Origen del Trámite y Resolución Modificatoria'}}
                       </h4>
                     </div>
-                    <div style="padding: 1.25rem;">
+                    <div style="padding: 1.15rem 1.25rem;">
                       <form [formGroup]="datosOrigenForm">
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                          <mat-form-field appearance="outline" style="width: 100%;">
+                        <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                          <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                             <mat-label>Tipo de Documento de Origen</mat-label>
                             <mat-select formControlName="tipo_origen" (selectionChange)="cambiarTipoOrigen()">
                               <mat-option value="EXPEDIENTE">Expediente Administrativo (A Solicitud de Parte)</mat-option>
@@ -816,14 +816,14 @@
                             </mat-select>
                           </mat-form-field>
                           
-                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <mat-form-field appearance="outline" style="width: 100%;">
+                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start;">
+                            <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                               <mat-label>{{ labelNumeroDocumento() }}</mat-label>
                               <input matInput formControlName="numero_origen" [placeholder]="placeholderNumeroDocumento()" (blur)="normalizarNumero()">
                               <mat-hint style="font-size: 11px;">{{ hintNumeroDocumento() }}</mat-hint>
                             </mat-form-field>
                             
-                            <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                               <mat-label>Fecha del Documento</mat-label>
                               <input matInput type="date" formControlName="fecha_origen" #fechaDocInput (click)="abrirSelectorFecha(fechaDocInput)">
                               <button mat-icon-button matSuffix type="button" (click)="abrirSelectorFecha(fechaDocInput); $event.stopPropagation()" style="color: #64748b;" title="Abrir calendario">
@@ -834,7 +834,7 @@
 
                           <!-- Alerta reactiva de Expediente Duplicado -->
                           @if (advertenciaExpediente()) {
-                            <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 0.7rem 0.9rem; margin-top: -0.25rem; margin-bottom: 0.5rem; display: flex; align-items: flex-start; gap: 0.65rem;">
+                            <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 0.65rem 0.9rem; margin-top: 0.15rem; margin-bottom: 0.25rem; display: flex; align-items: flex-start; gap: 0.65rem;">
                               <mat-icon style="color: #d97706; font-size: 20px; width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px;">warning</mat-icon>
                               <div style="flex: 1; font-size: 0.8rem; color: #92400e; line-height: 1.4;">
                                 <div style="font-weight: 700;">{{advertenciaExpediente()?.mensaje}}</div>
@@ -847,18 +847,18 @@
 
                           <!-- Para trámites regulares (Sustitución, Incremento, Bajas, etc.): Resolución Hija -->
                           @if (tramiteSeleccionado() !== 'RENOVACION') {
-                            <div style="margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px dashed #e2e8f0;">
+                            <div style="margin-top: 0.35rem; padding-top: 0.75rem; border-top: 1px dashed #e2e8f0;">
                               <span style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.5rem;">
                                 Resolución Directoral Modificatoria (Resolución Hija - Opcional):
                               </span>
-                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                <mat-form-field appearance="outline" style="width: 100%;">
+                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start;">
+                                <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                                   <mat-label>N° Resolución (Ej. R-0012-2026)</mat-label>
                                   <input matInput formControlName="nro_resolucion_hija" placeholder="R-0123-2026" (blur)="normalizarResolucionHija()">
                                   <mat-hint style="font-size: 11px;">Ingreso manual obligatorio (único en el año)</mat-hint>
                                 </mat-form-field>
                                 
-                                <mat-form-field appearance="outline" style="width: 100%;">
+                                <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                                   <mat-label>Fecha de Emisión</mat-label>
                                   <input matInput type="date" formControlName="fecha_emision_resolucion" #fechaEmisionHijaInput (click)="abrirSelectorFecha(fechaEmisionHijaInput)">
                                   <button mat-icon-button matSuffix type="button" (click)="abrirSelectorFecha(fechaEmisionHijaInput); $event.stopPropagation()" style="color: #64748b;" title="Abrir calendario">
@@ -869,7 +869,7 @@
 
                               <!-- Alerta reactiva de Resolución Duplicada -->
                               @if (advertenciaResolucion()) {
-                                <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 0.7rem 0.9rem; margin-top: 0.5rem; display: flex; align-items: flex-start; gap: 0.65rem;">
+                                <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 0.65rem 0.9rem; margin-top: 0.4rem; display: flex; align-items: flex-start; gap: 0.65rem;">
                                   <mat-icon style="color: #d97706; font-size: 20px; width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px;">warning</mat-icon>
                                   <div style="flex: 1; font-size: 0.8rem; color: #92400e; line-height: 1.4;">
                                     <div style="font-weight: 700;">{{advertenciaResolucion()?.mensaje}}</div>
@@ -888,16 +888,16 @@
 
                   <!-- SI ES RENOVACIÓN: Bloque completo de la Nueva Resolución Primigenia en Paso 2 -->
                   @if (tramiteSeleccionado() === 'RENOVACION') {
-                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden; margin-top: 1rem;">
-                      <div style="background: #f8fafc; padding: 0.85rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden; margin-top: 0.75rem;">
+                      <div style="background: #f8fafc; padding: 0.75rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
                         <h4 style="font-size: 0.85rem; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
                           <mat-icon style="color: #059669; font-size: 20px;">assignment</mat-icon> Datos de la Nueva Resolución Primigenia (Nueva Autorización)
                         </h4>
                       </div>
-                      <div style="padding: 1.25rem;">
+                      <div style="padding: 1.15rem 1.25rem;">
                         <form [formGroup]="renovacionForm">
-                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                            <mat-form-field appearance="outline" style="width: 100%;">
+                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem; align-items: start;">
+                            <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                               <mat-label>Número de Nueva Resolución Primigenia *</mat-label>
                               <input matInput 
                                      formControlName="nueva_resolucion_primigenia" 
@@ -907,7 +907,7 @@
                               <mat-hint style="font-size: 0.72rem; color: #64748b;">Formato normalizado: R-0123-2026</mat-hint>
                             </mat-form-field>
 
-                            <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                               <mat-label>1. Fecha de Emisión de Resolución *</mat-label>
                               <input matInput type="date" formControlName="nueva_fecha_emision" #fechaEmisionInput (click)="abrirSelectorFecha(fechaEmisionInput)">
                               <button mat-icon-button matSuffix type="button" (click)="abrirSelectorFecha(fechaEmisionInput); $event.stopPropagation()" style="color: #64748b;" title="Abrir calendario">
@@ -917,7 +917,7 @@
                           </div>
 
                           @if (advertenciaRenovacionResolucion()) {
-                            <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 0.7rem 0.9rem; margin-top: -0.5rem; margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 0.65rem;">
+                            <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 0.65rem 0.9rem; margin-top: -0.25rem; margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.65rem;">
                               <mat-icon style="color: #d97706; font-size: 20px; width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px;">warning</mat-icon>
                               <div style="flex: 1; font-size: 0.8rem; color: #92400e; line-height: 1.4;">
                                 <div style="font-weight: 700;">{{advertenciaRenovacionResolucion()?.mensaje}}</div>
@@ -929,7 +929,7 @@
                           }
 
                           <!-- Vigencia Selector: 4 años o 10 años -->
-                          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 1rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                               <mat-icon style="color: #2563eb; font-size: 20px; width: 20px; height: 20px;">timer</mat-icon>
                               <span style="font-size: 0.85rem; font-weight: 600; color: #334155;">Plazo de Vigencia Legal:</span>
@@ -956,8 +956,8 @@
                             </div>
                           </div>
 
-                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <mat-form-field appearance="outline" style="width: 100%;">
+                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start;">
+                            <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                               <mat-label>2. Fecha de Inicio de Vigencia *</mat-label>
                               <input matInput type="date" formControlName="nueva_fecha_inicio_vigencia" #fechaInicioVigInput (click)="abrirSelectorFecha(fechaInicioVigInput)">
                               <button mat-icon-button matSuffix type="button" (click)="abrirSelectorFecha(fechaInicioVigInput); $event.stopPropagation()" style="color: #64748b;" title="Abrir calendario">
@@ -965,7 +965,7 @@
                               </button>
                             </mat-form-field>
 
-                            <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
                               <mat-label>3. Fecha de Fin de Vigencia ({{duracionAniosRenovacion()}} Años) *</mat-label>
                               <input matInput type="date" formControlName="nueva_fecha_fin_vigencia" #fechaFinVigInput (click)="abrirSelectorFecha(fechaFinVigInput)">
                               <button mat-icon-button matSuffix type="button" (click)="abrirSelectorFecha(fechaFinVigInput); $event.stopPropagation()" style="color: #64748b;" title="Abrir calendario">
@@ -1376,7 +1376,7 @@
                               </th>
                               <th>Placa</th>
                               <th>Marca / Modelo</th>
-                              <th>Año</th>
+                              <th>Año (Fab / Mod)</th>
                               <th>Estado Actual</th>
                             </tr>
                           </thead>
@@ -1392,7 +1392,7 @@
                                 </td>
                                 <td><strong style="font-family: monospace; font-size: 1rem;">{{v.placa}}</strong></td>
                                 <td style="color: #475569;">{{v.marca}} / {{v.modelo}}</td>
-                                <td style="color: #475569;">{{v.anio_fabricacion}}</td>
+                                <td style="color: #475569;">{{v.anio_fabricacion || '-'}}{{v.anio_modelo ? ' / ' + v.anio_modelo : ''}}</td>
                                 <td>
                                   <span class="badge-autorizada" [ngClass]="v.estado === 'HABILITADO' ? 'status-autorizada' : 'status-suspendida'">
                                     {{v.estado || 'HABILITADO'}}
@@ -1514,7 +1514,7 @@
                                 <th style="width: 45px; text-align: center;">Sel.</th>
                                 <th style="width: 110px;">Placa</th>
                                 <th>Marca / Modelo</th>
-                                <th style="width: 100px;">Año / Cat.</th>
+                                <th style="width: 120px;">Año (Fab/Mod) / Cat.</th>
                                 <th style="width: 120px;">N° TUC Actual</th>
                                 <th style="min-width: 130px;">Rutas Asignadas</th>
                                 <th style="width: 160px;">Nueva Designación TUC</th>
@@ -1536,7 +1536,7 @@
                                   </td>
                                   <td style="color: #475569; font-size: 0.84rem;">{{v.marca}} / {{v.modelo}}</td>
                                   <td style="color: #334155; font-size: 0.8rem;">
-                                    <div>{{v.anio_fabricacion || 'S/A'}}</div>
+                                    <div>{{v.anio_fabricacion || '-'}}{{v.anio_modelo ? ' / ' + v.anio_modelo : ''}}</div>
                                     <span style="font-size: 0.68rem; background: #f1f5f9; color: #475569; padding: 1px 4px; border-radius: 3px; font-weight: 600;">
                                       {{v.categoria || 'M2'}}
                                     </span>
@@ -1686,7 +1686,7 @@
                                 <th style="width: 45px; text-align: center;">Sel.</th>
                                 <th style="width: 110px;">Placa</th>
                                 <th>Marca / Modelo</th>
-                                <th style="width: 100px;">Año / Cat.</th>
+                                <th style="width: 120px;">Año (Fab/Mod) / Cat.</th>
                                 <th style="width: 120px;">N° TUC Actual</th>
                                 <th style="min-width: 130px;">Rutas Asignadas</th>
                                 <th style="width: 160px;">Nueva Designación TUC</th>
@@ -1708,7 +1708,7 @@
                                   </td>
                                   <td style="color: #475569; font-size: 0.84rem;">{{v.marca}} / {{v.modelo}}</td>
                                   <td style="color: #334155; font-size: 0.8rem;">
-                                    <div>{{v.anio_fabricacion || 'S/A'}}</div>
+                                    <div>{{v.anio_fabricacion || '-'}}{{v.anio_modelo ? ' / ' + v.anio_modelo : ''}}</div>
                                     <span style="font-size: 0.68rem; background: #f1f5f9; color: #475569; padding: 1px 4px; border-radius: 3px; font-weight: 600;">
                                       {{v.categoria || 'M2'}}
                                     </span>
@@ -1956,7 +1956,7 @@
                                   </th>
                                   <th>Placa</th>
                                   <th>Marca / Modelo</th>
-                                  <th>Año</th>
+                                  <th>Año (Fab / Mod)</th>
                                   <th>TUC Actual</th>
                                 </tr>
                               </thead>
@@ -1972,7 +1972,7 @@
                                     </td>
                                     <td><strong style="font-family: monospace; font-size: 0.9rem;">{{v.placa}}</strong></td>
                                     <td style="color: #475569; font-size: 0.8rem;">{{v.marca}} / {{v.modelo}}</td>
-                                    <td style="color: #475569; font-size: 0.8rem;">{{v.anio_fabricacion || 'S/A'}}</td>
+                                    <td style="color: #475569; font-size: 0.8rem;">{{v.anio_fabricacion || '-'}}{{v.anio_modelo ? ' / ' + v.anio_modelo : ''}}</td>
                                     <td style="font-family: monospace; font-size: 0.78rem;">{{v.numero_tuc || 'SIN TUC'}}</td>
                                   </tr>
                                 } @empty {
@@ -2182,7 +2182,7 @@
                                     @if (p.saliente_resolucion) {
                                       Res: <strong>{{p.saliente_resolucion}}</strong> • 
                                     }
-                                    Año: {{p.saliente_anio || 'S/A'}} • Cat: {{p.saliente_categoria || 'M2'}} • {{p.saliente_asientos ? p.saliente_asientos + ' as.' : ''}}
+                                    Año: {{p.saliente_anio || 'S/A'}}{{p.saliente_anio_modelo ? ' (Mod: ' + p.saliente_anio_modelo + ')' : ''}} • Cat: {{p.saliente_categoria || 'M2'}} • {{p.saliente_asientos ? p.saliente_asientos + ' as.' : ''}}
                                   </span>
                                 </div>
                                 <span style="color: #94a3b8;">➔</span>
@@ -2191,7 +2191,7 @@
                                     {{p.placa_entrante}}
                                   </span>
                                   <span style="font-size: 0.75rem; color: #64748b; margin-left: 0.3rem;">
-                                    Año: {{p.anio_fabricacion || 'S/A'}} • Cat: {{p.categoria || 'M2'}} • {{p.asientos ? p.asientos + ' as.' : ''}}
+                                    Año: {{p.anio_fabricacion || 'S/A'}}{{p.anio_modelo ? ' (Mod: ' + p.anio_modelo + ')' : ''}} • Cat: {{p.categoria || 'M2'}} • {{p.asientos ? p.asientos + ' as.' : ''}}
                                   </span>
                                 </div>
                               </div>
@@ -2223,7 +2223,7 @@
                                   + {{v.placa}}
                                 </span>
                                 <span style="font-size: 0.75rem; color: #64748b;">
-                                  {{v.marca || ''}} {{v.modelo || ''}} • Año: {{v.anio_fabricacion || 'S/A'}} • Cat: {{v.categoria || 'M2'}}
+                                  {{v.marca || ''}} {{v.modelo || ''}} • Año: {{v.anio_fabricacion || 'S/A'}}{{v.anio_modelo ? ' (Mod: ' + v.anio_modelo + ')' : ''}} • Cat: {{v.categoria || 'M2'}}
                                 </span>
                               </div>
                               <div>
@@ -2331,7 +2331,7 @@
                                     <th style="width: 35px; text-align: center;">#</th>
                                     <th style="width: 105px;">Placa</th>
                                     <th style="width: 110px;">Marca</th>
-                                    <th style="width: 60px; text-align: center;">Año</th>
+                                    <th style="width: 85px; text-align: center;">Año (Fab/Mod)</th>
                                     <th style="width: 75px; text-align: center;">Categoría</th>
                                     <th style="width: 75px; text-align: center;">Asientos</th>
                                     <th style="width: 75px; text-align: center;">Rutas</th>
@@ -2352,7 +2352,7 @@
                                           {{v.marca || '-'}}
                                         </td>
                                         <td style="text-align: center; color: #1e293b; font-weight: 600; font-size: 0.78rem;">
-                                          {{v.anio_fabricacion || '-'}}
+                                          {{v.anio_fabricacion || '-'}}{{v.anio_modelo ? ' / ' + v.anio_modelo : ''}}
                                         </td>
                                         <td style="text-align: center;">
                                           <span style="font-weight: 700; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 1px 5px; border-radius: 4px; font-size: 0.71rem;">
@@ -2754,7 +2754,7 @@
 
                         <!-- Año -->
                         <td style="text-align: center;">
-                          <span class="veh-anio-pill">{{v.anio_fabricacion || 'S/A'}}</span>
+                          <span class="veh-anio-pill">{{v.anio_fabricacion || 'S/A'}}{{v.anio_modelo ? ' / ' + v.anio_modelo : ''}}</span>
                         </td>
 
                         <!-- Categoría -->
@@ -3007,7 +3007,7 @@
                   {{v.modelo || '-'}}
                 </td>
                 <td style="text-align: center; font-weight: 700; color: #0f172a; font-size: 0.82rem;">
-                  {{v.anio_fabricacion || '-'}}
+                  {{v.anio_fabricacion || '-'}}{{v.anio_modelo ? ' / ' + v.anio_modelo : ''}}
                   @if (v.alerta_antiguedad) {
                     <mat-icon style="font-size: 14px; width: 14px; height: 14px; color: #d97706; vertical-align: middle; margin-left: 2px;" [matTooltip]="'Supera límite de permanencia legal'">warning</mat-icon>
                   }

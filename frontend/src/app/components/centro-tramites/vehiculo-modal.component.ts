@@ -114,8 +114,10 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
   }
 
   const anioActual = new Date().getFullYear();
-  const aFab = item?.anio_fabricacion || data.anio_fabricacion || data.anio_modelo || data.ano_fabricacion || null;
+  const aFab = item?.anio_fabricacion || data.anio_fabricacion || data.ano_fabricacion || item?.ano_fabricacion || null;
+  const aMod = item?.anio_modelo || data.anio_modelo || data.anioModelo || item?.anioModelo || null;
   const anioNum = aFab ? Number(aFab) : null;
+  const anioModNum = aMod ? Number(aMod) : null;
   const ed = (anioNum && anioNum > 1900) ? (anioActual - anioNum) : (item?.edad || 0);
 
   const combRaw = String(data.combustible || item?.combustible || 'DIESEL').toUpperCase().trim();
@@ -135,6 +137,7 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
     marca: data.marca || data.marca_vehiculo || item?.marca || '',
     modelo: data.modelo || data.modelo_vehiculo || item?.modelo || '',
     anio_fabricacion: anioNum,
+    anio_modelo: anioModNum,
     color: data.color || item?.color || 'BLANCO',
     clase: claseVal,
     carroceria: data.carroceria || data.tipo_carroceria || item?.carroceria || 'MINIBUS',
@@ -266,7 +269,7 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
 
               <div style="display: flex; flex-direction: column;">
                 <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                  <mat-label>Año *</mat-label>
+                  <mat-label>Año Fab. *</mat-label>
                   <input matInput type="number" formControlName="anio_fabricacion" placeholder="2018" [matTooltip]="form.get('anio_fabricacion')?.value ? ('Año fabricación: ' + form.get('anio_fabricacion')?.value) : ''" style="text-align: center; font-weight: 700;">
                 </mat-form-field>
                 @if (anioPcmSugerido && anioPcmSugerido !== form.get('anio_fabricacion')?.value) {
@@ -278,6 +281,11 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
                   </div>
                 }
               </div>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Año Modelo</mat-label>
+                <input matInput type="number" formControlName="anio_modelo" placeholder="2019" [matTooltip]="form.get('anio_modelo')?.value ? ('Año modelo: ' + form.get('anio_modelo')?.value) : 'Año Modelo según TIV'" style="text-align: center; font-weight: 700;">
+              </mat-form-field>
 
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
                 <mat-label>Color</mat-label>
@@ -551,7 +559,7 @@ export function enriquecerFichaTecnica(item: any, d?: any): any {
     }
     .grid-form-identificacion {
       display: grid;
-      grid-template-columns: 1.2fr 2.3fr 76px 0.85fr 0.85fr;
+      grid-template-columns: 1.2fr 2fr 80px 80px 0.85fr 0.85fr;
       gap: 0.4rem;
     }
     .grid-form-compact {
@@ -737,7 +745,8 @@ export class VehiculoModalComponent {
   ) {
     const v = data?.vehiculo || data || {};
 
-    const anioFab = v.anio_fabricacion || v.anio_modelo || v.ano_fabricacion || v.anio || 2020;
+    const anioFab = v.anio_fabricacion || v.ano_fabricacion || v.anio || null;
+    const anioMod = v.anio_modelo || v.anioModelo || null;
     const catNorm = this.normalizeCategory(v.categoria || 'M2');
     const isM2 = catNorm.includes('M2');
 
@@ -785,7 +794,8 @@ export class VehiculoModalComponent {
       placa: [v.placa || v.placa_actual || '', [Validators.required, Validators.pattern(/^[A-Z0-9-]{6,10}$/i)]],
       marca: [v.marca || '', Validators.required],
       modelo: [v.modelo || '', Validators.required],
-      anio_fabricacion: [anioFab, [Validators.required, Validators.min(1950), Validators.max(2030)]],
+      anio_fabricacion: [anioFab, [Validators.required, Validators.min(1950), Validators.max(2035)]],
+      anio_modelo: [anioMod, [Validators.min(1950), Validators.max(2035)]],
       color: [v.color || 'BLANCO'],
       clase: [catNorm.includes('C3') ? (v.clase || 'C3') : ''],
       carroceria: [v.carroceria || 'MINIBUS'],
@@ -1020,7 +1030,7 @@ export class VehiculoModalComponent {
     // Si ya tenía año (> 1900), no sobreescribir. Se guarda sugerencia de PCM si difiere.
     // Si no tenía año, recién reemplazarlo.
     const curAnio = this.form.get('anio_fabricacion')?.value;
-    const anioPcm = d.anio_fabricacion_pcm || d.anio_fabricacion || d.anio_modelo || d.ano_fabricacion;
+    const anioPcm = d.anio_fabricacion || d.anio_fabricacion_pcm || d.ano_fabricacion || null;
     let anioFinal = curAnio;
 
     if (!curAnio || Number(curAnio) <= 1900) {
@@ -1032,12 +1042,14 @@ export class VehiculoModalComponent {
       this.anioPcmSugerido = null;
     }
 
+    const anioModPcm = d.anio_modelo || d.anioModelo || this.form.get('anio_modelo')?.value || null;
     const combFinal = this.normalizarCombustible(d.combustible || this.form.get('combustible')?.value || 'DIESEL');
 
     this.form.patchValue({
       marca: d.marca || d.marca_vehiculo || this.form.get('marca')?.value,
       modelo: d.modelo || d.modelo_vehiculo || this.form.get('modelo')?.value,
-      anio_fabricacion: anioFinal,
+      anio_fabricacion: anioFinal ? Number(anioFinal) : null,
+      anio_modelo: anioModPcm ? Number(anioModPcm) : null,
       color: d.color || this.form.get('color')?.value || 'BLANCO',
       clase: claseVal,
       carroceria: d.carroceria || d.tipo_carroceria || this.form.get('carroceria')?.value || 'MINIBUS',
@@ -1080,6 +1092,8 @@ export class VehiculoModalComponent {
         ...val,
         placa: cleanPlaca,
         placa_actual: cleanPlaca,
+        anio_fabricacion: val.anio_fabricacion ? Number(val.anio_fabricacion) : null,
+        anio_modelo: val.anio_modelo ? Number(val.anio_modelo) : null,
         clase: claseFinal,
         carga_util: cuCalculada,
         combustible: this.normalizarCombustible(val.combustible),

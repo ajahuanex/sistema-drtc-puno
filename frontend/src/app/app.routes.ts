@@ -273,6 +273,16 @@ export const routes: Routes = [
         data: { modulo: 'resoluciones' }
       },
 
+      // CUSTODIA DE EXPEDIENTES Y DOCUMENTOS (MEMORÁNDUMS, FOLIOS Y ARCHIVO LEGAL)
+      { 
+        path: 'custodia', 
+        loadComponent: () => import('./components/custodia/custodia.component').then(m => m.CustodiaComponent),
+        canActivate: [RoleGuard],
+        data: { modulo: 'resoluciones' }
+      },
+      { path: 'expedientes-custodia', redirectTo: 'custodia', pathMatch: 'full' },
+      { path: 'documentos-custodia', redirectTo: 'custodia', pathMatch: 'full' },
+
       // MÓDULO INICIALIZADOR Y MIGRACIÓN MAESTRA DE DATOS
       { 
         path: 'inicializador-datos', 

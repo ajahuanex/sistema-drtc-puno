@@ -34,10 +34,9 @@ import { Ruta } from '../../models/ruta.model';
 import { DetalleVehiculoDialogComponent } from './detalle-vehiculo-dialog.component';
 import { EditarVehiculoDialogComponent } from './editar-vehiculo-dialog.component';
 import { FormVehiculoDialogComponent } from './form-vehiculo-dialog.component';
-import { FormTramitePrimigeniaDialogComponent } from './form-tramite-primigenia-dialog.component';
 import { CambiarTucDialogComponent } from './cambiar-tuc-dialog.component';
 import { GenerarTucDialogComponent } from './generar-tuc-dialog.component';
-
+import { TramiteFlotaDrawerComponent } from './tramite-flota-drawer/tramite-flota-drawer.component';
 
 export interface ColumnasState {
   primigenia: boolean;
@@ -61,7 +60,7 @@ export interface ColumnasState {
     MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
     MatMenuModule, MatDividerModule, MatChipsModule,
     MatPaginatorModule, MatTabsModule, MatBadgeModule, MatDialogModule,
-    MatExpansionModule, MatCheckboxModule
+    MatExpansionModule, MatCheckboxModule, TramiteFlotaDrawerComponent
   ],
   styleUrls: ['./vehiculos-empresa.component.scss'],
   template: `
@@ -189,6 +188,10 @@ export interface ColumnasState {
                 <button mat-flat-button color="primary" (click)="buscarFlotaEmpresa()" [disabled]="isLoadingEmpresa()" style="border-radius:10px;font-weight:700;" matTooltip="Actualizar datos y sincronizar flota con la base de datos">
                   <mat-icon [class.spin-icon]="isLoadingEmpresa()">sync</mat-icon>
                   <span>{{ isLoadingEmpresa() ? 'Sincronizando...' : 'Actualizar / Sincronizar' }}</span>
+                </button>
+                <button mat-flat-button (click)="iniciarNuevoTramiteFlota()" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg, #1e3a8a, #2563eb);color:#fff;box-shadow:0 3px 10px rgba(37,99,235,0.3);" matTooltip="Iniciar trámite de flota con ventana lateral (Sustitución, Incremento, Renovación, Bajas)">
+                  <mat-icon>add_task</mat-icon>
+                  <span>+ Nuevo Trámite de Flota</span>
                 </button>
               </div>
             </div>
@@ -804,6 +807,20 @@ export interface ColumnasState {
                       </button>
                       <button mat-menu-item
                               [disabled]="esResolucionVencida(item)"
+                              (click)="iniciarSustitucionVehiculo(item)"
+                              [matTooltip]="esResolucionVencida(item) ? 'Bloqueado: La resolución primigenia está vencida' : ''">
+                        <mat-icon [style.color]="esResolucionVencida(item) ? '#94a3b8' : '#2563eb'">sync_alt</mat-icon>
+                        <span>Sustituir esta Unidad {{ esResolucionVencida(item) ? '(Bloqueado)' : '' }}</span>
+                      </button>
+                      <button mat-menu-item
+                              [disabled]="esResolucionVencida(item)"
+                              (click)="iniciarBajaVehiculo(item)"
+                              [matTooltip]="esResolucionVencida(item) ? 'Bloqueado: La resolución primigenia está vencida' : ''">
+                        <mat-icon [style.color]="esResolucionVencida(item) ? '#94a3b8' : '#dc2626'">remove_circle</mat-icon>
+                        <span>Tramitar Baja Formal {{ esResolucionVencida(item) ? '(Bloqueado)' : '' }}</span>
+                      </button>
+                      <button mat-menu-item
+                              [disabled]="esResolucionVencida(item)"
                               (click)="abrirEditar(item)"
                               [matTooltip]="esResolucionVencida(item) ? 'Bloqueado: La resolución primigenia está vencida' : ''">
                         <mat-icon [style.color]="esResolucionVencida(item) ? '#94a3b8' : '#d97706'">{{ esResolucionVencida(item) ? 'lock' : 'edit' }}</mat-icon>
@@ -819,13 +836,6 @@ export interface ColumnasState {
                       <button mat-menu-item (click)="abrirGenerarTuc(item)">
                         <mat-icon style="color:#2563eb;">description</mat-icon>
                         <span>Generar / Imprimir TUC (Plantilla)</span>
-                      </button>
-                      <button mat-menu-item
-                              [disabled]="esResolucionVencida(item)"
-                              (click)="inhabilitarVehiculo(item)"
-                              [matTooltip]="esResolucionVencida(item) ? 'Bloqueado: La resolución primigenia está vencida' : ''">
-                        <mat-icon [style.color]="esResolucionVencida(item) ? '#94a3b8' : '#dc2626'">{{ esResolucionVencida(item) ? 'lock' : 'block' }}</mat-icon>
-                        <span>Inhabilitar / Dar de Baja {{ esResolucionVencida(item) ? '(Bloqueado)' : '' }}</span>
                       </button>
                       <button mat-menu-item (click)="verCronologiaPrimigenia(item.nro_resolucion_primigenia)">
                         <mat-icon style="color:#0d9488;">timeline</mat-icon>
@@ -1053,6 +1063,19 @@ export interface ColumnasState {
           }
         }
       </div>
+      <!-- DRAWER DE TRÁMITES DE FLOTA (VENTANA LATERAL DERECHA) -->
+      <app-tramite-flota-drawer
+        [isOpen]="isDrawerTramiteOpen()"
+        [ruc]="empresaSearchControl.value || ''"
+        [razonSocial]="razonSocialEmpresa() || ''"
+        [primigeniasDisponibles]="rutasPorPrimigenia()"
+        [primigeniaSeleccionada]="drawerPrimigenia()"
+        [vehiculoPreseleccionado]="drawerVehiculoPreseleccionado()"
+        [tipoTramiteInicial]="drawerTipoTramite()"
+        [flotaActual]="flotaEmpresa()"
+        (closed)="cerrarDrawerTramite()"
+        (tramiteProcesado)="onTramiteDrawerProcesado($event)">
+      </app-tramite-flota-drawer>
     </div>
   `
 })
@@ -1066,6 +1089,11 @@ export class VehiculosEmpresaComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private dialog = inject(MatDialog);
 
+  // Estados para el Drawer Lateral de Trámites
+  isDrawerTramiteOpen = signal<boolean>(false);
+  drawerPrimigenia = signal<string>('');
+  drawerVehiculoPreseleccionado = signal<any | null>(null);
+  drawerTipoTramite = signal<string>('SUSTITUCION');
 
   // Vista activa
   vistaActual = signal<'empresa' | 'cronologica'>('empresa');
@@ -1957,9 +1985,62 @@ export class VehiculosEmpresaComponent implements OnInit {
     });
   }
 
+  iniciarNuevoTramiteFlota(tipo: string = 'SUSTITUCION'): void {
+    const ruc = this.empresaSearchControl.value?.trim();
+    if (!ruc) {
+      this.snackBar.open('Seleccione una empresa primero', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    const prim = this.primigeniaFiltro() || (this.rutasPorPrimigenia()[0]?.primigenia || '');
+    this.drawerPrimigenia.set(prim);
+    this.drawerVehiculoPreseleccionado.set(null);
+    this.drawerTipoTramite.set(tipo);
+    this.isDrawerTramiteOpen.set(true);
+  }
+
+  iniciarSustitucionVehiculo(item: VehiculoEmpresa): void {
+    if (this.esResolucionVencida(item)) {
+      this.snackBar.open('Este vehículo pertenece a una resolución vencida y se encuentra bloqueado para modificaciones.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+    this.drawerPrimigenia.set(item.nro_resolucion_primigenia || '');
+    this.drawerVehiculoPreseleccionado.set(item);
+    this.drawerTipoTramite.set('SUSTITUCION');
+    this.isDrawerTramiteOpen.set(true);
+  }
+
+  iniciarBajaVehiculo(item: VehiculoEmpresa): void {
+    if (this.esResolucionVencida(item)) {
+      this.snackBar.open('Este vehículo pertenece a una resolución vencida y se encuentra bloqueado para modificaciones.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+    this.drawerPrimigenia.set(item.nro_resolucion_primigenia || '');
+    this.drawerVehiculoPreseleccionado.set(item);
+    this.drawerTipoTramite.set('BAJAS');
+    this.isDrawerTramiteOpen.set(true);
+  }
+
+  cerrarDrawerTramite(): void {
+    this.isDrawerTramiteOpen.set(false);
+    this.drawerVehiculoPreseleccionado.set(null);
+  }
+
+  onTramiteDrawerProcesado(res: any): void {
+    this.isDrawerTramiteOpen.set(false);
+    this.drawerVehiculoPreseleccionado.set(null);
+    this.snackBar.open('Trámite de flota procesado correctamente con correlativo anual.', 'Cerrar', {
+      duration: 5000,
+      panelClass: 'snack-success'
+    });
+    this.buscarFlotaEmpresa();
+  }
+
   abrirTramitePrimigenia(item?: any): void {
     const ruc = this.empresaSearchControl.value?.trim() || '';
-    const razonSocial = this.razonSocialEmpresa();
+    if (!ruc) {
+      this.snackBar.open('Seleccione una empresa primero', 'Cerrar', { duration: 3000 });
+      return;
+    }
 
     if (!item) {
       const activas = this.rutasPorPrimigenia().filter(r => r.estado === 'VIGENTE' || r.estado === 'ACTIVA');
@@ -1973,27 +2054,11 @@ export class VehiculosEmpresaComponent implements OnInit {
       }
     }
 
-    const dialogRef = this.dialog.open(FormTramitePrimigeniaDialogComponent, {
-      data: {
-        ruc: ruc,
-        razon_social: razonSocial,
-        nro_resolucion_primigenia: item?.primigenia || '',
-        fecha_emision: item?.fechaEmision || '',
-        fecha_inicio_vigencia: item?.fechaInicioVigencia || '',
-        vigencia_hasta: item?.vigenciaHasta || '',
-        rutas: item?.rutasArray || []
-      },
-      width: '980px',
-      maxWidth: '96vw',
-      maxHeight: '92vh',
-      panelClass: 'glass-dialog-panel'
-    });
-
-    dialogRef.afterClosed().subscribe((processed: boolean) => {
-      if (processed && ruc) {
-        this.buscarFlotaEmpresa();
-      }
-    });
+    const prim = item?.primigenia || item?.nro_resolucion || '';
+    this.drawerPrimigenia.set(prim);
+    this.drawerVehiculoPreseleccionado.set(null);
+    this.drawerTipoTramite.set('SUSTITUCION');
+    this.isDrawerTramiteOpen.set(true);
   }
 
   abrirEditar(item: VehiculoEmpresa): void {

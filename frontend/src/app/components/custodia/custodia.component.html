@@ -1,0 +1,599 @@
+<div class="custodia-page-container">
+  
+  <!-- HERO / HEADER SECTION -->
+  <div class="custodia-header-card">
+    <div class="header-left">
+      <div class="header-icon-box">
+        <mat-icon class="main-icon">inventory_2</mat-icon>
+      </div>
+      <div>
+        <div class="title-with-pill">
+          <h1>Custodia de Documentos</h1>
+          <span class="badge-acervo">Archivo y Acervo Documental</span>
+        </div>
+        <p class="subtitle">
+          Registro, resguardo físico y trazabilidad digital de resoluciones, oficios, informes y documentos en custodia — DRTC Puno.
+        </p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button mat-button class="btn-refresh" (click)="cargarDatos()" matTooltip="Actualizar registros">
+        <mat-icon [class.animate-spin]="custodiaService.cargando()">sync</mat-icon>
+        <span>Refrescar</span>
+      </button>
+
+      <button mat-flat-button color="primary" class="btn-primary-action" (click)="abrirModalRegistro()">
+        <mat-icon>add_box</mat-icon>
+        <span>Nuevo Ingreso a Custodia</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI METRICS GRID (4 CARDS) -->
+  <div class="kpi-grid">
+    <!-- Card 1: Total Expedientes -->
+    <div class="kpi-card card-blue">
+      <div class="kpi-top">
+        <span class="kpi-label">Total en Archivo</span>
+        <div class="kpi-icon-pill icon-blue">
+          <mat-icon>folder_special</mat-icon>
+        </div>
+      </div>
+      <div class="kpi-value">{{ custodiaService.estadisticas()?.total_general || custodiaService.totalDocumentos() || 0 }}</div>
+      <div class="kpi-footer">
+        <span class="dot dot-blue"></span>
+        <span>expedientes registrados</span>
+      </div>
+    </div>
+
+    <!-- Card 2: Total Folios Bajo Custodia -->
+    <div class="kpi-card card-indigo">
+      <div class="kpi-top">
+        <span class="kpi-label">Folios Resguardados</span>
+        <div class="kpi-icon-pill icon-indigo">
+          <mat-icon>format_list_numbered</mat-icon>
+        </div>
+      </div>
+      <div class="kpi-value">{{ custodiaService.estadisticas()?.total_folios || 0 | number }}</div>
+      <div class="kpi-footer">
+        <span class="dot dot-indigo"></span>
+        <span>hojas útiles foliadas</span>
+      </div>
+    </div>
+
+    <!-- Card 3: En Custodia Física Activa -->
+    <div class="kpi-card card-emerald">
+      <div class="kpi-top">
+        <span class="kpi-label">En Custodia Física</span>
+        <div class="kpi-icon-pill icon-emerald">
+          <mat-icon>verified</mat-icon>
+        </div>
+      </div>
+      <div class="kpi-value">{{ custodiaService.estadisticas()?.en_custodia || 0 }}</div>
+      <div class="kpi-footer">
+        <span class="dot dot-emerald"></span>
+        <span>disponibles en estante</span>
+      </div>
+    </div>
+
+    <!-- Card 4: Prestados con Cargo -->
+    <div class="kpi-card card-amber">
+      <div class="kpi-top">
+        <span class="kpi-label">Prestados con Cargo</span>
+        <div class="kpi-icon-pill icon-amber">
+          <mat-icon>assignment_return</mat-icon>
+        </div>
+      </div>
+      <div class="kpi-value">{{ custodiaService.estadisticas()?.prestados || 0 }}</div>
+      <div class="kpi-footer">
+        <span class="dot dot-amber"></span>
+        <span>en revisión técnica / legal</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTROS Y BARRA DE BÚSQUEDA -->
+  <div class="filters-card">
+    <div class="search-box">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input 
+        type="text" 
+        [ngModel]="search()" 
+        (ngModelChange)="onSearchChange($event)"
+        placeholder="Buscar por N° Memorándum, N° Expediente, Empresa, RUC, Asunto o Ubicación..."
+      />
+      @if (search()) {
+        <button mat-icon-button (click)="onSearchChange('')" class="clear-search-btn">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <div class="filter-controls">
+      <!-- Filtro Estado -->
+      <mat-form-field appearance="outline" class="filter-select">
+        <mat-label>Estado</mat-label>
+        <mat-select [ngModel]="estadoFiltro()" (ngModelChange)="onEstadoChange($event)">
+          <mat-option value="TODOS">Todos los Estados</mat-option>
+          <mat-option value="EN_CUSTODIA">En Custodia Física</mat-option>
+          <mat-option value="PRESTADO">Prestados con Cargo</mat-option>
+          <mat-option value="TRANSFERIDO_ARCHIVO_CENTRAL">Transferidos</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Filtro Área Remitente -->
+      <mat-form-field appearance="outline" class="filter-select select-area">
+        <mat-label>Área Remitente</mat-label>
+        <mat-select [ngModel]="areaFiltro()" (ngModelChange)="onAreaChange($event)">
+          <mat-option value="TODOS">Todas las Áreas</mat-option>
+          @for (a of areasOpciones; track a) {
+            <mat-option [value]="a">{{ a }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      @if (search() || estadoFiltro() !== 'TODOS' || areaFiltro() !== 'TODOS') {
+        <button mat-stroked-button class="btn-clear-filters" (click)="limpiarFiltros()">
+          <mat-icon>filter_alt_off</mat-icon>
+          <span>Limpiar</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- TABLA PRINCIPAL DE EXPEDIENTES EN CUSTODIA -->
+  <div class="table-container">
+    <div class="table-wrapper">
+      <table class="custodia-table">
+        <thead>
+          <tr>
+            <th style="width: 130px;">Código / Ingreso</th>
+            <th style="min-width: 220px;">Memorándum de Envío</th>
+            <th style="min-width: 260px;">Expediente / Asunto</th>
+            <th style="min-width: 200px;">Administrado / Empresa</th>
+            <th style="width: 130px; text-align: center;">Folios / Tomos</th>
+            <th style="width: 160px;">Ubicación Física</th>
+            <th style="width: 140px; text-align: center;">Estado</th>
+            <th style="width: 130px; text-align: center;">Archivos Digitales</th>
+            <th style="width: 80px; text-align: center;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of custodiaService.documentos(); track d.id || d._id; let i = $index) {
+            <tr [class.row-prestado]="d.estado_custodia === 'PRESTADO'">
+              
+              <!-- 1. Código & Fecha de Ingreso -->
+              <td>
+                <div class="code-box">
+                  <span class="code-badge">{{ d.codigo_custodia || ('CUST-' + (i + 1)) }}</span>
+                  <span class="entry-date">{{ formatoFecha(d.fecha_ingreso_custodia) }}</span>
+                </div>
+              </td>
+
+              <!-- 2. Memorándum de Envío -->
+              <td>
+                <div class="memo-cell">
+                  <div class="memo-title">
+                    <mat-icon class="mini-icon text-indigo">mail</mat-icon>
+                    <strong>{{ d.nro_memorandum || 'Sin doc. remisión' }}</strong>
+                  </div>
+                  <div class="memo-meta">
+                    @if (d.fecha_memorandum) {
+                      <span>Fecha: <strong>{{ formatoFecha(d.fecha_memorandum) }}</strong> • </span>
+                    }
+                    <span class="area-badge">{{ d.area_remitente || 'SUB DIRECCION DE TRANSPORTE TERRESTRE' }}</span>
+                  </div>
+                  @if (d.remitente_nombre) {
+                    <div class="remitente-name">De: {{ d.remitente_nombre }}</div>
+                  }
+                </div>
+              </td>
+
+              <!-- 3. Expediente Administrativo & Asunto -->
+              <td>
+                <div class="exp-cell">
+                  <div class="exp-header">
+                    <span class="exp-badge" [class.badge-sn]="!d.nro_expediente">{{ d.nro_expediente || 'S/N (Sin Exp.)' }}</span>
+                    <span class="tramite-tag">{{ getTipoTramiteLabel(d.tipo_tramite) }}</span>
+                  </div>
+                  <div class="exp-subject" [matTooltip]="d.asunto_expediente">
+                    {{ d.asunto_expediente }}
+                  </div>
+                  @if (d.nro_resolucion) {
+                    <div class="res-vinculada">
+                      <mat-icon class="res-icon">gavel</mat-icon>
+                      <span>Res. Directoral: <strong>{{ d.nro_resolucion }}</strong></span>
+                    </div>
+                  }
+                </div>
+              </td>
+
+              <!-- 4. Administrado / Empresa -->
+              <td>
+                <div class="empresa-cell">
+                  @if (d.razon_social) {
+                    <strong class="emp-name" [matTooltip]="d.razon_social">{{ d.razon_social }}</strong>
+                    @if (d.ruc) {
+                      <span class="ruc-pill">RUC: {{ d.ruc }}</span>
+                    }
+                  } @else if (d.ruc) {
+                    <span class="ruc-pill">Doc: {{ d.ruc }}</span>
+                  } @else {
+                    <span class="text-muted">No consignado</span>
+                  }
+                </div>
+              </td>
+
+              <!-- 5. Folios y Tomos -->
+              <td style="text-align: center;">
+                <div class="folios-box">
+                  <span class="folios-pill" [matTooltip]="d.nro_folios + ' folios útiles foliados'">
+                    <mat-icon class="folios-icon">description</mat-icon>
+                    <strong>{{ d.nro_folios }}</strong> folios
+                  </span>
+                  @if (d.nro_tomos && d.nro_tomos > 1) {
+                    <span class="tomos-sub">{{ d.nro_tomos }} tomos</span>
+                  }
+                  @if (d.documentos_acumulados && d.documentos_acumulados.length > 0) {
+                    <span class="pill-acumulado" [matTooltip]="d.documentos_acumulados.length + ' documento(s) o actuado(s) acumulados a este expediente'">
+                      <mat-icon class="mini-acum-icon">library_add</mat-icon>
+                      +{{ d.documentos_acumulados.length }} acumulados
+                    </span>
+                  }
+                </div>
+              </td>
+
+              <!-- 6. Ubicación Física -->
+              <td>
+                <div class="ubicacion-cell">
+                  @if (d.ubicacion_estante || d.ubicacion_archivador) {
+                    <div class="loc-row">
+                      <mat-icon class="loc-icon">table_rows</mat-icon>
+                      <span>{{ d.ubicacion_estante || 'S/E' }}</span>
+                    </div>
+                    <div class="loc-sub">
+                      <span>{{ d.ubicacion_archivador || '' }}</span>
+                    </div>
+                    @if (d.codigo_ubicacion) {
+                      <span class="marbete-tag">{{ d.codigo_ubicacion }}</span>
+                    }
+                  } @else {
+                    <span class="text-muted">Por clasificar</span>
+                  }
+                </div>
+              </td>
+
+              <!-- 7. Estado de Custodia -->
+              <td style="text-align: center;">
+                @if (d.estado_custodia === 'PRESTADO') {
+                  <div class="status-box status-prestado" [matTooltip]="'Prestado a: ' + (d.prestamo_actual?.solicitante || 'Servidor') + ' (' + (d.prestamo_actual?.area_solicitante || 'Área') + ')'">
+                    <mat-icon class="status-icon">assignment_return</mat-icon>
+                    <span class="status-text">PRESTADO</span>
+                    <span class="prestamo-sub">{{ d.prestamo_actual?.solicitante }}</span>
+                  </div>
+                } @else if (d.estado_custodia === 'TRANSFERIDO_ARCHIVO_CENTRAL') {
+                  <div class="status-box status-transferido">
+                    <mat-icon class="status-icon">archive</mat-icon>
+                    <span class="status-text">TRANSFERIDO</span>
+                  </div>
+                } @else {
+                  <div class="status-box status-custodia">
+                    <mat-icon class="status-icon">verified</mat-icon>
+                    <span class="status-text">EN CUSTODIA</span>
+                  </div>
+                }
+              </td>
+
+              <!-- 8. Archivos Digitales Adjuntos -->
+              <td style="text-align: center;">
+                <div class="files-action-box">
+                  <!-- Botón Memo PDF -->
+                  @if (d.archivo_memo) {
+                    <a [href]="custodiaService.getArchivoUrl(d.archivo_memo)" target="_blank" class="btn-file-pdf btn-memo-pdf" matTooltip="Ver Memorándum Escaneado (PDF)">
+                      <mat-icon>picture_as_pdf</mat-icon>
+                      <span>Memo</span>
+                    </a>
+                  } @else {
+                    <span class="file-none" matTooltip="Sin escaneo de memorándum">-</span>
+                  }
+
+                  <!-- Botón Expediente PDF -->
+                  @if (d.archivo_expediente) {
+                    <a [href]="custodiaService.getArchivoUrl(d.archivo_expediente)" target="_blank" class="btn-file-pdf btn-exp-pdf" matTooltip="Ver Expediente Escaneado Completo (PDF)">
+                      <mat-icon>folder_open</mat-icon>
+                      <span>Exp.</span>
+                    </a>
+                  } @else {
+                    <span class="file-none" matTooltip="Sin escaneo de expediente">-</span>
+                  }
+                </div>
+              </td>
+
+              <!-- 9. Acciones -->
+              <td style="text-align: center;">
+                <button mat-icon-button [matMenuTriggerFor]="menuAcciones" class="btn-menu-acciones" title="Opciones">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menuAcciones="matMenu" xPosition="before">
+                  <button mat-menu-item (click)="verTrazabilidad(d)">
+                    <mat-icon color="primary">visibility</mat-icon>
+                    <span>Ver Ficha y Trazabilidad</span>
+                  </button>
+
+                  @if (d.estado_custodia === 'PRESTADO') {
+                    <button mat-menu-item (click)="abrirModalDevolucion(d)">
+                      <mat-icon style="color: #16a34a;">task_alt</mat-icon>
+                      <span>Registrar Devolución</span>
+                    </button>
+                  } @else {
+                    <button mat-menu-item (click)="abrirModalPrestamo(d)">
+                      <mat-icon style="color: #d97706;">assignment_return</mat-icon>
+                      <span>Prestar a Funcionario</span>
+                    </button>
+                  }
+
+                  <button mat-menu-item (click)="abrirModalAcumular(d)">
+                    <mat-icon style="color: #4f46e5;">library_add</mat-icon>
+                    <span>Acumular / Anexar Documento</span>
+                  </button>
+
+                  <button mat-menu-item (click)="abrirModalEdicion(d)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Editar Metadatos / Archivos</span>
+                  </button>
+
+                  <mat-divider></mat-divider>
+
+                  <button mat-menu-item (click)="eliminarRegistro(d)" style="color: #dc2626;">
+                    <mat-icon color="warn">delete</mat-icon>
+                    <span>Eliminar Registro</span>
+                  </button>
+                </mat-menu>
+              </td>
+
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="empty-state">
+                <mat-icon class="empty-icon">inventory_2</mat-icon>
+                <h3>No hay expedientes en custodia encontrados</h3>
+                <p>No se encontraron registros que coincidan con los criterios de búsqueda.</p>
+                <button mat-stroked-button color="primary" (click)="abrirModalRegistro()">
+                  <mat-icon>add</mat-icon>
+                  <span>Registrar Primer Expediente</span>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginador -->
+    <mat-paginator
+      [length]="custodiaService.totalDocumentos()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageIndex()"
+      [pageSizeOptions]="[10, 25, 50, 100]"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+  </div>
+
+  <!-- PANEL DESLIZABLE / MODAL DE TRAZABILIDAD (DETALLE COMPLETO) -->
+  @if (documentoDetalle()) {
+    <div class="overlay-backdrop" (click)="cerrarDetalle()"></div>
+    <div class="drawer-detalle animate-fade-in-right">
+      <div class="drawer-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <mat-icon class="text-blue">inventory</mat-icon>
+          <div>
+            <h3 class="drawer-title">Ficha de Custodia: {{ documentoDetalle()?.codigo_custodia }}</h3>
+            <span class="drawer-sub">Doc / Expediente: {{ documentoDetalle()?.nro_expediente || 'S/N (Sin Exp.)' }}</span>
+          </div>
+        </div>
+        <button mat-icon-button (click)="cerrarDetalle()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="drawer-content">
+        <!-- Resumen de Estado -->
+        <div class="drawer-banner" [class.banner-prestado]="documentoDetalle()?.estado_custodia === 'PRESTADO'">
+          <mat-icon>{{ documentoDetalle()?.estado_custodia === 'PRESTADO' ? 'warning' : 'verified' }}</mat-icon>
+          <div>
+            <strong>Estado: {{ documentoDetalle()?.estado_custodia }}</strong>
+            <p style="margin: 2px 0 0 0; font-size: 0.78rem;">
+              {{ documentoDetalle()?.nro_folios }} folios útiles • {{ documentoDetalle()?.nro_tomos || 1 }} tomo(s) • Conservación: {{ documentoDetalle()?.estado_conservacion }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Archivos Digitales Directos -->
+        <div class="drawer-section">
+          <h4>Archivos Digitales Adjuntos</h4>
+          <div class="drawer-files-grid">
+            @if (documentoDetalle()?.archivo_memo) {
+              <a [href]="custodiaService.getArchivoUrl(documentoDetalle()?.archivo_memo)" target="_blank" class="drawer-file-card file-memo">
+                <mat-icon>picture_as_pdf</mat-icon>
+                <div>
+                  <strong>Memorándum Digitalizado</strong>
+                  <span>{{ documentoDetalle()?.nombre_archivo_memo || 'Abrir PDF de remisión' }}</span>
+                </div>
+              </a>
+            } @else {
+              <div class="drawer-file-card empty-card">
+                <mat-icon>drafts</mat-icon>
+                <span>Sin memorándum escaneado</span>
+              </div>
+            }
+
+            @if (documentoDetalle()?.archivo_expediente) {
+              <a [href]="custodiaService.getArchivoUrl(documentoDetalle()?.archivo_expediente)" target="_blank" class="drawer-file-card file-exp">
+                <mat-icon>folder_open</mat-icon>
+                <div>
+                  <strong>Expediente Completo Escaneado</strong>
+                  <span>{{ documentoDetalle()?.nombre_archivo_expediente || 'Abrir PDF del expediente' }}</span>
+                </div>
+              </a>
+            } @else {
+              <div class="drawer-file-card empty-card">
+                <mat-icon>folder_off</mat-icon>
+                <span>Sin expediente escaneado</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Datos del Memorándum -->
+        <div class="drawer-section">
+          <h4>Memorándum de Remisión</h4>
+          <div class="info-list">
+            <div class="info-row">
+              <span class="info-label">Doc. de Remisión:</span>
+              <span class="info-val font-bold">{{ documentoDetalle()?.nro_memorandum || 'Sin documento de remisión' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Fecha del Memo:</span>
+              <span class="info-val">{{ formatoFecha(documentoDetalle()?.fecha_memorandum) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Área Remitente:</span>
+              <span class="info-val">{{ documentoDetalle()?.area_remitente }}</span>
+            </div>
+            @if (documentoDetalle()?.remitente_nombre) {
+              <div class="info-row">
+                <span class="info-label">Funcionario:</span>
+                <span class="info-val">{{ documentoDetalle()?.remitente_nombre }}</span>
+              </div>
+            }
+            @if (documentoDetalle()?.asunto_memorandum) {
+              <div class="info-row">
+                <span class="info-label">Asunto Memo:</span>
+                <span class="info-val">{{ documentoDetalle()?.asunto_memorandum }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Ubicación Física -->
+        <div class="drawer-section">
+          <h4>Ubicación Física en Archivo</h4>
+          <div class="info-list">
+            <div class="info-row">
+              <span class="info-label">Estante:</span>
+              <span class="info-val font-bold">{{ documentoDetalle()?.ubicacion_estante || 'No consignado' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Archivador / Caja:</span>
+              <span class="info-val">{{ documentoDetalle()?.ubicacion_archivador || 'No consignado' }}</span>
+            </div>
+            @if (documentoDetalle()?.codigo_ubicacion) {
+              <div class="info-row">
+                <span class="info-label">Código Marbete:</span>
+                <span class="info-val code-badge">{{ documentoDetalle()?.codigo_ubicacion }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Historial de Préstamos y Trazabilidad -->
+        <div class="drawer-section">
+          <h4>Historial de Salidas y Préstamos</h4>
+          @if (documentoDetalle()?.historial_prestamos && documentoDetalle()!.historial_prestamos!.length > 0) {
+            <div class="timeline">
+              @for (p of documentoDetalle()?.historial_prestamos; track p.id) {
+                <div class="timeline-item" [class.item-active]="!p.devuelto">
+                  <div class="timeline-dot"></div>
+                  <div class="timeline-body">
+                    <div class="timeline-header">
+                      <strong>{{ p.solicitante }}</strong>
+                      <span class="timeline-date">{{ formatoFecha(p.fecha_prestamo) }}</span>
+                    </div>
+                    <span class="timeline-area">{{ p.area_solicitante }} • Cargo: {{ p.documento_requerimiento }}</span>
+                    <p class="timeline-motivo">Motivo: {{ p.motivo_prestamo }}</p>
+                    @if (p.devuelto) {
+                      <div class="devuelto-badge">
+                        <mat-icon>check</mat-icon>
+                        <span>Devuelto el {{ formatoFecha(p.fecha_devolucion_real) }} ({{ p.observaciones_devolucion }})</span>
+                      </div>
+                    } @else {
+                      <div class="prestado-badge">
+                        <mat-icon>schedule</mat-icon>
+                        <span>En préstamo activo (Plazo pactado: {{ p.fecha_limite_devolucion || 'Indefinido' }})</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="text-muted" style="font-size: 0.8rem; margin: 0.5rem 0;">No registra salidas por préstamo. El expediente se ha mantenido en custodia continua.</p>
+          }
+        </div>
+
+        <!-- SECCIÓN: DOCUMENTOS Y ACTUADOS ACUMULADOS -->
+        <div class="drawer-section">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <h4 style="margin: 0;">Documentos y Actuados Acumulados</h4>
+            <button mat-stroked-button class="btn-mini-accum" (click)="abrirModalAcumular(documentoDetalle()!)">
+              <mat-icon>add</mat-icon>
+              <span>Acumular</span>
+            </button>
+          </div>
+
+          @if (documentoDetalle()?.documentos_acumulados && documentoDetalle()!.documentos_acumulados!.length > 0) {
+            <div class="acumulados-list">
+              @for (ac of documentoDetalle()?.documentos_acumulados; track ac.id || $index) {
+                <div class="acumulado-card">
+                  <div class="ac-top">
+                    <span class="ac-num">
+                      <mat-icon class="ac-ic">description</mat-icon>
+                      {{ ac.nro_documento || 'Documento Acumulado' }}
+                    </span>
+                    <span class="ac-folios">+{{ ac.folios_agregados || 0 }} folios</span>
+                  </div>
+                  <p class="ac-asunto">{{ ac.asunto }}</p>
+                  <div class="ac-meta">
+                    @if (ac.fecha_documento) {
+                      <span>Fecha: <strong>{{ formatoFecha(ac.fecha_documento) }}</strong> • </span>
+                    }
+                    <span>{{ ac.area_remitente || 'Área Remitente' }}</span>
+                    @if (ac.archivo_adjunto) {
+                      <a [href]="custodiaService.getArchivoUrl(ac.archivo_adjunto)" target="_blank" class="ac-pdf-link" title="Ver documento acumulado">
+                        <mat-icon>picture_as_pdf</mat-icon> PDF
+                      </a>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="text-muted" style="font-size: 0.8rem; margin: 0.3rem 0;">No registra actuaciones o documentos acumulados complementarios.</p>
+          }
+        </div>
+
+        @if (documentoDetalle()?.observaciones) {
+          <div class="drawer-section">
+            <h4>Observaciones</h4>
+            <p style="font-size: 0.82rem; color: #475569; margin: 0; line-height: 1.4;">
+              {{ documentoDetalle()?.observaciones }}
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- DRAWER LATERAL DERECHO DE FORMULARIO (REGISTRO, EDICIÓN Y ACUMULACIÓN) -->
+  <app-custodia-form-drawer
+    [isOpen]="isDrawerFormOpen()"
+    [isEdit]="isEditMode()"
+    [documento]="drawerDocEditando()"
+    [initialModoAcumulacion]="isDrawerAcumularMode()"
+    (closed)="cerrarDrawerForm()"
+    (saved)="onDrawerFormGuardado()">
+  </app-custodia-form-drawer>
+
+</div>
